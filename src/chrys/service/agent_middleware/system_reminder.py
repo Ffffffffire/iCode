@@ -81,6 +81,7 @@ if TYPE_CHECKING:
     from chrys.kernel.middleware import ChatContext
     from chrys.service.context.compaction.last_words_state import LastWordsTurn
     from chrys.service.context.compaction.spill import SpillQuota
+    from chrys.service.personal_memory.runtime import PersonalMemoryRuntime
 
     from .reminders.base import CatalogSource
     from .reminders.file_change import FileChangeTurn
@@ -284,6 +285,8 @@ class TurnReminderState:
     """The workspace file-change notice drained for this turn."""
     last_words: LastWordsTurn | None = None
     """The Phase 4 slot ``compaction.last_words_state.LastWordsState`` owns; None until it writes one."""
+    personal_memory: str | None = None
+    personal_memory_ready: bool = False
 
 
 class LastWordsPort(Protocol):
@@ -412,6 +415,7 @@ class SystemReminderMiddleware(ChatMiddleware):
         mcp_instructions_provider: Callable[[], str | None] | None = None,
         file_change_provider: Callable[[], str | None] | None = None,
         last_words: LastWordsPort | None = None,
+        personal_memory: PersonalMemoryRuntime | None = None,
     ) -> None:
         """*last_words* comes from ``create_reminder``; the middleware keeps its turns on the state's holder.
 
@@ -434,6 +438,7 @@ class SystemReminderMiddleware(ChatMiddleware):
             file_read_available=file_read_available,
             spill_quota=spill_quota,
             catalog_pointer_enabled=catalog_pointer_enabled,
+            personal_memory=personal_memory,
         )
         sources = self._sources
         self._withdrawn_notices = _withdrawn_notices(
@@ -446,6 +451,7 @@ class SystemReminderMiddleware(ChatMiddleware):
                 sources.mcp,
             )
         )
+        self._withdrawn_notices[sources.personal_memory.name] = sources.personal_memory.withdrawn
         # The catalogs a service-side conversation holds, keyed by the handle
         # its last answered call returned (see the module docstring).
         self._held_catalogs: tuple[str, dict[str, str]] | None = None
@@ -493,6 +499,8 @@ class SystemReminderMiddleware(ChatMiddleware):
                 skill_catalog=previous.skill_catalog,
                 mcp_instructions=previous.mcp_instructions,
                 switch=previous.switch,
+                personal_memory=previous.personal_memory,
+                personal_memory_ready=previous.personal_memory_ready,
             )
         else:
             snapshot = self._snapshot_turn_reminders(usage=usage or {})
@@ -768,6 +776,15 @@ class SystemReminderMiddleware(ChatMiddleware):
         context: ChatContext,
         call_next: Callable[[], Awaitable[None]],
     ) -> None:
+        # Build the turn holder before awaiting selective local recall. The
+        # resulting catalog is fixed for the turn and recorded by the same
+        # request-delivery mechanism as the other catalogs.
+        self._build_reminder_items()
+        memory_state = self._turns.local()
+        self._sources.personal_memory.observe(context.messages)
+        if memory_state is not None and not memory_state.personal_memory_ready and not _is_continuation_poll(context):
+            memory_state.personal_memory = await self._sources.personal_memory.snapshot(context.messages)
+            memory_state.personal_memory_ready = True
         reminder_items = self._build_reminder_items()
         last_words_reminders = self._last_words_reminders()
         applied_switch: SwitchSnapshot | None = None
@@ -895,6 +912,7 @@ class SystemReminderMiddleware(ChatMiddleware):
                 (self._sources.background_tasks.name, state.background_tasks),
                 (self._sources.skills.name, state.skill_catalog),
                 (self._sources.mcp.name, state.mcp_instructions),
+                (self._sources.personal_memory.name, state.personal_memory),
                 (self._sources.archive_pointer.name, self._sources.archive_pointer.current_text()),
             )
             if text

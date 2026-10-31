@@ -17,6 +17,7 @@ from .background_tasks import BackgroundTasksSource
 from .context_usage import ContextWarningSource
 from .file_change import FileChangeSource
 from .mcp import McpSource
+from .personal_memory import PersonalMemorySource
 from .profile_switch import ProfileSwitchSource
 from .runtime_env import RuntimeEnvSource
 from .skills import SkillsSource
@@ -30,6 +31,7 @@ if TYPE_CHECKING:
 
     from chrys.foundation.models.session_env import SessionEnvironment
     from chrys.service.context.compaction.spill import SpillQuota
+    from chrys.service.personal_memory.runtime import PersonalMemoryRuntime
 
 
 @dataclass(frozen=True, slots=True)
@@ -51,6 +53,7 @@ class ReminderSources:
     file_change: FileChangeSource
     profile_switch: ProfileSwitchSource
     archive_pointer: ArchivePointerSource
+    personal_memory: PersonalMemorySource
 
 
 def build_sources(
@@ -70,6 +73,7 @@ def build_sources(
     file_read_available: bool,
     spill_quota: SpillQuota | None,
     catalog_pointer_enabled: bool,
+    personal_memory: PersonalMemoryRuntime | None = None,
 ) -> ReminderSources:
     """The sources for one middleware, from its constructor inputs."""
     return ReminderSources(
@@ -84,6 +88,7 @@ def build_sources(
         background_tasks=BackgroundTasksSource(background_tasks_provider),
         skills=SkillsSource(skill_catalog_provider),
         mcp=McpSource(mcp_instructions_provider),
+        personal_memory=PersonalMemorySource(personal_memory),
         file_change=FileChangeSource(file_change_provider),
         profile_switch=ProfileSwitchSource(tool_names),
         archive_pointer=ArchivePointerSource(

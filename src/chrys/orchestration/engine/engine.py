@@ -24,6 +24,7 @@ from typing import TYPE_CHECKING
 
 from chrys.foundation.config.settings import Settings, persist_approval_mode
 from chrys.foundation.config.settings_store import LoadedSettings, SettingsHandle
+from chrys.foundation.events.personal_memory import PersonalMemoryCommand
 from chrys.foundation.events.types import (
     AgentProfileSwitch,
     AgentRuntimeDetails,
@@ -73,6 +74,7 @@ from chrys.orchestration.workflows.coordinator import WorkflowCoordinator
 from chrys.service.approval.policy import ApprovalMode
 from chrys.service.mutations.coordination import MutationCoordinator
 from chrys.service.mutations.tracker import MutationTracker
+from chrys.service.personal_memory.controller import PersonalMemoryController
 from chrys.service.session.history import SessionHistoryManager
 from chrys.service.state.store import (
     SESSION_WRITE_LOCK_TIMEOUT_SECONDS,
@@ -169,6 +171,7 @@ class AgentEngine:
         side_questions: SideQuestions,
         hook_runs: HookRunLog | None = None,
         hook_confirmations: HookConfirmationService | None = None,
+        personal_memory: PersonalMemoryController,
     ) -> None:
         self._bus = bus
         self._session = session
@@ -190,6 +193,7 @@ class AgentEngine:
         self._side_questions = side_questions
         self._hook_runs = hook_runs
         self._hook_confirmations = hook_confirmations
+        self._personal_memory = personal_memory
         self._subscribed = False
         self._release_task: asyncio.Task[None] | None = None
 
@@ -521,6 +525,7 @@ class AgentEngine:
             return
         self._subscribed = True
         await self._bus.subscribe(UserMessage, self._on_user_message)
+        await self._bus.subscribe(PersonalMemoryCommand, self._on_personal_memory)
         await self._bus.subscribe(UserInterrupt, self._on_user_interrupt)
         await self._bus.subscribe(UserRetry, self._on_user_retry)
         await self._bus.subscribe(UserInject, self._on_user_inject)
@@ -548,6 +553,11 @@ class AgentEngine:
         await self._side_questions.subscribe()
         if self._hook_confirmations is not None:
             await self._hook_confirmations.start()
+
+    async def _on_personal_memory(self, event: PersonalMemoryCommand) -> None:
+        if event.session_id and event.session_id != self.session_id:
+            return
+        await self._personal_memory.handle(event)
 
     async def shutdown(self) -> None:
         # Closing is declared before the active workflow run is drained: a requester queued behind that

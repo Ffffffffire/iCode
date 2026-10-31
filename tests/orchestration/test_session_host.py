@@ -611,8 +611,8 @@ async def test_session_host_hides_ask_user_from_noninteractive_model(monkeypatch
         await host.shutdown()
 
     assert result.text == "all done"
-    assert [tool.name for tool in model_tools] == ["guarded_echo"]
-    assert list(host.engine.current.manifest.tool_names) == ["guarded_echo"]
+    assert [tool.name for tool in model_tools] == ["guarded_echo", "recall_memory", "propose_memory"]
+    assert list(host.engine.current.manifest.tool_names) == ["guarded_echo", "recall_memory", "propose_memory"]
 
 
 @pytest.mark.asyncio

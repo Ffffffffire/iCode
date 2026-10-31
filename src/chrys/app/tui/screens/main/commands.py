@@ -110,6 +110,11 @@ _DESCRIPTION_USAGE = msg(
     fallback="Show token usage and speed across all sessions",
 )
 _DESCRIPTION_SETTINGS = msg("tui.commands.description.settings", fallback="Open the Settings panel")
+_DESCRIPTION_MEMORY = msg("tui.commands.description.memory", fallback="Manage personal memories and inspect recall")
+_MAN_MEMORY_BODY = msg(
+    "tui.man.memory.body",
+    fallback="Review memory suggestions, edit conditions and sources, inspect the latest recall, or turn memory off. Active memories are recalled by current question and project. Changes apply to the next turn.",
+)
 _DESCRIPTION_MAN = msg("tui.commands.description.man", fallback="Show manual page for a command")
 
 _APPROVAL_MANUAL = msg(
@@ -501,6 +506,7 @@ class SlashCommandActionPort(Protocol):
     def open_agent_config_tab(self, tab: str) -> None: ...
     def runtime_details(self) -> None: ...
     def usage(self) -> None: ...
+    def personal_memory(self) -> None: ...
     def open_settings(self, tab: str) -> None: ...
     def show_man_pages(self, pages: list[ManPageSpec], *, start_index: int = 0) -> None: ...
     def notify_warning(
@@ -549,6 +555,7 @@ class SlashCommandActions:
     configure_agent_tab: Callable[[str], None]
     show_runtime_details: Callable[[], None]
     show_usage: Callable[[], None]
+    show_personal_memory: Callable[[], None]
     configure_settings: Callable[[str], None]
     show_manual_pages: Callable[[list[ManPageSpec], int], None]
     warn: Callable[[MessageRef | str, MessageRef | str, float | None], None]
@@ -646,6 +653,9 @@ class SlashCommandActions:
 
     def usage(self) -> None:
         self.show_usage()
+
+    def personal_memory(self) -> None:
+        self.show_personal_memory()
 
     def open_settings(self, tab: str) -> None:
         self.configure_settings(tab)
@@ -1091,6 +1101,13 @@ class MainSlashCommandRegistry:
                 action=lambda _: actions.usage(),
                 allow_while_running=True,
                 man_page=_MAN_USAGE_BODY.bind(),
+            ),
+            SlashCommandDef(
+                "memory",
+                _DESCRIPTION_MEMORY.bind(),
+                action=lambda _: actions.personal_memory(),
+                allow_while_running=True,
+                man_page=_MAN_MEMORY_BODY.bind(),
             ),
             SlashCommandDef(
                 "settings",

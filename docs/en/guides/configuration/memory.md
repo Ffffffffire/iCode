@@ -1,6 +1,30 @@
 # Configure memory
 
-This guide explains how to configure memory for the main agent.
+Use `/memory` for personal experiences and decisions, or `/agents memory` for reference files loaded with an agent.
+
+## Personal memory
+
+Enter `/memory` to open the memory library. The list shows active memories, suggestions awaiting review, archived memories, and the latest recall for this session. Select a memory to read its rationale, when to use it, when to reconsider it, source quote, and earlier revisions.
+
+Click **+ New** to save a decision, preference, lesson, or unfinished intention. Give it a specific title, the experience and its rationale, and a future situation where it would help. **This project only** limits recall to the current working directory; clear it for a memory that applies across projects.
+
+With **Allow suggestions** enabled, the main agent can propose memories during a conversation. Suggestions include a quote checked against a recent visible message and its source session. An assistant's quote is evidence of what it said, not proof that its conclusion is correct. Review suggestions and click **Activate** before they can be recalled. A suggested correction leaves the accepted memory unchanged until you activate it.
+
+Choose a recall mode at the top:
+
+- **Automatic recall:** each new turn searches active memories using the current question and project. Only matching memories are provided to the model, with their conditions and sources. The agent can refine the search for the decision or mechanism it is investigating.
+- **Recall on request:** no automatic selection; ask the agent to search personal memory when needed.
+- **Memory off:** neither recall nor new suggestions are available. Existing memories remain in the library.
+
+Changes apply to the next turn without restarting the agent. The latest-recall view shows matched terms and identifies memories revised since that recall. A match means the memory was retrieved, not that its advice was correct or applied successfully. Automatic matching is lexical, supports Chinese and English, and checks project scope; it does not prove that a condition is satisfied. The agent must check applicability against the current task.
+
+**Edit** preserves up to five earlier content revisions. **Archive** removes a memory from recall while retaining it for review; use this when an intention is finished or an experience is no longer applicable. **Forget** removes the memory, its revisions, pending corrections, and recall references after confirmation. It does not erase existing chat transcripts that already contained it.
+
+Personal memories are stored locally in `personal-memory.json` in your user configuration directory. Only recalled content is sent to your configured model service. Recall returns at most five memories with a combined rendered-content limit of 6,000 characters; it does not scan old session logs. The library holds up to 500 memories and eight MiB, and reports when it is full. Suggestions are produced through tool calls in the current conversation; there is no background batch-extraction job. Personal memories are available to the main chat agent, including `icode run`; sub-agents and workflow agents do not receive this private library automatically.
+
+## Reference files
+
+The following settings apply to reference files configured in `/agents memory`.
 
 ## Prepare memory content
 

@@ -754,6 +754,16 @@ async def build_agent(
         if memory_content.truncated:
             await bus.publish(memory_truncated_warning(memory_content, session_id=session_id))
 
+        # Personal experiences belong to the interactive user's main agent.
+        # Child and workflow builds deliberately receive no private catalog
+        # or memory-writing tools; their task context is supplied by the caller.
+        from chrys.service.personal_memory.runtime import PersonalMemoryRuntime
+
+        shared_tools = list(tools)
+        personal_memory = PersonalMemoryRuntime(bus=bus, session_id=session_id or "", workspace=runtime.cwd)
+        personal_memory_tools = personal_memory.tools()
+        tools.extend(personal_memory_tools)
+
         # Capture tool/skill names
         await _progress(AGENT_LOAD_PHASE_AGENT, "Finalizing agent", status=AGENT_LOAD_STATUS_RUNNING)
         tool_names = [t.name for t in tools]
@@ -776,7 +786,7 @@ async def build_agent(
             ),
             builtin_tools=builtin_tools,
             web_search_providers=web_tools.provider_origins(),
-            context_tools=context_tool_names,
+            context_tools=[*context_tool_names, *(tool.name for tool in personal_memory_tools)],
             sub_agent_tools=sub_agent_tool_names,
             mcp_tools=mcp_tools_by_server,
             mcp_failures=mcp_failures,
@@ -890,6 +900,7 @@ async def build_agent(
             injection=InjectionMiddleware,
             validation=create_validation,
             persist_recovery=persist_recovery_now,
+            personal_memory=partial(PersonalMemoryRuntime, bus=bus, session_id=session_id or "", workspace=runtime.cwd),
         )
         web_tools.check_names(tools)
 
@@ -899,13 +910,14 @@ async def build_agent(
                 client=client,
                 name="Chrys",
                 instructions=profile.instructions,
-                tools=tools,
+                tools=shared_tools,
                 providers=context_providers,
                 vision=active_profile.vision,
             ),
             recipe,
             context=ctx,
             injection=injection,
+            personal_memory=personal_memory,
         )
         validation_middleware = assembled.validation
         if validation_middleware is None:

@@ -46,6 +46,7 @@ if TYPE_CHECKING:
     from chrys.service.context.compaction.last_words_state import DropRoundBreakerState
     from chrys.service.context.compaction.spill import SpillQuota
     from chrys.service.hooks.manager import HookManager
+    from chrys.service.personal_memory.runtime import PersonalMemoryRuntime
     from chrys.service.profiles.agents.schema import CompactionConfig
     from chrys.service.profiles.models.schema import ModelProfile
 
@@ -91,6 +92,7 @@ class ReminderInputs(TypedDict):
     background_tasks_provider: NotRequired[Callable[[], str | None] | None]
     mcp_instructions_provider: NotRequired[Callable[[], str | None] | None]
     file_change_provider: NotRequired[Callable[[], str | None] | None]
+    personal_memory: NotRequired[PersonalMemoryRuntime | None]
 
 
 class LastWordsInputs(TypedDict):
@@ -161,6 +163,7 @@ class MainRecipe:
     injection: Callable[[], InjectionMiddleware]
     validation: Callable[[Conversation], ResponseValidationMiddleware]
     persist_recovery: Callable[[], Awaitable[bool]] | None
+    personal_memory: Callable[[], PersonalMemoryRuntime] | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -232,6 +235,7 @@ def create_runtime(
     *,
     context: ContextManager | None = None,
     injection: InjectionMiddleware | None = None,
+    personal_memory: PersonalMemoryRuntime | None = None,
 ) -> KernelRuntime:
     """Assemble fresh mutable runtime, preserving both established chat chains.
 
@@ -240,7 +244,13 @@ def create_runtime(
     When context is supplied, recipe.context is not used to create a context.
     """
     ctx = create_context(recipe.context) if context is None else context
-    reminder, last_words = create_reminder(recipe.reminder)
+    reminder_inputs = recipe.reminder.copy()
+    tools = list(shared.tools)
+    if isinstance(recipe, MainRecipe) and recipe.personal_memory is not None:
+        personal_memory = recipe.personal_memory() if personal_memory is None else personal_memory
+        reminder_inputs["personal_memory"] = personal_memory
+        tools.extend(personal_memory.tools())
+    reminder, last_words = create_reminder(reminder_inputs)
     ctx.compaction_strategy.bind_reminder(reminder, last_words)
     if isinstance(recipe, MainRecipe) and recipe.persist_recovery is not None:
         ctx.compaction_strategy.set_recovery_persistence_callback(recipe.persist_recovery)
@@ -280,7 +290,7 @@ def create_runtime(
         client=shared.client,
         name=shared.name,
         instructions=shared.instructions,
-        tools=list(shared.tools),
+        tools=tools,
         context_providers=providers,
         middleware=chain,
     )

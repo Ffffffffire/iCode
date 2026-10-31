@@ -5296,6 +5296,12 @@ msgstr "设置显示语言"
 msgid "tui.commands.description.man"
 msgstr "显示命令的手册页"
 
+#. English: Manage personal memories and inspect recall
+#. chrys-meta={"fingerprint":"210cfc339bf323c93003c33ddfa79a86d7e230de493b3455b109e32b940e5b9e","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/main/commands.py
+msgid "tui.commands.description.memory"
+msgstr "管理个人记忆并查看召回"
+
 #. English: Configure model provider and settings
 #. chrys-meta={"fingerprint":"efadf99ce91c6f9558b3cf9fd68b8453212b899ca19211c3e3d5f393d1ad4846","multiline":false,"placeholders":[]}
 #: src/chrys/app/tui/screens/main/commands.py
@@ -7832,6 +7838,14 @@ msgstr ""
 "    不带参数时，显示所有可用命令。\n"
 "    指定命令名称时，显示该命令的详细帮助。"
 
+#. English: Review memory suggestions, edit conditions and sources, inspect the
+#. latest recall, or turn memory off. Active memories are recalled by current
+#. question and project. Changes apply to the next turn.
+#. chrys-meta={"fingerprint":"cc105e5d01e5a97a54d654cdc2ce7320c32f4b019b6586582e52839bb3f8fbe9","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/main/commands.py
+msgid "tui.man.memory.body"
+msgstr "审核记忆候选、编辑适用条件和来源、查看最近召回，或关闭记忆。已启用的记忆按当前问题和项目召回。修改从下一回合生效。"
+
 #. English: Open the model configuration dialog.  Configure:     - Model
 #. provider (OpenAI, Anthropic, local, etc.)     - Model name and version     -
 #. Temperature and other generation parameters     - API keys and endpoints
@@ -9518,6 +9532,286 @@ msgstr "第 {page} 页，共 {pages} 页"
 #: src/chrys/app/tui/widgets/page_navigator.py
 msgid "tui.page_navigator.previous"
 msgstr "上一页"
+
+#. English: Activate
+#. chrys-meta={"fingerprint":"e98ca14f095cbd5b4ea08d6e162f29555c9730193acd8a97e7f2aebb38618fe1","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.accept"
+msgstr "启用"
+
+#. English: Active
+#. chrys-meta={"fingerprint":"de565b5530e089bbed4a7b0ae6e6a24401dce2d15f3110b69cc86bd39b5b97a6","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.active"
+msgstr "已启用"
+
+#. English: All memories
+#. chrys-meta={"fingerprint":"ad2c24dc59066e892c7807df219248a104a0df5dc43fcd9a30a30561540ce3d4","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.all"
+msgstr "全部记忆"
+
+#. English: Archive
+#. chrys-meta={"fingerprint":"e0151f48e1992c85cae7c13358ef6b289b747a06a439043da26e6c502cd76bab","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.archive"
+msgstr "归档"
+
+#. English: Archived
+#. chrys-meta={"fingerprint":"1f716b95bd2a96667ddf9cfe077e68925b8393b58dae206d26a6623a70f2f9f9","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.archived"
+msgstr "已归档"
+
+#. English: Assistant message · review the claim
+#. chrys-meta={"fingerprint":"7a2d5394833f3172eda0dcbf0193880ae3f4d95f58bb2629bd674a38d48dbce4","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.assistant_source"
+msgstr "助手表述 · 请核实结论"
+
+#. English: Automatic recall
+#. chrys-meta={"fingerprint":"6708a7f50b8b187387789464af907a89d6099043d7bfb66db33e844c057c80b4","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.auto"
+msgstr "自动召回"
+
+#. English: Cancel
+#. chrys-meta={"fingerprint":"ee3eb6e02cd8772be8786b7d714f54bf90abe5d0f0523aebf9c292a1e48c7d3d","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.cancel"
+msgstr "取消"
+
+#. English: Suggestions
+#. chrys-meta={"fingerprint":"62bcde3019d2a824d30edf7467ca29cfdec9436b013fb50b632108f6e3981f80","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.candidate"
+msgstr "待确认"
+
+#. English: Allow suggestions
+#. chrys-meta={"fingerprint":"4b143e877670970a9550bf9b0d8d1de2b7eda3f4ad27476a8eebe55f0c076864","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.capture"
+msgstr "允许提炼候选"
+
+#. English: The agent can suggest memories with source quotes. Only activated
+#. memories are recalled automatically.
+#. chrys-meta={"fingerprint":"940227c0708d428cb9fae07b02d1185a0a9a2ff2ff1c115d7379af3d2303496b","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.capture_tip"
+msgstr "智能体可以附带来源原话提出记忆建议。只有已启用的记忆会自动召回。"
+
+#. English: Close
+#. chrys-meta={"fingerprint":"b539b71b98c3530fcd17b6257d0bcdd95ec41dbd6ba78a0b8ad40de8ddc5103e","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.close"
+msgstr "关闭"
+
+#. English: Memory and rationale
+#. chrys-meta={"fingerprint":"fd2877b244fbf5f84818ba203dbb717f1df4baafd0f35435dea085b6264459da","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.content"
+msgstr "内容和理由"
+
+#. English: {active} active · {candidates} suggestions · {archived} archived
+#. chrys-meta={"fingerprint":"32b57583c1f2c7afea651a963e13840e89f16f1bee46ad80fc1a7498207106e4","multiline":false,"placeholders":["active","archived","candidates"]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.counts"
+msgstr "{active} 条已启用 · {candidates} 条待确认 · {archived} 条已归档"
+
+#. English: Decision
+#. chrys-meta={"fingerprint":"2d1c54b8f9715fe18dc6fd6935897b93af938024de4b3b19e63a5c4f2f4a25d8","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.decision"
+msgstr "决定"
+
+#. English: Edit
+#. chrys-meta={"fingerprint":"bfae2b0cd1f29383075dc578f077e20bc8bc53eb5166a7c77df66aeff6d39865","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.edit"
+msgstr "编辑"
+
+#. English: No memories here. Add one or review a suggestion from a
+#. conversation.
+#. chrys-meta={"fingerprint":"a76a3f7f8a344fed95c3ca15ae2bcb36f18ce9c614d40300fd2aae67dbce3a67","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.empty"
+msgstr "这里还没有记忆。可以新建，或确认对话中提出的候选。"
+
+#. English: Memory action failed: {error}
+#. chrys-meta={"fingerprint":"39dbf1c4bf047986776a406c9e89a24e668451eca090cdd66a0fee3ddd0d5476","multiline":false,"placeholders":["error"]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.error"
+msgstr "记忆操作失败：{error}"
+
+#. English: Forget
+#. chrys-meta={"fingerprint":"14bab89659184af34e48e3d71d826b480ae278d4aed7b5408373a383ded9432d","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.forget"
+msgstr "忘记"
+
+#. English: Forget “{title}”, its revisions and pending corrections?
+#. chrys-meta={"fingerprint":"6f346e0234285f4ba30be5c70ae42778e6262ab5ec2886ccdf6e55a342d2d23c","multiline":false,"placeholders":["title"]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.forget_confirm"
+msgstr "忘记“{title}”、它的修订记录和待确认修订？"
+
+#. English: Earlier revisions
+#. chrys-meta={"fingerprint":"208c12ff13380ec492aacec38e3a2666a6059f4bb51af8c2287ba0cd9093c608","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.history"
+msgstr "修订记录"
+
+#. English: Intention
+#. chrys-meta={"fingerprint":"e04f85468737a40e3d0a5c805286ae4ace6b6537bf3bf80205abab4aea095721","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.intention"
+msgstr "意图"
+
+#. English: Lesson
+#. chrys-meta={"fingerprint":"e082d1f37e1a10f118d824fd68215cad444168007ffdcbf0f7c2b2c8cc470aff","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.lesson"
+msgstr "经验"
+
+#. English: Recall on request
+#. chrys-meta={"fingerprint":"a1a83b66cd444c041365c62e1d397003e0e50d3373f9c521ca1021289e3c7385","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.manual"
+msgstr "按需召回"
+
+#. English: Matched: {terms}
+#. chrys-meta={"fingerprint":"b563f621c7ce648db4f30962533f1a5d344c97c992804328fde163058208156c","multiline":false,"placeholders":["terms"]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.matched"
+msgstr "匹配词：{terms}"
+
+#. English: Changes apply to the next turn. Recall on request lets the agent
+#. search when asked; off disables recall and suggestions.
+#. chrys-meta={"fingerprint":"8722761cb9f5cda5f327ffdb05546045a6dfe76464ae6de4a3b614e1bbeb46e6","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.mode_tip"
+msgstr "从下一回合生效。按需召回允许智能体在被要求时搜索；关闭后停止召回和提炼候选。"
+
+#. English: Title
+#. chrys-meta={"fingerprint":"f1bed9ef8cc854afa7ed15dc4b4bc711e2a4672564c673250b989cf19e709912","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.name"
+msgstr "标题"
+
+#. English: + New
+#. chrys-meta={"fingerprint":"32f7a144936026ed3f1cd4a9af9b4d7b161d0276b3cf7f2fa56216e5a5bb3a01","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.new"
+msgstr "+ 新建"
+
+#. English: No memories recalled for this task.
+#. chrys-meta={"fingerprint":"df19d555c3fca2875564af5b7a090af8f4baad46651b7e97b4269296deba5311","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.no_recall"
+msgstr "本会话尚未召回记忆。"
+
+#. English: Memory off
+#. chrys-meta={"fingerprint":"74e93c8ea6844a666df122604f2b787763cb40dc647e16c02460bc40f5bb2b08","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.off"
+msgstr "关闭记忆"
+
+#. English: Across projects
+#. chrys-meta={"fingerprint":"1a218a85bdaa3895eb40034a8b6f5524105920985ab391400e0f3afd8076d55c","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.personal"
+msgstr "跨项目"
+
+#. English: Preference
+#. chrys-meta={"fingerprint":"8a9064c1868d3ca41167b2015d3db6a544c88ec439b799de3beb918d1156ff8f","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.preference"
+msgstr "偏好"
+
+#. English: This project only
+#. chrys-meta={"fingerprint":"3dda4a0050761248dfb540d190eef84735386c0a46f1eb98c0d9f0cfde700471","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.project"
+msgstr "仅当前项目"
+
+#. English: Latest recall
+#. chrys-meta={"fingerprint":"82b7b68aa925a414608f3f9d7fea6f976d233cc9cee613a07e94dc1d0d448964","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.recalled"
+msgstr "最近召回"
+
+#. English: Reconsider when
+#. chrys-meta={"fingerprint":"4e9fb47f8f6c38badd925f0400bea5961e8c976d6906213a86662c7c5ae17327","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.reconsider"
+msgstr "重新考虑的条件"
+
+#. English: Refresh
+#. chrys-meta={"fingerprint":"cdcc53c1d944dc0b8624e6ff30f4dc15597148bb724b4ff37b44c11a223330ab","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.refresh"
+msgstr "刷新"
+
+#. English: Proposed correction to {title}
+#. chrys-meta={"fingerprint":"156befa5fb3cb54c62f659db03397ba8f7810a01ad3e71addad20501f32eb25b","multiline":false,"placeholders":["title"]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.replacement"
+msgstr "修订建议：{title}"
+
+#. English: Enter a title, memory and when to use it.
+#. chrys-meta={"fingerprint":"b9c2c3194a7873e47b8bb31c559dca289bd7bbe8e60eee1d76543abc37c468bb","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.required"
+msgstr "请填写标题、内容和适用情境。"
+
+#. English: Save
+#. chrys-meta={"fingerprint":"c412f9116c212d2749697d0fce560e880e82ef767c87d9614d341b4ce1ee2061","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.save"
+msgstr "保存"
+
+#. English: Saved by you
+#. chrys-meta={"fingerprint":"108cbd026e8e3bac2abc3a702c2be51b320bc056358b1394d4aecde6b412bb64","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.saved_by_user"
+msgstr "由你保存"
+
+#. English: Search memories
+#. chrys-meta={"fingerprint":"68ad700ce221233d6d31507369fb63242e6c31a3d3dfbadb0ecf5da88b59f760","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.search"
+msgstr "搜索记忆"
+
+#. English: Source
+#. chrys-meta={"fingerprint":"8a23381b73255be7becb386ff5bf8b4846f3fcba4f6d5404413d16d72d5ed687","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.source"
+msgstr "来源"
+
+#. English: This task recalled revision {revision}; the memory has since
+#. changed.
+#. chrys-meta={"fingerprint":"eb3ee5d77224a0837705ab880b8e43f60081fb5a8b6078f80fa2c4f1e4f0208c","multiline":false,"placeholders":["revision"]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.stale"
+msgstr "本次召回的是第 {revision} 版；这条记忆此后已修改。"
+
+#. English: Personal Memory
+#. chrys-meta={"fingerprint":"d1e2d57c3574c521aa66938b1cb35ac2c411fcb77bead601ed15fcd69d544ace","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.title"
+msgstr "个人记忆"
+
+#. English: User message
+#. chrys-meta={"fingerprint":"b73dd91a2d46a1906ba7b0a45641a6fe7b17c28b9ff7ef864a4a1161155c6dfa","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.user_source"
+msgstr "用户原话"
+
+#. English: When to use
+#. chrys-meta={"fingerprint":"e9a8c608c172670f588708baba8c5883ddd121c99b2037a533647983cda6ad97","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.when"
+msgstr "适用情境"
 
 #. English: Add and Save
 #. chrys-meta={"fingerprint":"0e3c287cdfdcc38b1350911647fbf3c00f713b8864bb944c687ab90fcb78ecaa","multiline":false,"placeholders":[]}

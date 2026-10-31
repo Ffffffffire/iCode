@@ -145,6 +145,19 @@ async def test_main_conversations_exclude_context_management_from_shared_runtime
         assert first_provider._session is sessions[0]
         assert second_provider._session is sessions[1]
         assert contexts[0].tools[0] is not contexts[1].tools[0]
+        first.reminder.sources.personal_memory.observe([Message("user", ["Validate the IR consumer first."])])
+        second.reminder.sources.personal_memory.observe([Message("user", ["Explain the customer rollout first."])])
+        first_propose = next(tool for tool in first.agent.default_options["tools"] if tool.name == "propose_memory")
+        second_propose = next(tool for tool in second.agent.default_options["tools"] if tool.name == "propose_memory")
+        proposal = {
+            "title": "IR consumer",
+            "content": "Validate the IR consumer first.",
+            "when_to_use": "IR design",
+            "source_quote": "Validate the IR consumer first.",
+        }
+        assert '"state": "candidate"' in await first_propose(**proposal)
+        assert "must occur verbatim" in await second_propose(**proposal)
+        assert not {"recall_memory", "propose_memory"} & {tool.name for tool in shared.tools}
     finally:
         await engine.shutdown()
 
@@ -220,9 +233,14 @@ async def test_real_build_preserves_main_child_model_context_approval_and_chat_i
             "compress_context",
             "recall_context",
             "list_compressed_contexts",
+            "recall_memory",
+            "propose_memory",
         ]
         assert "read_file" in child_names
-        assert not {"Explore", "compress_context", "recall_context", "view_image"} & child_names
+        assert (
+            not {"Explore", "compress_context", "recall_context", "view_image", "recall_memory", "propose_memory"}
+            & child_names
+        )
         assert root_messages[-1].text.startswith("root question <system-reminder>")
         assert child_messages[-1].text.startswith("child question <system-reminder>")
         assert str(tmp_path) in root_messages[-1].text

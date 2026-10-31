@@ -661,6 +661,9 @@
       "AgentEngine._on_new_session": [
         ["wrapper", "await self._session_operation('start a new session', lambda: self._lifecycle.on_new_session(_event))", "unresolved", "chrys.orchestration.engine.engine.AgentEngine._session_operation"]
       ],
+      "AgentEngine._on_personal_memory": [
+        ["awaitable", "await self._personal_memory.handle(event)", "unresolved"]
+      ],
       "AgentEngine._on_profile_switch": [
         ["awaitable", "await self._controls.on_profile_switch(event)", "unresolved"]
       ],
@@ -733,6 +736,7 @@
       ],
       "AgentEngine._subscribe_event_handlers": [
         ["awaitable", "await self._bus.subscribe(UserMessage, self._on_user_message)", "unresolved"],
+        ["awaitable", "await self._bus.subscribe(PersonalMemoryCommand, self._on_personal_memory)", "unresolved"],
         ["awaitable", "await self._bus.subscribe(UserInterrupt, self._on_user_interrupt)", "unresolved"],
         ["awaitable", "await self._bus.subscribe(UserRetry, self._on_user_retry)", "unresolved"],
         ["awaitable", "await self._bus.subscribe(UserInject, self._on_user_inject)", "unresolved"],
@@ -3836,6 +3840,11 @@
         ["awaitable", "await call_next()", "unresolved"]
       ]
     },
+    "chrys.service.agent_middleware.reminders.personal_memory": {
+      "PersonalMemorySource.snapshot": [
+        ["awaitable", "await self._runtime.prepare(messages)", "unresolved"]
+      ]
+    },
     "chrys.service.agent_middleware.response_validation": {
       "ResponseValidationMiddleware._conclude": [
         ["wrapper", "await self._notify_contents_observed(contents, is_final=True)", "unresolved", "chrys.service.agent_middleware.response_validation.ResponseValidationMiddleware._notify_contents_observed"],
@@ -3881,6 +3890,7 @@
     },
     "chrys.service.agent_middleware.system_reminder": {
       "SystemReminderMiddleware.process": [
+        ["awaitable", "await self._sources.personal_memory.snapshot(context.messages)", "unresolved"],
         ["awaitable", "await call_next()", "unresolved"]
       ]
     },
@@ -4805,6 +4815,33 @@
         ["thread_pool", "await loop.run_in_executor(None, _track_file_mutation_before, tracker, tool_name, args, call_id, workspace_cwd, tool_operation_id)", "unresolved"],
         ["wrapper", "await _track_git_capture_before(tracker, args, workspace_cwd)", "unresolved", "chrys.service.mutations.pipeline._track_git_capture_before"],
         ["thread_pool", "await loop.run_in_executor(None, _track_shell_scan_before, tracker, args, workspace_cwd)", "unresolved"]
+      ]
+    },
+    "chrys.service.personal_memory.controller": {
+      "PersonalMemoryController.handle": [
+        ["thread_pool", "await asyncio.to_thread(self._apply, event)", "unresolved"],
+        ["awaitable", "await self._bus.publish(reply)", "unresolved"]
+      ]
+    },
+    "chrys.service.personal_memory.runtime": {
+      "PersonalMemoryRuntime._changed": [
+        ["thread_pool", "await asyncio.to_thread(self._store.load)", "unresolved"],
+        ["awaitable", "await self._bus.publish(PersonalMemoryChanged(snapshot=snapshot, session_id=self._session_id))", "unresolved"]
+      ],
+      "PersonalMemoryRuntime.prepare": [
+        ["thread_pool", "await asyncio.to_thread(self._store.load)", "unresolved"],
+        ["thread_pool", "await asyncio.to_thread(self._store.recall, query, self._workspace, session_id=self._session_id)", "unresolved"],
+        ["wrapper", "await self._changed()", "unresolved", "chrys.service.personal_memory.runtime.PersonalMemoryRuntime._changed"],
+        ["awaitable", "await self._bus.publish(PersonalMemoryChanged(snapshot=state, session_id=self._session_id))", "unresolved"],
+        ["awaitable", "await self._bus.publish(PersonalMemoryChanged(session_id=self._session_id, error='Personal memory is unavailable; no memories were recalled.'))", "unresolved"]
+      ],
+      "PersonalMemoryRuntime.propose_memory": [
+        ["thread_pool", "await asyncio.to_thread(self._store.save, MemoryDraft(title, content, when_to_use, reconsider_when, kind, self._workspace if project_only else ''), MemorySource(source.session_id, source.item_id, source.role, quote), candidate=True, replaces_id=replaces_id, replaces_revision=replaces_revision)", "unresolved"],
+        ["wrapper", "await self._changed()", "unresolved", "chrys.service.personal_memory.runtime.PersonalMemoryRuntime._changed"]
+      ],
+      "PersonalMemoryRuntime.recall_memory": [
+        ["thread_pool", "await asyncio.to_thread(self._store.recall, query, self._workspace, session_id=self._session_id, automatic=False)", "unresolved"],
+        ["wrapper", "await self._changed()", "unresolved", "chrys.service.personal_memory.runtime.PersonalMemoryRuntime._changed"]
       ]
     },
     "chrys.service.prompt_shortcuts.shell": {

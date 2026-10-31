@@ -1233,6 +1233,7 @@ def make_slash_actions(screen: SuggestionScreen) -> SlashCommandActions:
         configure_agent_tab=screen._open_agent_config_tab,
         show_runtime_details=screen.action_runtime_details,
         show_usage=screen.action_usage,
+        show_personal_memory=screen.action_runtime_details,
         configure_settings=screen._open_settings,
         show_manual_pages=lambda _pages, _start_index: None,
         warn=lambda message, title, timeout: screen.notify(message, title=title, timeout=timeout),

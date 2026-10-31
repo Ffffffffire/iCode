@@ -36,6 +36,7 @@ from chrys.service.hooks.confirmation import HookConfirmationService
 from chrys.service.hooks.run_log import HookRunLog
 from chrys.service.mcp.cache import MCPConnectionCache
 from chrys.service.mutations.workspace_changes import WorkspaceChangeTracker
+from chrys.service.personal_memory.controller import PersonalMemoryController
 from chrys.service.session.history import SessionHistoryManager
 from chrys.service.session.persistence import SessionPersistence
 
@@ -263,5 +264,6 @@ def assemble_agent_engine(
         hook_runs=hook_runs,
         hook_confirmations=hook_confirmations,
         side_questions=side_questions,
+        personal_memory=PersonalMemoryController(bus),
     )
     return engine

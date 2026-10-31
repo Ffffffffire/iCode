@@ -24,7 +24,7 @@ Direct (engine-free) middleware tests live in ``test_system_reminder.py``.
 from __future__ import annotations
 
 import asyncio
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import TYPE_CHECKING
 from unittest.mock import create_autospec
 
@@ -62,6 +62,7 @@ from chrys.foundation.events.types import (
     UserRetry,
 )
 from chrys.foundation.models.history_markers import HistoryMarkerKind
+from chrys.foundation.platform import get_platform
 from chrys.kernel import FunctionTool, Message
 from chrys.orchestration.engine.engine import AgentEngine
 from chrys.service.agent_middleware.reminders.turn_line import TurnLineSource
@@ -610,7 +611,7 @@ async def test_llm_receives_skill_reference_reminder(
     agent_engine,
 ):
     """A leading /skill token should queue a skill-reference system reminder."""
-    fake_platform = type("P", (), {"config_dir": tmp_path / "chrys-config"})()
+    fake_platform = replace(get_platform(), config_dir=tmp_path / "chrys-config")
     monkeypatch.setattr("chrys.foundation.platform.get_platform", lambda: fake_platform)
     monkeypatch.setattr("chrys.service.skills.adapter.user_agents_dir", lambda: tmp_path / "agents-root")
 
@@ -674,7 +675,7 @@ async def test_llm_receives_skill_reference_reminder_for_injection(
     agent_engine,
 ):
     """A mid-turn /skill injection should update active-turn reminders."""
-    fake_platform = type("P", (), {"config_dir": tmp_path / "chrys-config"})()
+    fake_platform = replace(get_platform(), config_dir=tmp_path / "chrys-config")
     monkeypatch.setattr("chrys.foundation.platform.get_platform", lambda: fake_platform)
     monkeypatch.setattr("chrys.service.skills.adapter.user_agents_dir", lambda: tmp_path / "agents-root")
 
@@ -1387,7 +1388,7 @@ async def test_compress_context_fold_resends_the_skill_catalog(
     tmp_path: Path, agent_engine, monkeypatch: pytest.MonkeyPatch
 ):
     """The catalog rides its first carrier until a fold takes it out of view, then moves once."""
-    fake_platform = type("P", (), {"config_dir": tmp_path / "chrys-config"})()
+    fake_platform = replace(get_platform(), config_dir=tmp_path / "chrys-config")
     monkeypatch.setattr("chrys.foundation.platform.get_platform", lambda: fake_platform)
     monkeypatch.setattr("chrys.service.skills.adapter.user_agents_dir", lambda: tmp_path / "agents-root")
     captured_client = _install_client(

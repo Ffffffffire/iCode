@@ -854,6 +854,7 @@ class MainScreen(RightClickScreenCopyMixin, Screen):
             configure_agent_tab=self._open_agent_config_tab,
             show_runtime_details=self.action_runtime_details,
             show_usage=self._config_actions.open_usage,
+            show_personal_memory=self.action_personal_memory,
             configure_settings=self._open_settings,
             show_manual_pages=lambda pages, start_index: self._view_adapter.show_man_pages(
                 pages,
@@ -2078,6 +2079,19 @@ class MainScreen(RightClickScreenCopyMixin, Screen):
     def action_runtime_details(self) -> None:
         """Open the active runtime details modal."""
         self._config_actions.open_runtime_details()
+
+    def action_personal_memory(self) -> None:
+        """Open personal memory without rebuilding the agent or the chat screen."""
+        from chrys.app.tui.screens.personal_memory.screen import PersonalMemoryScreen
+
+        self.app.push_screen(
+            PersonalMemoryScreen(
+                bus=self._services.bus,
+                workspace=self._workspace_cwd(),
+                session_id=self.chat_session_id,
+                locale_controller=self._locale_controller,
+            )
+        )
 
     def prompt_shortcut_sources_loader(self) -> Callable[[], list[tuple[Path, list[PromptShortcut]]]]:
         """A blocking read of the prompt shortcuts by source folder, as the / list reads them now."""

@@ -122,6 +122,7 @@ def _slash_actions(warn: Any) -> SlashCommandActions:
         configure_agent_tab=noop,
         show_runtime_details=noop,
         show_usage=noop,
+        show_personal_memory=noop,
         configure_settings=lambda _tab: None,
         show_manual_pages=noop,
         warn=warn,

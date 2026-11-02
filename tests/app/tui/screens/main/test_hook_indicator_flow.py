@@ -22,6 +22,7 @@ from textual.widgets import TabbedContent
 from chrys.app.tui.app import ChrysApp
 from chrys.app.tui.screens.dialogs.runtime_details import RuntimeDetailsDialog
 from chrys.app.tui.screens.main.screen import MainScreen
+from chrys.app.tui.screens.personal_memory.indicator import PersonalMemoryIndicator
 from chrys.app.tui.widgets.chat.messages import AgentMessage
 from chrys.app.tui.widgets.chat.messages import UserMessage as UserMessageWidget
 from chrys.app.tui.widgets.chat.panel import ChatPanel
@@ -1046,25 +1047,30 @@ async def test_the_footer_keys_keep_every_cell_the_label_does_not_take(tmp_path:
         main = await _ready(pilot)
         await _shows(pilot, "Hooks")
         indicator = main.query_one(HookIndicator)
+        memory = main.query_one(PersonalMemoryIndicator)
         footer = main.query_one(ChrysFooter)
         await wait_for(lambda: footer.query(FooterKey), pilot=pilot, description="the footer keys")
         keys = list(footer.query(FooterKey))
 
         def keys_whole() -> bool:
-            return footer.region.right == indicator.region.x and all(
-                key.region.width and key.region.right <= footer.region.right for key in keys
+            return (
+                footer.region.right == memory.region.x
+                and memory.region.right == indicator.region.x
+                and all(key.region.width and key.region.right <= footer.region.right for key in keys)
             )
 
         await wait_for(keys_whole, pilot=pilot, description="every key whole beside the idle label")
         # A box of the indicator's full width would leave the keys too little room.
         assert sum(key.region.width for key in keys) > app.size.width - HOOK_INDICATOR_WIDTH
+        assert memory.region.width == len(" Mem ")
         assert indicator.region.width == len(" ⠿ Hooks ")
         assert indicator.region.right == app.size.width
 
         await _snapshot(bus, _view("a-hook-whose-id-is-long-enough", age=2))
         await wait_for(lambda: "…" in _indicator(app), pilot=pilot, description="the long id shown")
         assert indicator.region.width == HOOK_INDICATOR_WIDTH
-        assert footer.region.right == indicator.region.x
+        assert footer.region.right == memory.region.x
+        assert memory.region.right == indicator.region.x
         await _snapshot(bus)
         await _shows(pilot, "Hooks")
         await wait_for(keys_whole, pilot=pilot, description="the keys whole again")

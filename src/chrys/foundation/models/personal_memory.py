@@ -70,7 +70,8 @@ class MemoryRecall:
 @dataclass(frozen=True, slots=True)
 class MemorySnapshot:
     mode: MemoryMode = "auto"
-    capture: bool = True
+    capture: bool = False
     entries: tuple[PersonalMemory, ...] = ()
     recalls: tuple[MemoryRecall, ...] = ()
     generation: int = 0
+    auto_save: bool = True

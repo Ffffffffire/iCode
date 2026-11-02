@@ -17,7 +17,7 @@ from collections.abc import Callable
 from dataclasses import asdict, replace
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 from uuid import uuid4
 
 from chrys.foundation.models.personal_memory import (
@@ -104,8 +104,8 @@ def _validate_draft(draft: MemoryDraft) -> None:
     ):
         if not isinstance(value, str) or len(value) > limit:
             raise MemoryStoreError("Memory text exceeds its field limit.")
-    if not draft.title.strip() or not draft.content.strip() or not draft.when_to_use.strip():
-        raise MemoryStoreError("Title, memory and when to use are required.")
+    if not draft.title.strip() or not draft.content.strip():
+        raise MemoryStoreError("Title and memory are required.")
     if draft.kind not in ("decision", "preference", "lesson", "intention"):
         raise MemoryStoreError("Unknown memory kind.")
 
@@ -121,6 +121,39 @@ def _draft(raw: dict[str, Any]) -> MemoryDraft:
     draft = MemoryDraft(**raw)
     _validate_draft(draft)
     return draft
+
+
+def _same_fact(left: MemoryDraft, right: MemoryDraft) -> bool:
+    # A different title is not new evidence. Preserve case and internal whitespace:
+    # paths, code and commands may change meaning when normalized more aggressively.
+    return all(
+        a.strip() == b.strip()
+        for a, b in (
+            (left.content, right.content),
+            (left.when_to_use, right.when_to_use),
+            (left.reconsider_when, right.reconsider_when),
+            (left.kind, right.kind),
+            (left.workspace, right.workspace),
+        )
+    )
+
+
+def _check_active_overlap(state: MemorySnapshot, draft: MemoryDraft, *exclude_ids: str) -> None:
+    for entry in state.entries:
+        if entry.state != "active" or entry.id in exclude_ids:
+            continue
+        old = entry.draft
+        same_context = (
+            old.title.strip().casefold() == draft.title.strip().casefold()
+            and old.workspace == draft.workspace
+            and old.kind == draft.kind
+            and old.when_to_use.strip() == draft.when_to_use.strip()
+        )
+        if same_context or _same_fact(old, draft):
+            raise MemoryStoreError(
+                f"An active memory already covers this content or title and situation: {entry.id} "
+                f"(revision {entry.revision}). Review it and update that memory, or specify a distinct situation."
+            )
 
 
 def _entry(raw: dict[str, Any]) -> PersonalMemory:
@@ -201,7 +234,10 @@ class PersonalMemoryStore:
             generation = data.get("generation", 0)
             if type(generation) is not int or generation < 0:
                 raise MemoryStoreError("Invalid personal memory generation.")
-            return MemorySnapshot(data["mode"], data["capture"], entries, recalls, generation)
+            auto_save = data.get("auto_save", True)
+            if type(auto_save) is not bool:
+                raise MemoryStoreError("Invalid automatic memory setting.")
+            return MemorySnapshot(data["mode"], data["capture"], entries, recalls, generation, auto_save)
         except (ValueError, TypeError, KeyError, RecursionError) as error:
             raise MemoryStoreError("The personal memory file is invalid; it has not been overwritten.") from error
 
@@ -219,10 +255,16 @@ class PersonalMemoryStore:
             atomic_write_owner_only_text(self.path, payload)
             return after
 
-    def configure(self, mode: MemoryMode, capture: bool) -> MemorySnapshot:
+    def configure(self, mode: MemoryMode, capture: bool, *, auto_save: bool | None = None) -> MemorySnapshot:
         if mode not in ("auto", "manual", "off") or type(capture) is not bool:
             raise MemoryStoreError("Invalid memory settings.")
-        return self._update(lambda state: replace(state, mode=mode, capture=capture))
+        if auto_save is not None and type(auto_save) is not bool:
+            raise MemoryStoreError("Invalid automatic memory setting.")
+        return self._update(
+            lambda state: replace(
+                state, mode=mode, capture=capture, auto_save=state.auto_save if auto_save is None else auto_save
+            )
+        )
 
     @staticmethod
     def _find(state: MemorySnapshot, memory_id: str, revision: int) -> PersonalMemory:
@@ -243,33 +285,75 @@ class PersonalMemoryStore:
         candidate: bool = False,
         replaces_id: str = "",
         replaces_revision: int = 0,
+        request_workspace: str | None = None,
+        authorization: Literal["manual", "request", "capture"] = "manual",
     ) -> PersonalMemory:
         _validate_draft(draft)
+        if candidate and not draft.when_to_use.strip():
+            raise MemoryStoreError("Suggestions need a future situation where the memory is useful.")
         _source(asdict(source))
-        draft = replace(draft, title=draft.title.strip(), workspace=workspace_key(draft.workspace))
+        draft = replace(
+            draft,
+            title=draft.title.strip(),
+            content=draft.content.strip(),
+            when_to_use=draft.when_to_use.strip(),
+            reconsider_when=draft.reconsider_when.strip(),
+            workspace=workspace_key(draft.workspace),
+        )
         saved: PersonalMemory | None = None
 
         def edit(state: MemorySnapshot) -> MemorySnapshot:
-            nonlocal saved
+            nonlocal saved, draft
+            if authorization != "manual" and state.mode == "off":
+                raise MemoryStoreError("Chat memory is disabled.")
+            if authorization == "capture" and not state.capture:
+                raise MemoryStoreError("Automatic memory extraction is disabled.")
+            if (
+                authorization == "capture"
+                and not candidate
+                and not (state.auto_save and draft.kind == "preference" and source.role == "user")
+            ):
+                raise MemoryStoreError("This memory needs review before activation.")
             if candidate and (state.mode == "off" or not state.capture):
                 raise MemoryStoreError("Memory suggestions are disabled.")
             if candidate and memory_id:
                 raise MemoryStoreError("Suggestions cannot overwrite a memory.")
-            if replaces_id:
-                target = self._find(state, replaces_id, replaces_revision)
-                if target.state == "candidate":
-                    raise MemoryStoreError("Review a suggestion before proposing a correction to it.")
+            old = self._find(state, memory_id, revision) if memory_id else None
+            if authorization == "capture" and old is not None and old.state == "archived":
+                raise MemoryStoreError("A paused memory cannot be changed automatically.")
+            target = self._find(state, replaces_id, replaces_revision) if replaces_id else None
+            for subject in (old, target):
+                if (
+                    subject is not None
+                    and request_workspace is not None
+                    and subject.draft.workspace
+                    and subject.draft.workspace != workspace_key(request_workspace)
+                ):
+                    raise MemoryStoreError("This memory belongs to another project. Manage it in /memory.")
+                if subject is not None and request_workspace is not None:
+                    # Chat corrections keep the existing audience. Explicit scope
+                    # changes remain available in the library editor.
+                    draft = replace(draft, workspace=subject.draft.workspace)
+            if target is not None and target.state == "candidate":
+                raise MemoryStoreError("Review a suggestion before proposing a correction to it.")
+            if old is not None and old.draft == draft:
+                saved = old
+                return state
             if not memory_id:
                 existing = next(
                     (
                         item
                         for item in state.entries
-                        if item.draft == draft and item.state != "archived" and item.replaces_id == replaces_id
+                        if _same_fact(item.draft, draft)
+                        and item.state != "archived"
+                        and item.replaces_id == replaces_id
+                        and item.replaces_revision == replaces_revision
                     ),
                     None,
                 )
                 if existing is not None:
                     if not candidate and existing.state == "candidate":
+                        _check_active_overlap(state, draft, existing.id)
                         saved = replace(
                             existing, source=source, state="active", revision=existing.revision + 1, updated_at=_now()
                         )
@@ -278,8 +362,8 @@ class PersonalMemoryStore:
                         )
                     saved = existing
                     return state
+            _check_active_overlap(state, draft, memory_id, replaces_id)
             now = _now()
-            old = self._find(state, memory_id, revision) if memory_id else None
             previous = (
                 (*old.previous, MemoryRevision(old.revision, old.draft, old.source, old.updated_at))[-MAX_REVISIONS:]
                 if old
@@ -314,6 +398,7 @@ class PersonalMemoryStore:
                 return state
             if status == "active" and old.replaces_id:
                 target = self._find(state, old.replaces_id, old.replaces_revision)
+                _check_active_overlap(state, old.draft, old.id, target.id)
                 accepted = replace(
                     target,
                     revision=target.revision + 1,
@@ -334,6 +419,8 @@ class PersonalMemoryStore:
                 return replace(
                     state, entries=(*(item for item in state.entries if item.id not in (old.id, target.id)), accepted)
                 )
+            if status == "active":
+                _check_active_overlap(state, old.draft, old.id)
             return replace(
                 state,
                 entries=tuple(
@@ -369,14 +456,14 @@ class PersonalMemoryStore:
         session_id: str = "",
         automatic: bool = True,
         record: bool = True,
+        extend_record: bool = False,
     ) -> tuple[tuple[PersonalMemory, MemoryMatch], ...]:
         state = self.load()
-        if state.mode == "off" or (automatic and state.mode != "auto"):
-            return ()
+        enabled = state.mode != "off" and (not automatic or state.mode == "auto")
         terms = _terms(query[:4000])
         workspace = workspace_key(workspace)
         ranked: list[tuple[int, PersonalMemory, MemoryMatch]] = []
-        for entry in state.entries:
+        for entry in state.entries if enabled else ():
             if entry.state != "active" or (entry.draft.workspace and entry.draft.workspace != workspace):
                 continue
             title = terms & _terms(entry.draft.title)
@@ -399,14 +486,26 @@ class PersonalMemoryStore:
             if len(selected) == MAX_RECALLED:
                 break
         if record and session_id and (selected or any(item.session_id == session_id for item in state.recalls)):
-            recall = MemoryRecall(session_id, query[:320], tuple(match for _, match in selected), _now())
-            self._update(
-                lambda current: replace(
+
+            def record_selection(current: MemorySnapshot) -> MemorySnapshot:
+                previous = next((item for item in current.recalls if item.session_id == session_id), None)
+                matches = tuple(match for _, match in selected)
+                queries = query[:320]
+                if extend_record and enabled and previous is not None:
+                    if not matches:
+                        return current
+                    # Follow-up tool searches add references to this turn. A later
+                    # miss must not hide content the agent has already received.
+                    by_id = {match.memory_id: match for match in (*previous.matches, *matches)}
+                    matches = tuple(by_id.values())
+                    queries = "\n".join(dict.fromkeys([*previous.query.splitlines(), queries]))[:320]
+                recall = MemoryRecall(session_id, queries, matches, _now())
+                return replace(
                     current,
-                    recalls=(
-                        *[item for item in current.recalls if item.session_id != session_id],
-                        recall,
-                    )[-MAX_RECALLS:],
+                    recalls=(*[item for item in current.recalls if item.session_id != session_id], recall)[
+                        -MAX_RECALLS:
+                    ],
                 )
-            )
+
+            self._update(record_selection)
         return tuple(selected)

@@ -77,6 +77,7 @@ from chrys.app.tui.screens.main.view_adapter import MainScreenViewAdapter
 from chrys.app.tui.screens.main.workflow_controller import WorkflowController
 from chrys.app.tui.screens.main.workspace_actions import WorkspaceCallbacks, WorkspaceController
 from chrys.app.tui.screens.main.workspace_branch import WorkspaceBranchController
+from chrys.app.tui.screens.personal_memory import PersonalMemoryIndicator
 from chrys.app.tui.screens.settings import GENERAL_TAB_ID
 from chrys.app.tui.support.gc_freeze import (
     GcFreezeBlockReason,
@@ -1178,6 +1179,11 @@ class MainScreen(RightClickScreenCopyMixin, Screen):
         # while a hook it shows runs.
         with Horizontal(id="footer-row"):
             yield footer
+            yield PersonalMemoryIndicator(
+                bus=self._services.bus,
+                workspace=self._workspace_cwd(),
+                locale_controller=self._locale_controller,
+            ).data_bind(session_id=MainScreen.chat_session_id, workspace_cwd=MainScreen.chat_workspace_cwd)
             yield HookIndicator(locale_controller=self._locale_controller)
 
     async def _load_sub_agent_transcript(self, log_file: str) -> PersistedSubAgentTranscript | None:
@@ -1207,6 +1213,7 @@ class MainScreen(RightClickScreenCopyMixin, Screen):
 
     def on_resize(self, event: Resize) -> None:
         self._set_theme_editor_compact(self.theme_editor is not None and event.size.width < 128)
+        self.query_one(PersonalMemoryIndicator).set_compact(event.size.width < 123)
 
     def _set_theme_editor_compact(self, compact: bool) -> None:
         if self.has_class("--theme-editor-compact") == compact:
@@ -2080,7 +2087,11 @@ class MainScreen(RightClickScreenCopyMixin, Screen):
         """Open the active runtime details modal."""
         self._config_actions.open_runtime_details()
 
-    def action_personal_memory(self) -> None:
+    @on(PersonalMemoryIndicator.OpenRequested)
+    def _on_personal_memory_requested(self, event: PersonalMemoryIndicator.OpenRequested) -> None:
+        self.action_personal_memory(event.view)
+
+    def action_personal_memory(self, initial_view: str = "") -> None:
         """Open personal memory without rebuilding the agent or the chat screen."""
         from chrys.app.tui.screens.personal_memory.screen import PersonalMemoryScreen
 
@@ -2090,6 +2101,7 @@ class MainScreen(RightClickScreenCopyMixin, Screen):
                 workspace=self._workspace_cwd(),
                 session_id=self.chat_session_id,
                 locale_controller=self._locale_controller,
+                initial_view=initial_view,
             )
         )
 

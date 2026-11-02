@@ -2,25 +2,69 @@
 
 Use `/memory` for personal experiences and decisions, or `/agents memory` for reference files loaded with an agent.
 
+Follow the [personal memory demo](memory-demo.md) to try saving, cross-session use, correction, and stopping use.
+
 ## Personal memory
 
-Enter `/memory` to open the memory library. The list shows active memories, suggestions awaiting review, archived memories, and the latest recall for this session. Select a memory to read its rationale, when to use it, when to reconsider it, source quote, and earlier revisions.
+Personal memory keeps choices and their reasons, preferences, experience, and unfinished intentions that you want to carry into later tasks. A useful memory either helps with a recognizable future situation or preserves something you explicitly want to recall. One failed attempt should not become a lasting negative judgment about you or an approach.
 
-Click **+ New** to save a decision, preference, lesson, or unfinished intention. Give it a specific title, the experience and its rationale, and a future situation where it would help. **This project only** limits recall to the current working directory; clear it for a memory that applies across projects.
+| Content | Where it belongs |
+| --- | --- |
+| Personal preferences, reasons for choices, and durable intentions across tasks | Personal scope, such as presenting customer value and rollout before technical details |
+| Repository constraints, project decisions, and project-specific lessons | This project only, such as checking artifact versions when that project's reports stay stale |
+| Current progress, a one-time exception, or rapidly changing runtime state | The conversation, task summary, or todos; do not turn these into lasting rules by default |
+| Whole reference documents, team conventions, and tool instructions | Reference files or project documentation; loading a file does not make it evidence of your preferences |
 
-With **Allow suggestions** enabled, the main agent can propose memories during a conversation. Suggestions include a quote checked against a recent visible message and its source session. An assistant's quote is evidence of what it said, not proof that its conclusion is correct. Review suggestions and click **Activate** before they can be recalled. A suggested correction leaves the accepted memory unchanged until you activate it.
+Project entries in your personal library remain under your control; they are not automatically published as team consensus. Shared knowledge needs separate review of its audience, evidence, and maintenance responsibility. A compaction summary can preserve unfinished work, but repeating a claim in summaries does not strengthen its evidence.
 
-Choose a recall mode at the top:
+### Save a short memory
 
-- **Automatic recall:** each new turn searches active memories using the current question and project. Only matching memories are provided to the model, with their conditions and sources. The agent can refine the search for the decision or mechanism it is investigating.
-- **Recall on request:** no automatic selection; ask the agent to search personal memory when needed.
+Click **Memory** in the conversation footer, or enter `/memory`. **Review** opens pending suggestions directly; a **sent** count opens **This turn** to inspect the memories provided to the agent. These indicators do not interrupt the conversation.
+
+Click **+ New** (`Ctrl+N`), write what you want remembered, and press `Ctrl+Enter` to save. The first line becomes the title. Expand **More options** only if you need a different title, category, applicability condition, or reason to reconsider. **This project only** is checked by default; clear it for memories that apply across projects.
+
+You can also explicitly ask the main agent to “remember…”, “can you please remember…”, or “update this memory…” in chat. It checks the current user request and saves directly, without creating a suggestion that needs a second confirmation. Negated requests and commands inside code or quotations cannot authorize a save on their own. An explicit “do not remember” also prevents a suggestion from that message, even with suggestions enabled. If a request is ambiguous or unrecognized, save it directly in `/memory`.
+
+You can state a preference first and then ask “Polish this and please remember this preference.” The latest request authorizes saving; the source quote can come from your earlier message, without repeating all its content in the request. Intervening tool calls and results do not consume the recent visible-text evidence limit. Polishing should preserve the original scope without inventing confirmed outcomes, exceptions, or conclusions.
+
+Chat extraction is limited to 600 characters per memory: one short conclusion and a future situation where it applies, adding a reason or condition for reconsidering it when relevant. Longer text is rejected for further distillation, never silently truncated. “Never add fields to a design” is too broad; “Before extending trajectory IR, establish a consumer; extend it when that consumer demonstrates how the fields change its output” remains actionable and open to new evidence. Manual editing still allows longer content, up to 2,400 characters.
+
+Choose a saving policy at the bottom of the library. **Only when asked** is the default:
+
+- **Only when asked:** ordinary conversation adds no automatic extraction request. A request such as “keep this preference for next time” is understood in context, polished and saved.
+- **Remember clear preferences:** check each new turn, automatically save directly stated durable preferences, and propose inferred lessons, decisions and intentions for review. Previously enabled suggestions use this policy.
+- **Review before saving:** extract automatically, but keep new memories pending review unless you explicitly ask to save them directly.
+
+Automatic extraction uses the current conversation model and adds at most one automatic extraction request per new turn, increasing the wait before an answer begins. The footer shows **Memory · Checking**; successful writes show **Remembered: title** or **Memory ready for review: title**. Nothing is added when there is no useful new information. A failed extraction is reported without claiming a save or preventing the conversation from continuing.
+
+Polishing normally produces one or two self-contained sentences, preserving meaning without invented exceptions or claims of verified benefits. Preferences, decisions and intentions require the user's own words; assistant text can only support a lesson awaiting review. Inspect the source and click **Remember** or **Skip**. A pending correction leaves accepted memory unchanged until you confirm it.
+
+### Duplicates and corrections
+
+- **Same content and conditions:** identical content, applicability, reconsideration condition, kind, and scope reuse the existing entry, even with a different title or surrounding whitespace. Repetition does not become new evidence.
+- **The old conclusion is wrong:** say “Update this memory: …”. The agent must locate the original entry and revision. An unresolved or ambiguous target needs lookup or clarification, not a new competing entry. Chat corrections keep the existing personal/project scope; change scope in the editor.
+- **This task is an exception:** state what you need this time. The current instruction wins without changing a lasting preference. Different applicability conditions can coexist.
+- **It should not guide you while its correctness is uncertain:** choose **Pause** in `/memory`, then edit or restore after checking. Choose **Forget** and confirm if you no longer want it retained.
+
+Extraction compares against a bounded set of existing memories to detect equivalent statements and actual corrections. A clear preference change can update its existing entry and retain the previous version. Scope, overlap and revision checks still run when writing. The comparison is bounded and model judgment is fallible, so not every paraphrased contradiction can be detected. You can pause an incorrect memory before you know the right replacement.
+
+Pause an intention when completed or abandoned; a useful lesson from it can remain separately. Memories do not automatically expire with age and do not replace scheduled reminders. Continued use depends on whether their conditions still hold. Recheck changeable information such as software versions, paths, and job roles before relying on it.
+
+### Use it when relevant
+
+Choose a recall mode at the bottom of the library:
+
+- **Automatic recall:** each new turn searches saved memories using the current question and project. Only matching memories are provided to the model, with their conditions and sources. The agent can refine the search for the decision or mechanism it is investigating.
+- **Recall on request:** no automatic selection; ask the agent to search personal memory when needed. If its search terms find nothing, the current user request is searched as a fallback so shortened keywords do not lose the original task.
 - **Memory off:** neither recall nor new suggestions are available. Existing memories remain in the library.
 
-Changes apply to the next turn without restarting the agent. The latest-recall view shows matched terms and identifies memories revised since that recall. A match means the memory was retrieved, not that its advice was correct or applied successfully. Automatic matching is lexical, supports Chinese and English, and checks project scope; it does not prove that a condition is satisfied. The agent must check applicability against the current task.
+When a new turn does not recall anything automatically, **This turn** and the footer reference count clear the previous turn's references. A subsequent on-demand search displays its new results.
 
-**Edit** preserves up to five earlier content revisions. **Archive** removes a memory from recall while retaining it for review; use this when an intention is finished or an experience is no longer applicable. **Forget** removes the memory, its revisions, pending corrections, and recall references after confirmation. It does not erase existing chat transcripts that already contained it.
+Changes apply to the next turn without restarting the agent; a completed chat correction also returns the actual saved content and revision to the agent. In **This turn**, expand **Why it was selected** to inspect matching terms and revisions changed since recall. This records what the agent received, not whether it applied the memory correctly. Matching currently uses Chinese and English terms plus project scope; it can miss paraphrases and does not establish that a condition is satisfied. Current instructions and verified facts take priority over history. The agent is instructed to explain its source when a memory changes its recommendation, and you can say that it does not apply to this task.
 
-Personal memories are stored locally in `personal-memory.json` in your user configuration directory. Only recalled content is sent to your configured model service. Recall returns at most five memories with a combined rendered-content limit of 6,000 characters; it does not scan old session logs. The library holds up to 500 memories and eight MiB, and reports when it is full. Suggestions are produced through tool calls in the current conversation; there is no background batch-extraction job. Personal memories are available to the main chat agent, including `icode run`; sub-agents and workflow agents do not receive this private library automatically.
+**Edit** preserves up to five earlier content revisions. **Pause** removes a memory from recall while retaining it; open **Paused** to **Restore** it. **Forget** is available directly on saved and paused memories and requires confirmation. Forgetting removes the memory, revisions, pending corrections, and recall references, but does not erase existing chat transcripts. Skipped suggestions remain in Paused too. `Ctrl+F` focuses search, `Down` enters the list, and `Esc` returns to the conversation.
+
+Personal memories are stored locally in `personal-memory.json` in your user configuration directory. Recalled content is sent to your configured model service; extraction also sends bounded recent conversation and existing memories for comparison. Recall returns at most five memories with a combined rendered-content limit of 6,000 characters. Automatic extraction produces at most three entries per check, without scanning old session logs or running a background batch job. The library holds up to 500 memories and eight MiB, and reports when it is full. Personal memories are available to the main chat agent, including `icode run`; sub-agents and workflow agents do not receive this private library automatically.
 
 ## Reference files
 

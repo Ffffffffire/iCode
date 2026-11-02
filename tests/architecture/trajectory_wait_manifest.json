@@ -4823,12 +4823,32 @@
         ["awaitable", "await self._bus.publish(reply)", "unresolved"]
       ]
     },
+    "chrys.service.personal_memory.extraction": {
+      "MemoryExtractor.extract": [
+        ["timeout", "async with asyncio.timeout(EXTRACTION_TIMEOUT)", "unresolved"],
+        ["awaitable", "await self._client.get_response([Message('system', [_INSTRUCTIONS]), Message('user', [json.dumps(payload, ensure_ascii=False)])], stream=False, options=options)", "unresolved"]
+      ]
+    },
     "chrys.service.personal_memory.runtime": {
       "PersonalMemoryRuntime._changed": [
         ["thread_pool", "await asyncio.to_thread(self._store.load)", "unresolved"],
-        ["awaitable", "await self._bus.publish(PersonalMemoryChanged(snapshot=snapshot, session_id=self._session_id))", "unresolved"]
+        ["awaitable", "await self._bus.publish(PersonalMemoryChanged(snapshot=snapshot, session_id=self._session_id, saved_memory_id=saved_memory_id))", "unresolved"]
+      ],
+      "PersonalMemoryRuntime._extract": [
+        ["awaitable", "await self._bus.publish(PersonalMemoryChanged(session_id=self._session_id, processing=True))", "unresolved"],
+        ["awaitable", "await self._extractor.extract(self._current_user[0], [(source.role, text) for text, source in self._evidence], existing, proposed)", "unresolved"],
+        ["awaitable", "await self._bus.publish(PersonalMemoryChanged(session_id=self._session_id))", "unresolved"]
+      ],
+      "PersonalMemoryRuntime._save_extracted": [
+        ["thread_pool", "await asyncio.to_thread(self._store.save, MemoryDraft(memory.title, memory.content, memory.when_to_use, memory.reconsider_when, memory.kind, self._workspace if memory.project_only else ''), source, memory_id=memory.replaces_id if active else '', revision=memory.replaces_revision if active else 0, candidate=not active, replaces_id='' if active else memory.replaces_id, replaces_revision=0 if active else memory.replaces_revision, request_workspace=self._workspace, authorization='request' if requested else 'capture')", "unresolved"],
+        ["wrapper", "await self._changed(saved_memory_id=saved.id if changed else '')", "unresolved", "chrys.service.personal_memory.runtime.PersonalMemoryRuntime._changed"]
       ],
       "PersonalMemoryRuntime.prepare": [
+        ["thread_pool", "await asyncio.to_thread(self._store.load)", "unresolved"],
+        ["wrapper", "await self._extract(state)", "unresolved", "chrys.service.personal_memory.runtime.PersonalMemoryRuntime._extract"],
+        ["wrapper", "await self._save_extracted(memory, state)", "unresolved", "chrys.service.personal_memory.runtime.PersonalMemoryRuntime._save_extracted"],
+        ["thread_pool", "await asyncio.to_thread(self._store.load)", "unresolved"],
+        ["awaitable", "await self._bus.publish(PersonalMemoryChanged(session_id=self._session_id, error='Memory extraction did not complete. The conversation can continue.'))", "unresolved"],
         ["thread_pool", "await asyncio.to_thread(self._store.load)", "unresolved"],
         ["thread_pool", "await asyncio.to_thread(self._store.recall, query, self._workspace, session_id=self._session_id)", "unresolved"],
         ["wrapper", "await self._changed()", "unresolved", "chrys.service.personal_memory.runtime.PersonalMemoryRuntime._changed"],
@@ -4836,11 +4856,20 @@
         ["awaitable", "await self._bus.publish(PersonalMemoryChanged(session_id=self._session_id, error='Personal memory is unavailable; no memories were recalled.'))", "unresolved"]
       ],
       "PersonalMemoryRuntime.propose_memory": [
-        ["thread_pool", "await asyncio.to_thread(self._store.save, MemoryDraft(title, content, when_to_use, reconsider_when, kind, self._workspace if project_only else ''), MemorySource(source.session_id, source.item_id, source.role, quote), candidate=True, replaces_id=replaces_id, replaces_revision=replaces_revision)", "unresolved"],
-        ["wrapper", "await self._changed()", "unresolved", "chrys.service.personal_memory.runtime.PersonalMemoryRuntime._changed"]
+        ["thread_pool", "await asyncio.to_thread(self._store.load)", "unresolved"],
+        ["wrapper", "await self._extract(state, {'title': title, 'content': content, 'when_to_use': when_to_use, 'reconsider_when': reconsider_when, 'source_quote': quote, 'kind': kind, 'project_only': project_only, 'replaces_id': replaces_id, 'replaces_revision': replaces_revision})", "unresolved", "chrys.service.personal_memory.runtime.PersonalMemoryRuntime._extract"],
+        ["wrapper", "await self._save_extracted(memory, state)", "unresolved", "chrys.service.personal_memory.runtime.PersonalMemoryRuntime._save_extracted"],
+        ["thread_pool", "await asyncio.to_thread(self._store.load)", "unresolved"],
+        ["wrapper", "await self._changed()", "unresolved", "chrys.service.personal_memory.runtime.PersonalMemoryRuntime._changed"],
+        ["wrapper", "await self._changed()", "unresolved", "chrys.service.personal_memory.runtime.PersonalMemoryRuntime._changed"],
+        ["awaitable", "await self._bus.publish(PersonalMemoryChanged(session_id=self._session_id, error='Memory extraction did not complete. No save was confirmed.'))", "unresolved"],
+        ["thread_pool", "await asyncio.to_thread(self._store.save, MemoryDraft(title, content, when_to_use, reconsider_when, kind, self._workspace if project_only else ''), MemorySource(source.session_id, source.item_id, source.role, quote), memory_id=replaces_id if save_now else '', revision=replaces_revision if save_now else 0, candidate=not save_now, replaces_id='' if save_now else replaces_id, replaces_revision=0 if save_now else replaces_revision, request_workspace=self._workspace, authorization='request' if save_now else 'capture')", "unresolved"],
+        ["wrapper", "await self._changed(saved_memory_id=entry.id)", "unresolved", "chrys.service.personal_memory.runtime.PersonalMemoryRuntime._changed"]
       ],
       "PersonalMemoryRuntime.recall_memory": [
-        ["thread_pool", "await asyncio.to_thread(self._store.recall, query, self._workspace, session_id=self._session_id, automatic=False)", "unresolved"],
+        ["thread_pool", "await asyncio.to_thread(self._store.load)", "unresolved"],
+        ["thread_pool", "await asyncio.to_thread(self._store.recall, query, self._workspace, session_id=self._session_id, automatic=False, extend_record=True)", "unresolved"],
+        ["thread_pool", "await asyncio.to_thread(self._store.recall, self._current_user[0], self._workspace, session_id=self._session_id, automatic=False, extend_record=True)", "unresolved"],
         ["wrapper", "await self._changed()", "unresolved", "chrys.service.personal_memory.runtime.PersonalMemoryRuntime._changed"]
       ]
     },

@@ -130,13 +130,14 @@ async def test_main_runtime_requires_the_real_read_file_tool(
     if kind is not None:
         set_tool_kind(tool, kind)
 
-    def build(owner, shared, recipe, *, context=None, injection=None):
+    def build(owner, shared, recipe, *, context=None, injection=None, personal_memory=None):
         return create_runtime(
             owner,
             replace(shared, tools=[tool]),
             replace(recipe, reminder={**recipe.reminder, "file_read_available": read_available}),
             context=context,
             injection=injection,
+            personal_memory=personal_memory,
         )
 
     monkeypatch.setattr(builder, "create_runtime", create_autospec(create_runtime, side_effect=build))

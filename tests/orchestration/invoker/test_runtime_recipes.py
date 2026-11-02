@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import json
 from dataclasses import replace
 from pathlib import Path
 from unittest.mock import create_autospec
@@ -31,6 +32,7 @@ from chrys.service.agent_middleware.system_reminder import SystemReminderMiddlew
 from chrys.service.context.middleware.usage import UsageTrackingMiddleware
 from chrys.service.context.providers.history import CompressibleHistoryProvider
 from chrys.service.llm.mock import MockResponse
+from chrys.service.personal_memory.store import PersonalMemoryStore
 from chrys.service.profiles.models.schema import ModelProfile
 from chrys.service.vision import NonVisionImageStubMiddleware
 from tests.orchestration.invoker._build_fixtures import build_recipe_engine
@@ -108,7 +110,19 @@ async def test_main_conversations_exclude_context_management_from_shared_runtime
         return original_runtime(owner, shared, recipe, **kwargs)
 
     monkeypatch.setattr(builder, "create_runtime", create_autospec(original_runtime, side_effect=capture))
-    engine, _, _ = await build_recipe_engine(agent_engine, monkeypatch, tmp_path, main=[], child=[])
+    proposal = {
+        "title": "IR consumer",
+        "content": "Validate the IR consumer first.",
+        "when_to_use": "IR design",
+        "source_quote": "Validate the IR consumer first.",
+    }
+    engine, _, _ = await build_recipe_engine(
+        agent_engine,
+        monkeypatch,
+        tmp_path,
+        main=[MockResponse(text=json.dumps({"memories": [proposal]}))],
+        child=[],
+    )
     assert len(captured) == 1
     shared, recipe = captured[0]
 
@@ -147,14 +161,9 @@ async def test_main_conversations_exclude_context_management_from_shared_runtime
         assert contexts[0].tools[0] is not contexts[1].tools[0]
         first.reminder.sources.personal_memory.observe([Message("user", ["Validate the IR consumer first."])])
         second.reminder.sources.personal_memory.observe([Message("user", ["Explain the customer rollout first."])])
+        PersonalMemoryStore().configure("auto", True)
         first_propose = next(tool for tool in first.agent.default_options["tools"] if tool.name == "propose_memory")
         second_propose = next(tool for tool in second.agent.default_options["tools"] if tool.name == "propose_memory")
-        proposal = {
-            "title": "IR consumer",
-            "content": "Validate the IR consumer first.",
-            "when_to_use": "IR design",
-            "source_quote": "Validate the IR consumer first.",
-        }
         assert '"state": "candidate"' in await first_propose(**proposal)
         assert "must occur verbatim" in await second_propose(**proposal)
         assert not {"recall_memory", "propose_memory"} & {tool.name for tool in shared.tools}

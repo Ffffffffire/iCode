@@ -19,7 +19,8 @@ class PersonalMemoryCommand(Event):
     draft: MemoryDraft | None = None
     state: MemoryState = "active"
     mode: MemoryMode = "auto"
-    capture: bool = True
+    capture: bool = False
+    auto_save: bool | None = None
 
 
 @dataclass(kw_only=True)
@@ -27,3 +28,5 @@ class PersonalMemoryChanged(Event):
     request_id: str = ""
     snapshot: MemorySnapshot | None = None
     error: str = ""
+    saved_memory_id: str = ""
+    processing: bool = False

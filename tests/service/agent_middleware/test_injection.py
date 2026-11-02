@@ -697,7 +697,7 @@ async def test_intermediate_text_stored_as_metadata(tmp_path, agent_engine) -> N
 
     session_path = store.session_dir(session_id) / "session.json"
     if session_path.exists():
-        raw = json.loads(session_path.read_text())
+        raw = json.loads(session_path.read_text(encoding="utf-8"))
         state = raw.get("state", {})
         messages = state.get("messages", [])
         assert isinstance(messages, list)

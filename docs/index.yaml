@@ -60,6 +60,8 @@ topics:
         path: guides/configuration/approval.md
       - id: memory
         path: guides/configuration/memory.md
+      - id: memory_demo
+        path: guides/configuration/memory-demo.md
       - id: compaction
         path: guides/configuration/compaction.md
       - id: settings

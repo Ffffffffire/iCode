@@ -19,6 +19,21 @@ from tests.foundation.i18n._workflow_catalog_oracle_ids import WORKFLOW_MESSAGE_
 # Adding or removing a msg() definition means editing this set in the SAME commit;
 # the oracle test pins both the id set and its size.
 _message_ids: set[str | tuple[str, str]] = {
+    "tui.personal_memory.capture_explicit",
+    "tui.personal_memory.capture_auto",
+    "tui.personal_memory.processing",
+    "tui.personal_memory.remembered",
+    "tui.personal_memory.proposed",
+    "tui.personal_memory.options",
+    "tui.personal_memory.ignore",
+    "tui.personal_memory.restore",
+    "tui.personal_memory.recall_details",
+    "tui.personal_memory.recall_tip",
+    "tui.personal_memory.indicator",
+    "tui.personal_memory.indicator_compact",
+    "tui.personal_memory.pending_badge",
+    "tui.personal_memory.recall_badge",
+    "tui.personal_memory.off_badge",
     "tui.commands.description.memory",
     "tui.man.memory.body",
     "tui.personal_memory.accept",

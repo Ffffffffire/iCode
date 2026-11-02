@@ -38,6 +38,7 @@ from chrys.app.tui.screens.main.ports import (
     SuggestionEntry,
 )
 from chrys.app.tui.screens.main.runtime_info import with_background_count
+from chrys.app.tui.screens.personal_memory import PersonalMemoryIndicator
 from chrys.app.tui.terminal.panel import ShellPanel
 from chrys.app.tui.terminal.widget import Terminal
 from chrys.app.tui.util.liveness import composed_live
@@ -666,8 +667,9 @@ class MainScreenViewAdapter:
         self._screen.query_one(InputBar).display = chat
         # The card belongs to the input: it never stays on a surface that hides it.
         self._screen.query_one(PromptCard).display = chat
-        # The footer row: the Footer and the hook indicator hide together.
+        # Shell mode hides the whole footer row, including memory and hooks.
         self._screen.query_one("#footer-row").display = not shell
+        self._screen.query_one(PersonalMemoryIndicator).display = chat
         # It shows the chat session's hook runs only: a workflow's hooks run on
         # the workflow's own manager, which reports nothing.
         self._screen.query_one(HookIndicator).display = not workflow

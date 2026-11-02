@@ -15,13 +15,14 @@ from chrys.service.personal_memory.store import MAX_CONTEXT_CHARS, MemoryStoreEr
 
 def test_recall_excludes_candidates_other_projects_archived_and_unrelated(tmp_path: Path) -> None:
     store = PersonalMemoryStore(tmp_path / "memories.json")
+    store.configure("auto", True)
     draft = MemoryDraft(
         "报告缓存", "识别逻辑改变后检查持久化报告的版本失效。", "统计已修复但报告仍旧", workspace=str(tmp_path)
     )
     active = store.save(draft, MemorySource(quote="统计已修复但报告仍旧"))
-    store.save(replace(draft, title="未确认的报告缓存"), MemorySource(), candidate=True)
+    store.save(replace(draft, title="未确认的报告缓存", content="尝试重建报告索引。"), MemorySource(), candidate=True)
     store.save(replace(draft, title="另一个项目的缓存", workspace=str(tmp_path / "other")), MemorySource())
-    archived = store.save(replace(draft, title="已结束的报告缓存"), MemorySource())
+    archived = store.save(replace(draft, title="已结束的报告缓存", content="旧版报告缓存处理已结束。"), MemorySource())
     store.set_state(archived.id, archived.revision, "archived")
     matches = store.recall("统计逻辑已修复但报告仍然是旧的", str(tmp_path))
     assert [entry.id for entry, _ in matches] == [active.id]
@@ -52,6 +53,7 @@ def test_revision_keeps_original_evidence_and_recall_identity(tmp_path: Path) ->
 
 def test_suggested_correction_requires_acceptance_and_rechecks_parent_revision(tmp_path: Path) -> None:
     store = PersonalMemoryStore(tmp_path / "memories.json")
+    store.configure("auto", True)
     old = store.save(MemoryDraft("IR design", "Old rationale", "Designing trajectory IR"), MemorySource())
     suggestion = store.save(
         replace(old.draft, content="First identify the downstream consumer"),
@@ -80,6 +82,7 @@ def test_suggested_correction_requires_acceptance_and_rechecks_parent_revision(t
 
 def test_forget_removes_revisions_pending_corrections_and_recall_references(tmp_path: Path) -> None:
     store = PersonalMemoryStore(tmp_path / "memories.json")
+    store.configure("auto", True)
     entry = store.save(MemoryDraft("Report cache", "Old fact", "report cache"), MemorySource())
     revised = store.save(
         replace(entry.draft, content="New fact"), MemorySource(), memory_id=entry.id, revision=entry.revision
@@ -117,7 +120,10 @@ def test_no_match_does_not_create_store_and_large_matches_obey_context_budget(tm
     assert store.recall("report cache", str(tmp_path), session_id="one") == ()
     assert not store.path.exists()
     for index in range(8):
-        store.save(MemoryDraft(f"Report cache {index}", "details " * 280, "report cache"), MemorySource())
+        store.save(
+            MemoryDraft(f"Report cache {index}", f"Artifact {index}: " + "details " * 280, "report cache"),
+            MemorySource(),
+        )
     matches = store.recall("report cache", str(tmp_path))
     assert 0 < len(matches) <= 5
     assert sum(len(render_memory(entry, match.terms)) for entry, match in matches) <= MAX_CONTEXT_CHARS
@@ -140,3 +146,54 @@ def test_corrupt_store_is_not_silently_replaced(tmp_path: Path, invalid: str) ->
     with pytest.raises(MemoryStoreError, match="not been overwritten"):
         store.save(MemoryDraft("Report cache", "Check versions", "report cache"), MemorySource())
     assert store.path.read_text(encoding="utf-8") == invalid
+
+
+def test_manually_saved_memory_needs_no_condition_but_suggestions_do(tmp_path: Path) -> None:
+    store = PersonalMemoryStore(tmp_path / "memory.json")
+    assert store.load().capture is False
+    draft = MemoryDraft("Report cache", "Check the report cache version before deletion.", "")
+    saved = store.save(draft, MemorySource())
+    assert store.load().entries[0].draft.when_to_use == ""
+    assert store.recall("report cache", "")[0][0].id == saved.id
+    with pytest.raises(MemoryStoreError, match="future situation"):
+        store.save(replace(draft, title="Suggested report cache"), MemorySource(), candidate=True)
+
+
+def test_same_fact_with_a_different_title_reuses_identity_without_inventing_new_evidence(tmp_path: Path) -> None:
+    store = PersonalMemoryStore(tmp_path / "memory.json")
+    old = store.save(MemoryDraft("Cache", "Check versions first", "stale cache"), MemorySource(quote="original"))
+    before = store.load()
+    repeated = store.save(replace(old.draft, title="Report cache", content="Check versions first  "), MemorySource())
+    assert repeated == old
+    assert store.load() == before
+    same = store.save(old.draft, MemorySource(quote="Repeated quote"), memory_id=old.id, revision=old.revision)
+    assert same == old
+    assert store.load() == before
+
+
+def test_same_topic_and_condition_require_correction_but_distinct_conditions_can_coexist(tmp_path: Path) -> None:
+    store = PersonalMemoryStore(tmp_path / "memory.json")
+    old = store.save(MemoryDraft("Cache", "Check versions first", "stale cache"), MemorySource())
+    with pytest.raises(MemoryStoreError, match=old.id):
+        store.save(replace(old.draft, content="Always delete cache first"), MemorySource())
+    exception = store.save(
+        replace(old.draft, content="Rebuild the cache", when_to_use="artifact confirmed corrupt"), MemorySource()
+    )
+    project = store.save(replace(old.draft, workspace=str(tmp_path)), MemorySource())
+    assert {item.id for item in store.load().entries} == {old.id, exception.id, project.id}
+
+
+def test_accepting_or_restoring_rechecks_for_new_conflicts(tmp_path: Path) -> None:
+    store = PersonalMemoryStore(tmp_path / "memory.json")
+    store.configure("auto", True)
+    pending = store.save(MemoryDraft("Cache", "Delete it first", "stale cache"), MemorySource(), candidate=True)
+    current = store.save(replace(pending.draft, content="Check versions first"), MemorySource())
+    with pytest.raises(MemoryStoreError, match=current.id):
+        store.set_state(pending.id, pending.revision, "active")
+    with pytest.raises(MemoryStoreError, match=current.id):
+        store.save(pending.draft, MemorySource(quote="Remember this"))
+    paused = store.set_state(pending.id, pending.revision, "archived")
+    paused_entry = next(item for item in paused.entries if item.id == pending.id)
+    with pytest.raises(MemoryStoreError, match=current.id):
+        store.set_state(paused_entry.id, paused_entry.revision, "active")
+    assert [item.id for item in store.load().entries if item.state == "active"] == [current.id]

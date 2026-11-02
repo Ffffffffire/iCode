@@ -392,18 +392,10 @@ class PersonalMemoryRuntime:
     ) -> str:
         """Save an explicit user request, or suggest a memory for review in /memory."""
         quote = source_quote.strip()
-        if len(content.strip()) > 600 or not when_to_use.strip():
-            return tool_error(
-                "memory_not_distilled", "Use at most 600 characters for one memory and specify its future use."
-            )
         if self._extractor is not None:
             if self._current_user is None or _declines_memory(self._current_user[0]):
                 return tool_error(
                     "memory_declined", "There is no user request to process, or the user declined memory."
-                )
-            if self._source(quote, kind) is None:
-                return tool_error(
-                    "memory_source_missing", "The source quote must occur verbatim in a recent user message."
                 )
             try:
                 state = await asyncio.to_thread(self._store.load)
@@ -412,11 +404,11 @@ class PersonalMemoryRuntime:
                 extracted = await self._extract(
                     state,
                     {
-                        "title": title,
-                        "content": content,
-                        "when_to_use": when_to_use,
-                        "reconsider_when": reconsider_when,
-                        "source_quote": quote,
+                        "title": title[:120],
+                        "content": content[:2400],
+                        "when_to_use": when_to_use[:600],
+                        "reconsider_when": reconsider_when[:600],
+                        "source_quote": quote[:1200],
                         "kind": kind,
                         "project_only": project_only,
                         "replaces_id": replaces_id,
@@ -424,6 +416,16 @@ class PersonalMemoryRuntime:
                     },
                 )
                 saved_entries = []
+                if (
+                    not state.capture
+                    and extracted.memories
+                    and not any(memory.basis == "request" for memory in extracted.memories)
+                ):
+                    return tool_error(
+                        "memory_request_missing",
+                        "Automatic extraction is off and the user did not ask to save. Nothing was written. "
+                        "Do not claim this preference is already saved.",
+                    )
                 for memory in extracted.memories:
                     if memory.basis != "request" and not state.capture:
                         continue
@@ -442,8 +444,9 @@ class PersonalMemoryRuntime:
                 if not saved_entries:
                     return tool_error(
                         "memory_no_change",
-                        "No new or corrected memory was saved. The content may already be remembered, be temporary, "
-                        "or lack a save request while extraction is disabled. Do not retry with invented evidence.",
+                        "No supported new or corrected memory was identified. Nothing was written. "
+                        "Do not claim a save or that memory already exists without verifying it with recall_memory. "
+                        "Do not retry with invented evidence.",
                     )
                 return json.dumps(
                     saved_entries[0] if len(saved_entries) == 1 else {"memories": saved_entries}, ensure_ascii=False
@@ -459,6 +462,10 @@ class PersonalMemoryRuntime:
                     )
                 )
                 return tool_error("memory_unavailable", "Memory extraction did not complete. No save was confirmed.")
+        if len(content.strip()) > 600 or not when_to_use.strip():
+            return tool_error(
+                "memory_not_distilled", "Use at most 600 characters for one memory and specify its future use."
+            )
         if save_now:
             current = self._current_user
             request = _explicit_save_request(current[0]) if current is not None else None

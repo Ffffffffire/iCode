@@ -120,6 +120,23 @@ async def test_semantic_followup_saves_polished_preference_without_a_keyword_gat
     assert store.load().capture is False
 
 
+async def test_semantic_extraction_repairs_a_rough_tool_draft_using_actual_user_evidence(tmp_path: Path) -> None:
+    runtime, store, _, client, _ = _runtime(tmp_path, _result(basis="request"))
+    runtime.observe([Message("user", [PREFERENCE]), Message("user", ["Keep this preference for next time."])])
+    result = await runtime.propose_memory(
+        title="Slides",
+        content="Verbose draft " * 70,
+        when_to_use="",
+        source_quote="Polished paraphrase, not an actual quotation",
+        kind="preference",
+        save_now=True,
+    )
+    assert not result.startswith("Error:")
+    assert len(client.call_history) == 1
+    (entry,) = store.load().entries
+    assert entry.source.quote == PREFERENCE and len(entry.draft.content) < 600
+
+
 async def test_correction_preserves_identity_scope_history_and_does_not_repeat_on_retry(tmp_path: Path) -> None:
     runtime, store, _, client, _ = _runtime(tmp_path)
     old = store.save(
@@ -196,6 +213,20 @@ async def test_extractor_works_through_the_production_client_layers() -> None:
     extractor = MemoryExtractor(client)
     result = await extractor.extract(PREFERENCE, [], [])
     assert result.memories == [] and len(wire.call_history) == 1
+
+
+async def test_nested_options_cannot_attach_extraction_to_the_main_conversation() -> None:
+    client = MockChatClient([MockResponse(text='{"memories": []}')])
+    extra = {
+        "store": True,
+        "previous_response_id": "parent",
+        "text": {"format": "parent"},
+        "thinking": {"type": "disabled"},
+    }
+    await MemoryExtractor(client, {"extra_body": extra}).extract(PREFERENCE, [], [])
+    options = client.call_history[0][1]
+    assert options["extra_body"] == {"store": False, "thinking": {"type": "disabled"}}
+    assert extra["store"] is True and extra["previous_response_id"] == "parent"
 
 
 def test_legacy_enabled_capture_migrates_to_clear_preference_auto_save(tmp_path: Path) -> None:

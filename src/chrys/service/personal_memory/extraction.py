@@ -28,6 +28,10 @@ Retain a reusable choice, preference, conditional lesson or durable unfinished i
 change a future answer or action. Do not store task progress, questions about the product, greetings,
 one-off formatting requests, credentials, examples, quoted third-party preferences, or guesses about
 the user. A question is not a preference. Silence or lack of criticism is not endorsement.
+The proposed draft and assistant restatements may contain invented constraints: rebuild the memory
+from user-supported facts, dropping unsupported clauses. A follow-up to polish and remember a preference
+is not blanket endorsement of additions in an assistant's restatement. Do not turn positive preferences
+into additional prohibitions (for example, liking dense slides does not require banning whitespace).
 Only extract new information in the latest user message, unless it explicitly refers to earlier
 content for remembering or extracting. Earlier context resolves references; it is not a backlog to save.
 Respect any request not to remember. A request to polish or discuss text alone is not permission to save.
@@ -52,6 +56,8 @@ require the user's own words. An assistant's claim can at most support an inferr
 Use the existing memories to avoid duplicates: emit nothing for an equivalent fact. For a real correction,
 provide the existing id and revision, keep its scope, and preserve still-valid parts; do not create a
 competing memory. Never reactivate a paused memory automatically. At most three distinct memories.
+For a new memory use replaces_id="" and replaces_revision=0. Copy replacement IDs only from existing_memories.
+Copy source_quote exactly, including original spacing and punctuation; do not polish or add punctuation to it.
 """
 
 
@@ -111,8 +117,26 @@ class MemoryExtractor:
             "proposed_draft": proposed,
         }
         options = self._options.copy()
-        for key in ("tools", "tool_choice", "instructions", "conversation_id", "continuation_token", "background"):
+        isolated_keys = (
+            "tools",
+            "tool_choice",
+            "instructions",
+            "conversation_id",
+            "continuation_token",
+            "background",
+            "previous_response_id",
+            "conversation",
+            "response_format",
+            "text",
+        )
+        for key in isolated_keys:
             options.pop(key, None)
+        extra_body = options.get("extra_body")
+        if isinstance(extra_body, Mapping):
+            extra_body = {key: value for key, value in extra_body.items() if key not in isolated_keys}
+            if "store" in extra_body:
+                extra_body["store"] = False
+            options["extra_body"] = extra_body
         if "store" in options or self._client.STORES_BY_DEFAULT:
             options["store"] = False
         options["response_format"] = MemoryExtraction

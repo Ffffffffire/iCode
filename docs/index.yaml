@@ -26,6 +26,11 @@ topics:
         path: guides/daily-use/sessions.md
       - id: workspaces
         path: guides/daily-use/workspaces.md
+      - id: personalized_memory
+        labels:
+          zh-Hans: 个性化记忆
+          en: Personalized Memory
+        path: guides/daily-use/personalized-memory.md
   - id: running
     labels:
       zh-Hans: 运行 iCode

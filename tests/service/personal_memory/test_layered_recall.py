@@ -82,7 +82,9 @@ def test_natural_language_query_finds_a_memory_named_by_its_code_identifier(tmp_
     assert [e.id for e, _ in store.recall("retry policy", "", record=False)] == [entry.id]
 
 
-@pytest.mark.parametrize("query", ["deepseek-v4-flash", "DeepSeek-v4-flash", "other.py", "C# code", "plain net service"])
+@pytest.mark.parametrize(
+    "query", ["deepseek-v4-flash", "DeepSeek-v4-flash", "other.py", "C# code", "plain net service"]
+)
 def test_identifier_expansion_preserves_distinct_technical_names(tmp_path: Path, query: str) -> None:
     store = PersonalMemoryStore(tmp_path / "memory.json")
     for title in ("Deep", "Flash", "Python", "C++", ".NET"):

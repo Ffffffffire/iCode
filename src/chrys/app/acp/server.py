@@ -35,6 +35,7 @@ from chrys.app.acp.json_values import JsonValue, to_json_object
 from chrys.app.acp.session_manager import AcpSessionError, AcpSessionManager, ManagedSession, jsonable_dataclass
 from chrys.foundation.branding import APP_DISPLAY_NAME
 from chrys.foundation.config.settings import DEFAULT_APPROVAL_TIMEOUT_SECONDS
+from chrys.foundation.events.personal_memory import PersonalMemoryChanged
 from chrys.foundation.events.types import (
     AgentLoadFailed,
     AgentLoadFinished,
@@ -140,6 +141,7 @@ ACP_EXTENSION_METHODS: tuple[str, ...] = (
 )
 
 ACP_EXTENSION_NOTIFICATIONS: tuple[str, ...] = (
+    "chrys/personal_memory",
     "chrys/approval_reviewed",
     "chrys/agent_load_started",
     "chrys/agent_load_progress",
@@ -1264,6 +1266,21 @@ class ChrysAcpServer:
             return False
         client = self._client_or_error()
         event_session_id = _event_session_id(event, session_id)
+        if isinstance(event, PersonalMemoryChanged):
+            # Forward only this operation's receipt. The global library contains
+            # other workspaces' private entries and must not cross this boundary.
+            payload: dict[str, Any] = {"sessionId": event_session_id}
+            if event.error:
+                payload.update(error=event.error, errorCode=event.error_code, attemptedTitle=event.attempted_title)
+            elif event.snapshot and event.saved_memory_id:
+                entry = next((e for e in event.snapshot.entries if e.id == event.saved_memory_id), None)
+                if entry is not None:
+                    payload.update(
+                        memoryId=entry.id, revision=entry.revision, state=entry.state, title=entry.draft.title
+                    )
+            if len(payload) > 1:
+                await client.ext_notification("chrys/personal_memory", payload)
+            return True
         if isinstance(event, AgentLoadStarted):
             await client.ext_notification(
                 "chrys/agent_load_started",

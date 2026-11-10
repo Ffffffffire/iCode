@@ -156,7 +156,7 @@ async def test_memory_footer_entry_preserves_shortcuts_at_narrow_width(tmp_path:
         assert hooks.region.right == 60
 
 
-async def test_footer_shows_extraction_and_only_announces_confirmed_saves(
+async def test_footer_only_announces_confirmed_saves_for_the_current_session(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     bus = EventBus()
@@ -174,22 +174,42 @@ async def test_footer_shows_extraction_and_only_announces_confirmed_saves(
         main.chat_session_id = "capture-session"
         indicator = main.query_one(PersonalMemoryIndicator)
         monkeypatch.setattr(indicator, "notify", notify)
-        await bus.publish(PersonalMemoryChanged(session_id=main.chat_session_id, processing=True))
-        await wait_for(
-            lambda: "Checking" in rich_plain(indicator.render()), pilot=pilot, description="extraction visible"
-        )
         assert not notices
         await bus.publish(
             PersonalMemoryChanged(session_id=main.chat_session_id, snapshot=store.load(), saved_memory_id=entry.id)
         )
         await wait_for(lambda: bool(notices), pilot=pilot, description="confirmed save announced")
         assert "Remembered:" in notices[0] and "\\[red] slides" in notices[0]
-        assert "Checking" not in rich_plain(indicator.render())
         await bus.publish(
             PersonalMemoryChanged(session_id="another-session", snapshot=store.load(), saved_memory_id=entry.id)
         )
         await pilot.pause()
         assert len(notices) == 1
+
+
+async def test_paused_memory_shows_original_evidence_and_reason_in_the_library(tmp_path: Path) -> None:
+    bus = EventBus()
+    store = PersonalMemoryStore(tmp_path / "memory.json")
+    entry = store.save(
+        MemoryDraft("Graph research", "Investigate graph learning", "Research planning"),
+        MemorySource(quote="Original intention"),
+    )
+    reason = "This research is complete; stop reminding me."
+    store.pause(entry.id, entry.revision, MemorySource(quote=reason), str(tmp_path))
+    await bus.subscribe(PersonalMemoryCommand, PersonalMemoryController(bus, store).handle)
+    app = make_chrys_app(tmp_path / "sessions", engine=SessionGenerationEngine(), event_bus=bus)
+    async with app.run_test(size=(100, 38)) as pilot:
+        screen = PersonalMemoryScreen(
+            bus=bus, workspace=str(tmp_path), session_id="review", initial_view="archived", memory_id=entry.id
+        )
+        await app.push_screen(screen)
+        await wait_for(
+            lambda: reason in rich_plain(screen.query_one("#memory-source", Static).render()),
+            pilot=pilot,
+            description="paused source and reason loaded",
+        )
+        text = rich_plain(screen.query_one("#memory-source", Static).render())
+        assert "Original intention" in text and "Paused" in text
 
 
 async def test_duplicate_save_returns_to_the_actual_saved_memory(tmp_path: Path) -> None:
@@ -343,6 +363,8 @@ async def test_footer_reviews_candidates_then_inspects_recall_without_interrupti
     second = await asyncio.to_thread(
         store.save, MemoryDraft("报告缓存", "先检查产物版本。", "报告内容仍旧"), source, candidate=True
     )
+    await asyncio.to_thread(store.set_buddy_notifications, True)
+    await asyncio.to_thread(store.maintain)
     controller = PersonalMemoryController(bus, store)
     await bus.subscribe(PersonalMemoryCommand, controller.handle)
     app = make_chrys_app(tmp_path / "sessions", engine=SessionGenerationEngine(), event_bus=bus)

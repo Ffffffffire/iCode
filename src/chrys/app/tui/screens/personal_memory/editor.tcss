@@ -12,11 +12,11 @@ PersonalMemoryEditor.-expanded #memory-editor { height: 85%; max-height: 32; }
 PersonalMemoryEditor #memory-editor-fields { height: 1fr; scrollbar-size: 1 1; }
 PersonalMemoryEditor #memory-edit-content {
     height: 8; min-height: 5; margin-bottom: 1;
-    background: $foreground 5%; border: round $tui-border-foreground 15%;
+    background: $foreground 8%; border: round $tui-border-foreground 15%;
     border-title-color: $text-muted;
 }
 PersonalMemoryEditor #memory-edit-content:focus {
-    background: $foreground 8%; border: round $tui-border-primary $border-opacity;
+    background: $foreground 12%; border: round $tui-border-primary $border-opacity;
 }
 PersonalMemoryEditor #memory-edit-meta { height: 1; }
 PersonalMemoryEditor #memory-edit-project {
@@ -24,16 +24,29 @@ PersonalMemoryEditor #memory-edit-project {
 }
 PersonalMemoryEditor #memory-edit-options { padding: 0; border: none; margin-top: 1; }
 PersonalMemoryEditor #memory-edit-options > Contents { padding: 0 1; }
-PersonalMemoryEditor #memory-edit-kind { height: auto; margin: 1 0; }
+PersonalMemoryEditor #memory-edit-kind { height: auto; margin: 0; }
 PersonalMemoryEditor #memory-edit-kind SelectCurrent {
     height: 1; border: none; padding: 0 1; background: $foreground 8%;
 }
 PersonalMemoryEditor #memory-edit-kind SelectOverlay {
     border: round $tui-border-primary $border-opacity; max-height: 8;
 }
-PersonalMemoryEditor EnhancedInput { height: 3; margin: 0; }
+PersonalMemoryEditor EnhancedInput {
+    height: 1; margin: 0; border: none; padding: 0 1; background: $foreground 8%;
+}
+PersonalMemoryEditor EnhancedInput:focus { border: none; background: $foreground 12%; }
+PersonalMemoryEditor Select:focus > SelectCurrent { background: $foreground 12%; }
+PersonalMemoryEditor .memory-field-label { height: auto; margin-top: 1; color: $text-muted; }
 PersonalMemoryEditor #memory-edit-buttons { height: 3; padding: 1 0; align-horizontal: right; }
 PersonalMemoryEditor #memory-edit-buttons Button {
     height: 1; width: auto; min-width: 8; border: none; padding: 0 2; margin-left: 1;
 }
-PersonalMemoryEditor #memory-edit-error { height: auto; color: $error; }
+PersonalMemoryEditor #memory-edit-error { height: auto; color: $error; background: $error 15%; padding: 0 1; display: none; }
+PersonalMemoryEditor #memory-edit-always, PersonalMemoryEditor #memory-edit-track {
+    height: 1; border: none; background: transparent; padding: 0; margin: 1 0;
+}
+PersonalMemoryEditor #memory-edit-status { height: auto; margin: 0; }
+PersonalMemoryEditor #memory-edit-status SelectCurrent {
+    height: 1; border: none; padding: 0 1; background: $foreground 8%;
+}
+PersonalMemoryEditor #memory-edit-status SelectOverlay { max-height: 8; }

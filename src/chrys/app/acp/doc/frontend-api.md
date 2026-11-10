@@ -470,6 +470,13 @@ One-way `ext_notification` pushes, bridged from `EventBus`:
   `chrys/compaction_started`, `chrys/compaction_finished`.
 - Edits / turns: `chrys/rollback_result`, `chrys/user_inject_result`,
   `chrys/turn_started`, `chrys/retry_attempt`, `chrys/messages_retracted`.
+- Personalized memory: `chrys/personal_memory`. A successful save carries
+  `{ sessionId, memoryId, revision, state, title }`; a rejected save carries
+  `{ sessionId, attemptedTitle, errorCode, error }`. `attemptedTitle` is the
+  model-proposed title, not evidence that a memory was saved. Library-read errors
+  may carry only `{ sessionId, errorCode, error }`. Clients should gate this
+  notification on the advertised extension capabilities. No library snapshot,
+  memory content, source quote, or other memory entry is sent in this notification.
 - Sub-agent lifecycle: `chrys/sub_agent_invocation_start`,
   `chrys/sub_agent_tool_call_start`, `chrys/sub_agent_tool_call_result`,
   `chrys/sub_agent_progress`, `chrys/sub_agent_retry_attempt`,

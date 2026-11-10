@@ -35,6 +35,7 @@ from chrys.kernel import (
     SessionContext,
 )
 from chrys.service.context.compaction.groups import _tool_call_name, _tool_result_text
+from chrys.service.context.compaction.summary_extension import SummaryExtension
 from chrys.service.context.providers.history import CompressibleHistoryProvider
 from chrys.service.llm.one_shot import get_final_response
 from chrys.service.tools.result_metadata import tool_error
@@ -183,6 +184,7 @@ class ContextManagementProvider(ContextProvider):
         self._on_compress = on_compress
         self._instructions = _INSTRUCTIONS
         self._tools = self._create_tools()
+        self.summary_extension: SummaryExtension | None = None
 
     @property
     def tool_names(self) -> list[str]:
@@ -202,7 +204,8 @@ class ContextManagementProvider(ContextProvider):
         state: dict[str, Any],
     ) -> None:
         self._session = session
-        context.extend_instructions(self.source_id, self._instructions)
+        extension = await self.summary_extension.instructions() if self.summary_extension is not None else ""
+        context.extend_instructions(self.source_id, self._instructions + ("\n\n" + extension if extension else ""))
         context.extend_tools(self.source_id, self._tools)
 
     # ------------------------------------------------------------------
@@ -305,7 +308,9 @@ class ContextManagementProvider(ContextProvider):
         state = self._get_history_state()
 
         try:
-            ctx_id, freed = self._strategy.queue_compression(marker_id, summary)
+            ctx_id, freed = self._strategy.queue_compression(
+                marker_id, summary, summary_extension=self.summary_extension
+            )
         except (ValueError, RuntimeError) as e:
             # Include available markers so the agent can retry with a valid one
             available = self._strategy.list_compressed()

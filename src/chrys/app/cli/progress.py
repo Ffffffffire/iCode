@@ -42,6 +42,7 @@ from chrys.app.cli.tool_summary import (
 from chrys.app.tui.util.context_pressure import context_pressure_message
 from chrys.foundation.errors.display import DISPLAY_WITH_HINT
 from chrys.foundation.events.bus import EventBus
+from chrys.foundation.events.personal_memory import PersonalMemoryChanged
 from chrys.foundation.events.types import (
     AGENT_LOAD_PHASE_MCP,
     AGENT_LOAD_STATUS_RUNNING,
@@ -711,6 +712,16 @@ class TurnProgress:
 
     def handle(self, event: Event) -> None:
         match event:
+            case PersonalMemoryChanged():
+                if event.error:
+                    title = _scalar(event.attempted_title, 120)
+                    status = "Memory not saved" if event.attempted_title else "Memory unavailable"
+                    self._writer.warning(f"{status}{': ' + title if title else ''}: {_scalar(event.error, 240)}")
+                elif event.snapshot and event.saved_memory_id and event.saved_changed:
+                    entry = next((e for e in event.snapshot.entries if e.id == event.saved_memory_id), None)
+                    if entry:
+                        status = "Memory awaiting review" if entry.state == "candidate" else "Memory saved"
+                        self._writer.line(("• ", _ACCENT), f"{status}: {_scalar(entry.draft.title, 120)}")
             case InvocationEvent():
                 self._activity.handle(event)
             case AgentLoadProgress():

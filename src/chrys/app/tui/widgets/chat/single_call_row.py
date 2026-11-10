@@ -8,6 +8,7 @@ keeps its count in view.
 
 from __future__ import annotations
 
+import json
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import PurePath
@@ -52,6 +53,17 @@ _UPDATED_TODOS = msg("tui.tool_card.group.single.todo", fallback="Updated the to
 _SLEPT_FOR = msg("tui.tool_card.group.single.sleep", fallback="Slept {duration}: {reason}")
 """A sleep that said why; one that did not keeps the group's ``Slept {duration}``."""
 _CALLED = msg("tui.tool_card.group.single.other", fallback="Called {tool}")
+_MEMORY_LOOKUP = msg("tui.tool_card.group.single.memory_lookup", fallback="Looked up memories: {query}")
+_MEMORY_INSPECT = msg("tui.tool_card.group.single.memory_inspect", fallback="Checked related memories: {query}")
+_MEMORY_SAVED = msg("tui.tool_card.group.single.memory_saved", fallback="Saved memory: {title}")
+_MEMORY_UPDATED = msg("tui.tool_card.group.single.memory_updated", fallback="Updated memory: {title}")
+_MEMORY_CANDIDATE = msg("tui.tool_card.group.single.memory_candidate", fallback="Memory to review: {title}")
+_MEMORY_UNCHANGED = msg("tui.tool_card.group.single.memory_unchanged", fallback="Memory unchanged: {title}")
+_MEMORY_PAUSED = msg("tui.tool_card.group.single.memory_paused", fallback="Paused memory: {title}")
+_MEMORY_PROCESSED = msg("tui.tool_card.group.single.memory_processed", fallback="Processed memory: {title}")
+_MEMORY_FEEDBACK = msg("tui.tool_card.group.single.memory_feedback", fallback="Recorded memory feedback: {title}")
+_MEMORY_APPLIED = msg("tui.tool_card.group.single.memory_applied", fallback="Reported memory use: {title}")
+_FOLLOW_UP_UPDATED = msg("tui.tool_card.group.single.follow_up_updated", fallback="Updated follow-up: {title}")
 
 _SHELL_LABELS: Final[dict[str, str]] = {"git_bash": "Git Bash"}
 
@@ -76,13 +88,14 @@ def single_call_row(
     hosted_family: str = "",
     slept_ms: int = 0,
     workspace_cwd: str = "",
+    result: str = "",
 ) -> SingleCallRow | None:
     """What one succeeded call did, from its name, kind and arguments; None when those do not say enough to tell.
 
     A path inside *workspace_cwd* reads relative to it.
     """
     args = args or {}
-    category = tool_category(tool_kind, hosted_family)
+    category = tool_category(tool_kind, hosted_family, tool_name=tool_name)
     name = sanitize_legacy_scalar(tool_name)
     hosted = bool(hosted_family)
 
@@ -94,6 +107,48 @@ def single_call_row(
         return SingleCallRow(render_str(localizer, words.bind(path=path)), path) if path else None
 
     match category:
+        case "memory_lookup":
+            query = _line(args, "query")
+            label = _MEMORY_INSPECT if args.get("for_update") is True else _MEMORY_LOOKUP
+            return row(label.bind(query=query)) if query else None
+        case "memory_write" | "memory_pause":
+            # Old sessions and malformed receipts stay neutral. A request is not proof of a write.
+            receipt: dict[str, Any] = {}
+            if result and len(result) <= 8192:
+                try:
+                    parsed = json.loads(result)
+                except ValueError, RecursionError:
+                    pass
+                else:
+                    if isinstance(parsed, dict):
+                        receipt = parsed
+            title = _line(receipt, "title") or _line(args, "title") or _line(args, "memory_id")
+            if not title:
+                return None
+            label = _MEMORY_PROCESSED
+            if tool_name == "review_memory" and receipt.get("outcome") in (
+                "applied",
+                "helpful",
+                "incorrect",
+                "not_applicable",
+            ):
+                label = _MEMORY_APPLIED if receipt["outcome"] == "applied" else _MEMORY_FEEDBACK
+            elif (
+                tool_name == "update_follow_up"
+                and receipt.get("changed") is True
+                and isinstance(receipt.get("follow_up"), dict)
+            ):
+                label = _FOLLOW_UP_UPDATED
+            elif category == "memory_pause" and receipt.get("state") == "archived":
+                label = _MEMORY_PAUSED
+            elif category == "memory_write":
+                if receipt.get("changed") is False:
+                    label = _MEMORY_UNCHANGED
+                elif receipt.get("state") == "candidate" and receipt.get("changed") is True:
+                    label = _MEMORY_CANDIDATE
+                elif receipt.get("state") == "active" and receipt.get("changed") is True:
+                    label = _MEMORY_UPDATED if args.get("replaces_id") else _MEMORY_SAVED
+            return row(label.bind(title=title))
         case "read":
             if tool_name == "view_image":
                 return path_row(_VIEWED_IMAGE)

@@ -9,6 +9,7 @@ from tests.foundation.i18n._buddy_catalog_oracle_ids import BUDDY_MESSAGE_IDS
 from tests.foundation.i18n._error_catalog_oracle_ids import ERROR_MESSAGE_IDS
 from tests.foundation.i18n._help_catalog_oracle_ids import HELP_MESSAGE_IDS
 from tests.foundation.i18n._hook_panel_catalog_oracle_ids import HOOK_PANEL_MESSAGE_IDS
+from tests.foundation.i18n._personal_memory_catalog_oracle_ids import PERSONAL_MEMORY_MESSAGE_IDS
 from tests.foundation.i18n._prompt_catalog_oracle_ids import PROMPT_MESSAGE_IDS
 from tests.foundation.i18n._settings_catalog_oracle_ids import SETTINGS_MESSAGE_IDS
 from tests.foundation.i18n._tool_card_catalog_oracle_ids import TOOL_CARD_MESSAGE_IDS
@@ -19,69 +20,8 @@ from tests.foundation.i18n._workflow_catalog_oracle_ids import WORKFLOW_MESSAGE_
 # Adding or removing a msg() definition means editing this set in the SAME commit;
 # the oracle test pins both the id set and its size.
 _message_ids: set[str | tuple[str, str]] = {
-    "tui.personal_memory.capture_explicit",
-    "tui.personal_memory.capture_auto",
-    "tui.personal_memory.processing",
-    "tui.personal_memory.remembered",
-    "tui.personal_memory.proposed",
-    "tui.personal_memory.options",
-    "tui.personal_memory.ignore",
-    "tui.personal_memory.restore",
-    "tui.personal_memory.recall_details",
-    "tui.personal_memory.recall_tip",
-    "tui.personal_memory.indicator",
-    "tui.personal_memory.indicator_compact",
-    "tui.personal_memory.pending_badge",
-    "tui.personal_memory.recall_badge",
-    "tui.personal_memory.off_badge",
     "tui.commands.description.memory",
     "tui.man.memory.body",
-    "tui.personal_memory.accept",
-    "tui.personal_memory.active",
-    "tui.personal_memory.all",
-    "tui.personal_memory.archive",
-    "tui.personal_memory.archived",
-    "tui.personal_memory.assistant_source",
-    "tui.personal_memory.auto",
-    "tui.personal_memory.cancel",
-    "tui.personal_memory.candidate",
-    "tui.personal_memory.capture",
-    "tui.personal_memory.capture_tip",
-    "tui.personal_memory.close",
-    "tui.personal_memory.content",
-    "tui.personal_memory.counts",
-    "tui.personal_memory.decision",
-    "tui.personal_memory.edit",
-    "tui.personal_memory.empty",
-    "tui.personal_memory.error",
-    "tui.personal_memory.forget",
-    "tui.personal_memory.forget_confirm",
-    "tui.personal_memory.history",
-    "tui.personal_memory.intention",
-    "tui.personal_memory.lesson",
-    "tui.personal_memory.manual",
-    "tui.personal_memory.matched",
-    "tui.personal_memory.mode_tip",
-    "tui.personal_memory.name",
-    "tui.personal_memory.new",
-    "tui.personal_memory.no_recall",
-    "tui.personal_memory.off",
-    "tui.personal_memory.personal",
-    "tui.personal_memory.preference",
-    "tui.personal_memory.project",
-    "tui.personal_memory.recalled",
-    "tui.personal_memory.reconsider",
-    "tui.personal_memory.refresh",
-    "tui.personal_memory.replacement",
-    "tui.personal_memory.required",
-    "tui.personal_memory.save",
-    "tui.personal_memory.saved_by_user",
-    "tui.personal_memory.search",
-    "tui.personal_memory.source",
-    "tui.personal_memory.stale",
-    "tui.personal_memory.title",
-    "tui.personal_memory.user_source",
-    "tui.personal_memory.when",
     "tui.hook_indicator.idle",
     "tui.theme_editor.builtin_source",
     "tui.theme_editor.choose_theme",
@@ -1934,6 +1874,8 @@ _message_ids.update(
     }
 )
 
+_message_ids.update({})
+
 EXPECTED_MESSAGE_IDS: frozenset[str | tuple[str, str]] = (
     frozenset(_message_ids)
     | APPROVAL_MESSAGE_IDS
@@ -1945,6 +1887,7 @@ EXPECTED_MESSAGE_IDS: frozenset[str | tuple[str, str]] = (
     | ERROR_MESSAGE_IDS
     | SETTINGS_MESSAGE_IDS
     | TOOL_CARD_MESSAGE_IDS
+    | PERSONAL_MEMORY_MESSAGE_IDS
     | PROMPT_MESSAGE_IDS
     | USAGE_MESSAGE_IDS
 )

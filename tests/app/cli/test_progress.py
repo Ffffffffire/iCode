@@ -106,6 +106,24 @@ def _lines(buffer: io.StringIO) -> list[str]:
     return buffer.getvalue().splitlines()
 
 
+def test_memory_save_and_rejection_are_visible_as_progress() -> None:
+    from chrys.foundation.events.personal_memory import PersonalMemoryChanged
+    from chrys.foundation.models.personal_memory import MemoryDraft, MemorySnapshot, MemorySource, PersonalMemory
+
+    progress, buffer = _turn()
+    entry = PersonalMemory(
+        "one", 1, MemoryDraft("Slides [red]", "Diagrams", "slides"), MemorySource(), "candidate", "", ""
+    )
+    progress.handle(PersonalMemoryChanged(snapshot=MemorySnapshot(entries=(entry,)), saved_memory_id=entry.id))
+    progress.handle(
+        PersonalMemoryChanged(attempted_title="Slides", error="Evidence missing", error_code="memory_source_missing")
+    )
+    assert "Memory awaiting review: Slides [red]" in buffer.getvalue()
+    assert "Memory not saved: Slides: Evidence missing" in buffer.getvalue()
+    progress.handle(PersonalMemoryChanged(error="No memories were recalled."))
+    assert "Memory unavailable: No memories were recalled." in buffer.getvalue()
+
+
 def _start(
     origin: InvocationOrigin, call_id: str, name: str, kind: str, args: dict[str, Any], at: float = 0, **kw: Any
 ) -> InvocationToolCallStart:

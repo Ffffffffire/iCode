@@ -4811,6 +4811,105 @@ msgstr ""
 "\n"
 "/buddy info 查看它的近况，/buddy pet 摸摸它。"
 
+#. English: Alerts
+#. chrys-meta={"fingerprint":"56b62693ea46a9369ae1934370b84d9e19b06728efb9b1eda40e2d27fc383644","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/widgets/sidebar/buddy_memory.py
+msgid "tui.buddy.memory.alerts"
+msgstr "提醒"
+
+#. English: Still on your list
+#. chrys-meta={"fingerprint":"9830eb47ba4670d0b6b6c9e27eb6577bee17603966c97caf53004c897beb3aa9","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/widgets/sidebar/buddy_memory.py
+msgid "tui.buddy.memory.follow_up"
+msgstr "还有这件事"
+
+#. English: ▤ Saved {total}
+#. chrys-meta={"fingerprint":"ca8e8113133fa7ff81fbd2e0cefd2cadd68a5e8cf2773edbfc0ca3dcf941fba2","multiline":false,"placeholders":["total"]}
+#: src/chrys/app/tui/widgets/sidebar/buddy_memory.py
+msgid "tui.buddy.memory.library"
+msgstr "▤ 已记住 {total}"
+
+#. English: Next note
+#. chrys-meta={"fingerprint":"bbcd17bf29b8fb4a6bb9889db90298cba2b88ed5cedffcf5f8c2b66cf839142e","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/widgets/sidebar/buddy_memory.py
+msgid "tui.buddy.memory.next"
+msgstr "下一条"
+
+#. English: {name} found a note: {title}
+#. chrys-meta={"fingerprint":"83c68ca97fe30781e90d219f230f5c9d922754d2219dd523d45606b9c850edde","multiline":false,"placeholders":["name","title"]}
+#: src/chrys/app/tui/widgets/sidebar/buddy_memory.py
+msgid "tui.buddy.memory.notice"
+msgstr "{name} 翻到一条便笺：{title}"
+
+#. English: Notify on recall and weekly memory reviews. Buddy mute takes
+#. priority.
+#. chrys-meta={"fingerprint":"1abf0eb1f0635d49b547a59cb7b5d5811b2ed69f910dc79b63d3b876e2e89b1f","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/widgets/sidebar/buddy_memory.py
+msgid "tui.buddy.memory.notice_tip"
+msgstr "召回与每周记忆回顾时提醒。伙伴静音优先。"
+
+#. English: Recall alerts off
+#. chrys-meta={"fingerprint":"67b9093e3a4b4ce0cb7386e27f10fae660cae37896c320df41b6a1b090800312","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/widgets/sidebar/buddy_memory.py
+msgid "tui.buddy.memory.notices_off"
+msgstr "召回提醒已关闭"
+
+#. English: Recall alerts on
+#. chrys-meta={"fingerprint":"76948f3b25b41609c3a6a86e3e2aafdff28880f8888ada9fdf8d5d77484e0406","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/widgets/sidebar/buddy_memory.py
+msgid "tui.buddy.memory.notices_on"
+msgstr "召回提醒已开启"
+
+#. English: Review {pending}
+#. chrys-meta={"fingerprint":"d650cfecd4d6f4f31dc32574c4b8e98a8665c3c311d013ae541e2c2db41e0333","multiline":false,"placeholders":["pending"]}
+#: src/chrys/app/tui/widgets/sidebar/buddy_memory.py
+msgid "tui.buddy.memory.pending"
+msgstr "回顾 {pending}"
+
+#. English: Previous note
+#. chrys-meta={"fingerprint":"4cf674f851d77c3d5f6f17b6ec5ff1208000fcf8eef064a1c77ea23a25d2d7e6","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/widgets/sidebar/buddy_memory.py
+msgid "tui.buddy.memory.previous"
+msgstr "上一条"
+
+#. English: {recalled} notes for this turn
+#. chrys-meta={"fingerprint":"6bea42d6df1d170bdc88d467107a26c90242161c6e39933d9a92a9e8513e21f3","multiline":false,"placeholders":["recalled"]}
+#: src/chrys/app/tui/widgets/sidebar/buddy_memory.py
+msgid "tui.buddy.memory.recalled"
+msgstr "本轮参考 {recalled} 条"
+
+#. English: This came to mind
+#. chrys-meta={"fingerprint":"83d82fbb009c5849dec30139d6e18b77b3e6331d895f041be6edb6aed29dc97e","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/widgets/sidebar/buddy_memory.py
+msgid "tui.buddy.memory.title"
+msgstr "想起这件事"
+
+#. English: Weekly memory review
+#. chrys-meta={"fingerprint":"296de1cacf21161f891445f3f95f3debece72507b8260e6e193880de979c47c2","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/widgets/sidebar/buddy_memory.py
+msgid "tui.buddy.memory.weekly"
+msgstr "本周记忆回顾"
+
+#. English: {archived} unreviewed suggestions archived
+#. chrys-meta={"fingerprint":"c217435e35b3bde4a1cfc407f532960c8e766fbe69897c07f1a0656d4ac02486","multiline":false,"placeholders":["archived"]}
+#: src/chrys/app/tui/widgets/sidebar/buddy_memory.py
+msgid "tui.buddy.memory.weekly_archived"
+msgstr "{archived} 条未审建议已归档"
+
+#. English: {count} memory to review together
+#. English-plural: {count} memories to review together
+#. chrys-meta={"fingerprint":"e0fff22da6fad9f1e0c564b4fb5d72a1447c120b6a9868f90d8ef80454e6348e","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/widgets/sidebar/buddy_memory.py
+msgid "tui.buddy.memory.weekly_body"
+msgid_plural "tui.buddy.memory.weekly_body#plural"
+msgstr[0] "{count} 条记忆可一起复盘"
+
+#. English: Related memories
+#. chrys-meta={"fingerprint":"30d14b2cd969238106a949eb791407b86a580adcc020f3634d9e3847bc0883b3","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/widgets/sidebar/buddy_memory.py
+msgid "tui.buddy.memory.weekly_items"
+msgstr "相关记忆"
+
 #. English: Your buddy can speak up again.
 #. chrys-meta={"fingerprint":"93532884b0fd620f55080b62f973d8909c67e52c66dafbd051072ae3bf1e2676","multiline":false,"placeholders":[]}
 #: src/chrys/app/features/buddy/commands.py
@@ -9545,11 +9644,53 @@ msgstr "记住"
 msgid "tui.personal_memory.active"
 msgstr "已记住"
 
+#. English: Activity
+#. chrys-meta={"fingerprint":"adc05a800b4e9d0dfccd9a893e52c89939fe10aab58b7d973b7b2897b27291b2","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.activity"
+msgstr "活动"
+
+#. English: Agent
+#. chrys-meta={"fingerprint":"776d9c6caf787f533a3dc88dd3977c72f4d683a010e52a6787a377fe58bc5f51","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.agent_actor"
+msgstr "智能体"
+
+#. English: Retrieval phrases
+#. chrys-meta={"fingerprint":"222a067947e8361517bf8dfa37586bef08625f849c80480a0ef6e40ee6870574","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.aliases"
+msgstr "检索说法"
+
 #. English: All
 #. chrys-meta={"fingerprint":"d24a279dbbad5c28bcf04fa0ca9ee667b53e32c0267123d319c0cee855dbdce8","multiline":false,"placeholders":[]}
 #: src/chrys/app/tui/screens/personal_memory/messages.py
 msgid "tui.personal_memory.all"
 msgstr "全部"
+
+#. English: All workspaces
+#. chrys-meta={"fingerprint":"c151aaff9a2c3f78204dd21a34f23b2597b002ed46b7d13ccadfe7a07f9d7ab6","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.all_scopes"
+msgstr "所有工作区"
+
+#. English: All topics
+#. chrys-meta={"fingerprint":"c41ca36a24cf44be8581123fc161347461bcfbec808bef32bd166c294d4f0ec6","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.all_topics"
+msgstr "所有主题"
+
+#. English: Always available
+#. chrys-meta={"fingerprint":"de6587b301cd974bcea9f4c103f08cfc6be6076e547e1c3b4d6431ad39dd6d3f","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.always"
+msgstr "始终可用"
+
+#. English: Agent reported use
+#. chrys-meta={"fingerprint":"bf9d604fdf507057d4e4548a8f32722c85ffb947efe6eea1b5498b76abc16bce","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.applied"
+msgstr "智能体声明采用"
 
 #. English: Pause
 #. chrys-meta={"fingerprint":"73bddc1dd518d4cfa9b01d3bc69b5cf6f4e53b4a24801aa3770c33a7a8f9c58e","multiline":false,"placeholders":[]}
@@ -9575,17 +9716,76 @@ msgstr "助手表述 · 请核实结论"
 msgid "tui.personal_memory.auto"
 msgstr "自动召回"
 
+#. English: Use up to 6 retrieval phrases, each 2-80 characters.
+#. chrys-meta={"fingerprint":"03e241fb6e8ed7ded71e0c88b8aab0797db27b805fb0a276b419123047460499","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.bad_aliases"
+msgstr "最多填写 6 条检索说法，每条 2–80 个字符。"
+
+#. English: Enter a date and time, for example 2026-11-20 09:00.
+#. chrys-meta={"fingerprint":"bbbbc962d9b207c7c4f4c044424bc75b189627af8127ab970a699a9f8011e37c","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.bad_date"
+msgstr "请输入日期和时间，例如 2026-11-20 09:00。"
+
+#. English: Use up to 6 topics, each 1-40 characters.
+#. chrys-meta={"fingerprint":"aaf3c3ddc44f6e185549dfa1842bde1e58419bd8e7b013191c609882fc3bf942","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.bad_topics"
+msgstr "最多填写 6 个主题，每项 1–40 个字符。"
+
+#. English: Forget this memory, including its revisions and activity?
+#. English-plural: Forget all {count} selected or dependent memories, including
+#. their revisions and activity?
+#. chrys-meta={"fingerprint":"70210cc30596ff65d67af523b4b289de349fb55ec8556c88f20898f45cd0188f","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.batch_forget"
+msgid_plural "tui.personal_memory.batch_forget#plural"
+msgstr[0] "忘记选中及依赖的共 {count} 条记忆，并删除它们的修订和活动记录？"
+
+#. English: Select up to 25 memories at a time.
+#. chrys-meta={"fingerprint":"abaf0ee38375abafe5e2aebc22d5eb121651c6e7ef90fbdb0f0c35cf19b23532","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.batch_limit"
+msgstr "每次最多选择 25 条记忆。"
+
 #. English: Cancel
 #. chrys-meta={"fingerprint":"ee3eb6e02cd8772be8786b7d714f54bf90abe5d0f0523aebf9c292a1e48c7d3d","multiline":false,"placeholders":[]}
 #: src/chrys/app/tui/screens/personal_memory/messages.py
 msgid "tui.personal_memory.cancel"
 msgstr "取消"
 
+#. English: Cancelled
+#. chrys-meta={"fingerprint":"f0ea7e7ae2fa270015fa78e6b5fcff27cc4ffa6d30271bc6d150455cbf1c252f","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.cancelled"
+msgstr "已取消"
+
 #. English: Review
 #. chrys-meta={"fingerprint":"02ea13c0bdcb2c2f15b707864c48dbd3c4f934c9bf8f6f7a26359814f12f525e","multiline":false,"placeholders":[]}
 #: src/chrys/app/tui/screens/personal_memory/messages.py
 msgid "tui.personal_memory.candidate"
 msgstr "待确认"
+
+#. English: {count} memory · {used} MiB
+#. English-plural: {count} memories · {used} MiB
+#. chrys-meta={"fingerprint":"e4813094b20b41abe90f974fa01e307078fabdd89f392c21f09be1422b16f1c9","multiline":false,"placeholders":["used"]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.capacity"
+msgid_plural "tui.personal_memory.capacity#plural"
+msgstr[0] "{count} 条记忆 · {used} MiB"
+
+#. English: Mem · Review
+#. chrys-meta={"fingerprint":"0015c18e27d1abbe20daadf7489ce1651d207f484fa345ff1c644915dd058a69","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.capacity_badge"
+msgstr "记忆 · 待复审"
+
+#. English: Review memories with outdated conditions or repeated mismatches
+#. chrys-meta={"fingerprint":"85a51ff1f6436da756fbc5dd2ea92f4e8d0e552cf003ea98d0ae35144a3a6f41","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.capacity_warning"
+msgstr "请检查适用条件过时或反复不适用的记忆"
 
 #. English: Review before saving
 #. chrys-meta={"fingerprint":"8d9b0ed9f2d40141ab80e1e9f1ca447ca518a9be1889d82c4f90d489bced8c00","multiline":false,"placeholders":[]}
@@ -9605,13 +9805,13 @@ msgstr "自动记住明确偏好"
 msgid "tui.personal_memory.capture_explicit"
 msgstr "明确要求才保存"
 
-#. English: Only when asked adds no automatic model call. Other modes check
-#. each new message using the current model. Inferred lessons always need
-#. review.
-#. chrys-meta={"fingerprint":"5b3c9d3c3c83cdfea28ac2df251efb0e10cc8dfe6578a55902e20ac1aef7feee","multiline":false,"placeholders":[]}
+#. English: The agent writes through tools when a lasting preference or useful
+#. experience is expressed. Ordinary tasks make no extra extraction request.
+#. Inferred knowledge needs review.
+#. chrys-meta={"fingerprint":"98c210781d1d4706ae5fc52cf6b72abcf7737377c149ee15bab3fb8242e8712d","multiline":false,"placeholders":[]}
 #: src/chrys/app/tui/screens/personal_memory/messages.py
 msgid "tui.personal_memory.capture_tip"
-msgstr "明确要求才保存不会增加自动模型请求；其他方式会用当前模型检查每条新消息。推断的经验始终需要确认。"
+msgstr "智能体识别到长期偏好或可复用经验时通过工具写入。普通任务不增加提炼请求，推断的内容需要确认。"
 
 #. English: Close
 #. chrys-meta={"fingerprint":"b539b71b98c3530fcd17b6257d0bcdd95ec41dbd6ba78a0b8ad40de8ddc5103e","multiline":false,"placeholders":[]}
@@ -9619,11 +9819,39 @@ msgstr "明确要求才保存不会增加自动模型请求；其他方式会用
 msgid "tui.personal_memory.close"
 msgstr "关闭"
 
+#. English: Mark done
+#. chrys-meta={"fingerprint":"f284edc79efd6d58b17ecea0de5caffb6cf248dfef60a0525a635eb96490c692","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.complete"
+msgstr "标记完成"
+
+#. English: Completed
+#. chrys-meta={"fingerprint":"4cf8b2184f98e7808d3755af198aacfcf7cac8b13ee3c48610687777f50bab2b","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.completed"
+msgstr "已完成"
+
 #. English: What should be remembered?
 #. chrys-meta={"fingerprint":"ba4e008187f39b879a1c90154ba0bc751d5c6ed7d257b3289ac54378a7f29fb4","multiline":false,"placeholders":[]}
 #: src/chrys/app/tui/screens/personal_memory/messages.py
 msgid "tui.personal_memory.content"
 msgstr "记住什么"
+
+#. English: Continue
+#. chrys-meta={"fingerprint":"167e575361c5e16ba03f613cc29c5da6ba716b02f2d070a5e8a84325e46e1e26","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.continue"
+msgstr "继续"
+
+#. English: Continue this follow-up: {title} Memory: {memory_id} v{revision}
+#. Next step: {next_step}
+#. chrys-meta={"fingerprint":"ff4ccdd5c9420637fa1fc23577eefafe17a1383f0c2ba01b90187b0d6d2a633c","multiline":true,"placeholders":["memory_id","next_step","revision","title"]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.continue_prompt"
+msgstr ""
+"继续这个待办：{title}\n"
+"记忆：{memory_id} v{revision}\n"
+"下一步：{next_step}"
 
 #. English: {active} active · {candidates} suggestions · {archived} archived
 #. chrys-meta={"fingerprint":"32b57583c1f2c7afea651a963e13840e89f16f1bee46ad80fc1a7498207106e4","multiline":false,"placeholders":["active","archived","candidates"]}
@@ -9631,11 +9859,35 @@ msgstr "记住什么"
 msgid "tui.personal_memory.counts"
 msgstr "已记住 {active} · 待确认 {candidates} · 已停用 {archived}"
 
+#. English: YYYY-MM-DD HH:MM
+#. chrys-meta={"fingerprint":"ba02f4ffca480f42c063ee5eba0d10244674271fea77339fcac9ac06eb75aa85","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.date_format"
+msgstr "YYYY-MM-DD HH:MM"
+
+#. English: {days}d ago
+#. chrys-meta={"fingerprint":"154ce7abd8e4a2de850c696e9be54812395accf8973b2826a58987dd4dee683b","multiline":false,"placeholders":["days"]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.days_ago"
+msgstr "{days} 天前"
+
 #. English: Decision
 #. chrys-meta={"fingerprint":"2d1c54b8f9715fe18dc6fd6935897b93af938024de4b3b19e63a5c4f2f4a25d8","multiline":false,"placeholders":[]}
 #: src/chrys/app/tui/screens/personal_memory/messages.py
 msgid "tui.personal_memory.decision"
 msgstr "决定"
+
+#. English: Deselect
+#. chrys-meta={"fingerprint":"d087c712b0be57c7137a68f8a2784e97b8215a856c42821a7d66fd88821602b4","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.deselect"
+msgstr "退出多选"
+
+#. English: Finish the current draft before continuing this follow-up.
+#. chrys-meta={"fingerprint":"e6e4003bb88e3b259ca1c0b5d0b1eccdf61dd9172c559fa70bd14472a21e178c","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.draft_busy"
+msgstr "请先处理当前草稿，再继续这个待办。"
 
 #. English: Edit
 #. chrys-meta={"fingerprint":"bfae2b0cd1f29383075dc578f077e20bc8bc53eb5166a7c77df66aeff6d39865","multiline":false,"placeholders":[]}
@@ -9655,17 +9907,109 @@ msgstr "当前没有记忆。"
 msgid "tui.personal_memory.error"
 msgstr "记忆操作失败：{error}"
 
+#. English: Source changed · review before using
+#. chrys-meta={"fingerprint":"d895f816d4951d0b708f66c2f7cdedd85ef0c86a9c6dbb4486dfbf75cbe6a50a","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.evidence_stale"
+msgstr "来源已变化 · 使用前需重新审查"
+
+#. English: The operation could not be completed. Refresh and retry; hover for
+#. details.
+#. chrys-meta={"fingerprint":"6cae26e9c937d8ae5abca3248371759910d82748d407149d755c91d93e813327","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.fail_action"
+msgstr "操作未完成，请刷新后重试。悬停可查看详细原因。"
+
+#. English: Mem · Not saved
+#. chrys-meta={"fingerprint":"c78139a43cb07a23b506fe267d7d4e5946c212c3e31b71bcc550e2ce77dd335f","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.fail_badge"
+msgstr "记忆 · 未保存"
+
+#. English: The current saving policy does not permit this write.
+#. chrys-meta={"fingerprint":"e94ee4abc5c3b600a960132f23c5408486cafed17c3d661be73638a65ad6559b","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.fail_disabled"
+msgstr "当前保存策略不允许这次写入。"
+
+#. English: A related memory already exists. Edit that entry instead.
+#. chrys-meta={"fingerprint":"7ce0dbd902cf4e092978413b73e3f6c97ef74c7be54f9d4b08d853f5e87d798d","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.fail_duplicate"
+msgstr "已有相关记忆，请编辑原条目。"
+
+#. English: This memory was paused. Restore the existing entry to use it again.
+#. chrys-meta={"fingerprint":"b05afefb75967f48cc2ee65083d83201e3eb107f434e677cc3ebf73ff72c1494","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.fail_paused"
+msgstr "这条记忆已停用。需要重新使用时，请恢复原条目。"
+
+#. English: No supported save request was found. You can add this memory in
+#. /memory.
+#. chrys-meta={"fingerprint":"4e4c56a3c99c88a6dd0a49b03c239e572318d5594d59d4191e8b6313dec8bd5b","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.fail_request"
+msgstr "未找到可核对的保存请求。可在 /memory 中添加这条记忆。"
+
+#. English: Related memories must be checked first. The agent can inspect them
+#. and retry.
+#. chrys-meta={"fingerprint":"dc0f6fa199b0526b2b2b84d5897e6ecf09b46cd99c97e0e0aa4e721f94dc5ea2","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.fail_review"
+msgstr "需要先检查相关记忆。智能体可以检查后重试。"
+
+#. English: The original evidence could not be verified. Quote it again or add
+#. the memory in /memory.
+#. chrys-meta={"fingerprint":"bce24a55b5c62577f1532ffba85f28325100d105caf9199fb014521ca0623472","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.fail_source"
+msgstr "无法核对原始证据。可再次引用原话，或在 /memory 中手动添加。"
+
+#. English: Memory is unavailable. Check local file access, then retry.
+#. chrys-meta={"fingerprint":"9978ffd7e96733b8107e2f929bc46bc4875695f9d040e0eb46429c45afc4dfc5","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.fail_unavailable"
+msgstr "暂时无法访问记忆库，请检查本地文件权限后重试。"
+
+#. English: Status
+#. chrys-meta={"fingerprint":"148e8652a8eb50d66a7a16674bd535b13cd9ac36522f706468e86bdafb8d3aba","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.follow_up_status"
+msgstr "状态"
+
+#. English: Follow-ups
+#. chrys-meta={"fingerprint":"f39e0d68a06ac8973587cd25c280a07c80fba9915d0b75dda49e253f186e645c","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.follow_ups"
+msgstr "待办"
+
 #. English: Forget
 #. chrys-meta={"fingerprint":"14bab89659184af34e48e3d71d826b480ae278d4aed7b5408373a383ded9432d","multiline":false,"placeholders":[]}
 #: src/chrys/app/tui/screens/personal_memory/messages.py
 msgid "tui.personal_memory.forget"
 msgstr "忘记"
 
-#. English: Forget “{title}”, its revisions and pending corrections?
-#. chrys-meta={"fingerprint":"6f346e0234285f4ba30be5c70ae42778e6262ab5ec2886ccdf6e55a342d2d23c","multiline":false,"placeholders":["title"]}
+#. English: Forget “{title}”, its revisions, activity and {count} dependent
+#. memory?
+#. English-plural: Forget “{title}”, its revisions, activity and {count}
+#. dependent memories?
+#. chrys-meta={"fingerprint":"b9350c8d9e0c68080da693e62e902dcdd4a02302871adf49cac0195071c70c7f","multiline":false,"placeholders":["title"]}
 #: src/chrys/app/tui/screens/personal_memory/messages.py
 msgid "tui.personal_memory.forget_confirm"
-msgstr "忘记“{title}”、它的修订记录和待确认修订？"
+msgid_plural "tui.personal_memory.forget_confirm#plural"
+msgstr[0] "忘记“{title}”、它的修订与活动，以及 {count} 条依赖记忆？"
+
+#. English: {stale} to review · {duplicates} similar
+#. chrys-meta={"fingerprint":"9da170dbf38eda26d5eeb0c5ad42345a0250ff92c900ac462902896a7571b18c","multiline":false,"placeholders":["duplicates","stale"]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.health_review"
+msgstr "{stale} 条待复审 · {duplicates} 条相似"
+
+#. English: Helpful
+#. chrys-meta={"fingerprint":"ebb2e05b53e9ab432160af5b4db1eeae3b0eccba12a12beb96a50afd983b1a1e","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.helpful"
+msgstr "有帮助"
 
 #. English: Earlier revisions
 #. chrys-meta={"fingerprint":"208c12ff13380ec492aacec38e3a2666a6059f4bb51af8c2287ba0cd9093c608","multiline":false,"placeholders":[]}
@@ -9673,11 +10017,36 @@ msgstr "忘记“{title}”、它的修订记录和待确认修订？"
 msgid "tui.personal_memory.history"
 msgstr "修订记录"
 
+#. English: {hours}h ago
+#. chrys-meta={"fingerprint":"2e94f2c8bc3f24de48c17e435b8b535aa4b4c6df991ac0642aa03143399eb90a","multiline":false,"placeholders":["hours"]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.hours_ago"
+msgstr "{hours} 小时前"
+
 #. English: Skip
 #. chrys-meta={"fingerprint":"a1ce8aa952dd99b77e24bb02a62ccf78b596795b0b2d4b13fc9236afeed5c898","multiline":false,"placeholders":[]}
 #: src/chrys/app/tui/screens/personal_memory/messages.py
 msgid "tui.personal_memory.ignore"
 msgstr "忽略"
+
+#. English: In progress
+#. chrys-meta={"fingerprint":"10450e8a1abf636ea3b15836838786f96f232334801c0ac96d4eca95cf3f9b0a","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.in_progress"
+msgstr "进行中"
+
+#. English: Incorrect
+#. chrys-meta={"fingerprint":"ef1f27c744c9bd51ade174e0b3fd42459ca34805f0adecab9478ec050efdbcef","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.incorrect"
+msgstr "错误"
+
+#. English: Record your correction and pause this memory. You can edit or
+#. restore it.
+#. chrys-meta={"fingerprint":"82f459a83e73bd6a7cb34c99f2033d45268d4cc542d9f5ba09babde35fdb5552","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.incorrect_tip"
+msgstr "记录纠正并停用这条记忆。可以编辑或恢复。"
 
 #. English: Memory
 #. chrys-meta={"fingerprint":"5d78de5f287ee81483b01dfb8ed998210c8f230f9980449295f2c8139501fbed","multiline":false,"placeholders":[]}
@@ -9697,11 +10066,90 @@ msgstr "记忆"
 msgid "tui.personal_memory.intention"
 msgstr "意图"
 
+#. English: Just now
+#. chrys-meta={"fingerprint":"1cf493d3f5d904c6fb451e115dcfaf00015360ec41313860aca746d7834393aa","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.just_now"
+msgstr "刚刚"
+
+#. English: ↑/↓ Navigate · Enter Details · Space Select · Esc Back · Delete
+#. Forget · Ctrl+F Search
+#. chrys-meta={"fingerprint":"c7309348609faa928b3333ec84181fae54f559164ee4adb878187df16bd5817e","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.keyboard_hint"
+msgstr "↑/↓ 移动 · Enter 详情 · 空格选择 · Esc 返回 · Delete 忘记 · Ctrl+F 搜索"
+
+#. English: Type
+#. chrys-meta={"fingerprint":"45ecb06550c1f99fec8149add2171863e345a461f6cc45daf1be1d4855a5eeef","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.kind"
+msgstr "类型"
+
+#. English: Last recorded recall: {date}
+#. chrys-meta={"fingerprint":"04ad640d2ab7681ab942aa3dfb4521a7bf0b5a756ec96890e7bfda66f893a7b2","multiline":false,"placeholders":["date"]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.last_provided"
+msgstr "最近记录的召回：{date}"
+
+#. English: Latest
+#. chrys-meta={"fingerprint":"452ac78707e294860433e2147338e1e184850f64b6980b0c2473dc66749b1fe7","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.latest_activity"
+msgstr "最新"
+
+#. English: After an action
+#. chrys-meta={"fingerprint":"84687e6c327a9a3e225608057651ffaff3cfb7fe2b507d76823cac0222e18c3d","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.layer_action"
+msgstr "行动补回"
+
+#. English: Task start
+#. chrys-meta={"fingerprint":"d8bfa862a0d07496cb6d6fc2ed8bdf64de1b0c75765694617d1e426e31a416d9","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.layer_opening"
+msgstr "开场召回"
+
+#. English: On request
+#. chrys-meta={"fingerprint":"7dbabb65ac23bef5363f69058b4ed90cec9b23c2105050c9f5e4b1977bf67996","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.layer_requested"
+msgstr "主动查询"
+
+#. English: Always available
+#. chrys-meta={"fingerprint":"de6587b301cd974bcea9f4c103f08cfc6be6076e547e1c3b4d6431ad39dd6d3f","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.layer_standing"
+msgstr "常驻记忆"
+
 #. English: Lesson
 #. chrys-meta={"fingerprint":"e082d1f37e1a10f118d824fd68215cad444168007ffdcbf0f7c2b2c8cc470aff","multiline":false,"placeholders":[]}
 #: src/chrys/app/tui/screens/personal_memory/messages.py
 msgid "tui.personal_memory.lesson"
 msgstr "经验"
+
+#. English: Derived from
+#. chrys-meta={"fingerprint":"ee1778db0d568c0fedf7d8fe7b790c1c0d3c70d1a733fe971cbc8491e943e8b5","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.link_derived"
+msgstr "归纳自"
+
+#. English: Exception
+#. chrys-meta={"fingerprint":"77940ef53d6305741a7d30a88478c4e6207f70241d0f426947416550e0b81500","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.link_exception"
+msgstr "例外"
+
+#. English: Merged from
+#. chrys-meta={"fingerprint":"1c2eab147740f1fb1e7c2af54bb4bbecb05b42c38ffd0370b7f7877a57268134","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.link_merged"
+msgstr "合并自"
+
+#. English: Supports
+#. chrys-meta={"fingerprint":"940d0db9ae76ea339e127b31f773f149bb728bc263234a70853bb4c1621ce11c","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.link_support"
+msgstr "支持"
 
 #. English: Recall on request
 #. chrys-meta={"fingerprint":"a1a83b66cd444c041365c62e1d397003e0e50d3373f9c521ca1021289e3c7385","multiline":false,"placeholders":[]}
@@ -9709,11 +10157,29 @@ msgstr "经验"
 msgid "tui.personal_memory.manual"
 msgstr "按需召回"
 
+#. English: Select
+#. chrys-meta={"fingerprint":"0ce70d4333424fe527d32c0aeab9226b4b5f97d5c9a953bc2e51c0c47bf763b2","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.mark"
+msgstr "选择"
+
+#. English: Space to select
+#. chrys-meta={"fingerprint":"dd7ebe038a9739cce7ff7535ae8020ad82cc4756796ac5ca70a6c156504244d1","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.mark_hint"
+msgstr "空格选择"
+
 #. English: Matched: {terms}
 #. chrys-meta={"fingerprint":"b563f621c7ce648db4f30962533f1a5d344c97c992804328fde163058208156c","multiline":false,"placeholders":["terms"]}
 #: src/chrys/app/tui/screens/personal_memory/messages.py
 msgid "tui.personal_memory.matched"
 msgstr "匹配词：{terms}"
+
+#. English: {minutes}m ago
+#. chrys-meta={"fingerprint":"c044e36c9b7403502e941fac7d051185d1e6de458485e95f0f869cd2169ba965","multiline":false,"placeholders":["minutes"]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.minutes_ago"
+msgstr "{minutes} 分钟前"
 
 #. English: Changes apply to the next turn. Recall on request lets the agent
 #. search when asked; off disables recall and suggestions.
@@ -9728,11 +10194,29 @@ msgstr "从下一回合生效。按需召回允许智能体在被要求时搜索
 msgid "tui.personal_memory.name"
 msgstr "标题"
 
+#. English: Needs review
+#. chrys-meta={"fingerprint":"196ea4d367aaca19544541195740d4c1ad35b2300a63db153fc8b2ecef1f0a59","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.nearly_full"
+msgstr "待复审"
+
 #. English: + New
 #. chrys-meta={"fingerprint":"32f7a144936026ed3f1cd4a9af9b4d7b161d0276b3cf7f2fa56216e5a5bb3a01","multiline":false,"placeholders":[]}
 #: src/chrys/app/tui/screens/personal_memory/messages.py
 msgid "tui.personal_memory.new"
 msgstr "+ 记一条"
+
+#. English: Next step
+#. chrys-meta={"fingerprint":"764001e4da1748e03c3ca0be79a30b641f6b5538c67f7a17dca34496caf519fa","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.next_step"
+msgstr "下一步"
+
+#. English: No match
+#. chrys-meta={"fingerprint":"e47cbd42ac673a908553d62bc422800606bcc3cdae28d6959c5211984dc491ee","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.no_match"
+msgstr "未找到"
 
 #. English: No memories recalled for this task.
 #. chrys-meta={"fingerprint":"df19d555c3fca2875564af5b7a090af8f4baad46651b7e97b4269296deba5311","multiline":false,"placeholders":[]}
@@ -9740,17 +10224,35 @@ msgstr "+ 记一条"
 msgid "tui.personal_memory.no_recall"
 msgstr "本会话尚未召回记忆。"
 
+#. English: Skip this turn
+#. chrys-meta={"fingerprint":"107bbaa1ba252b035038c13670f0906054e7fb7bcd19dc48b34d08f5a7e3e8f2","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.not_applicable"
+msgstr "这次不用"
+
 #. English: Memory off
 #. chrys-meta={"fingerprint":"74e93c8ea6844a666df122604f2b787763cb40dc647e16c02460bc40f5bb2b08","multiline":false,"placeholders":[]}
 #: src/chrys/app/tui/screens/personal_memory/messages.py
 msgid "tui.personal_memory.off"
 msgstr "关闭记忆"
 
-#. English: Memory · Off
-#. chrys-meta={"fingerprint":"83c1b3e994fd8b845620256b0391494c14c2716ebcd653b409b01d1bafe1cef3","multiline":false,"placeholders":[]}
+#. English: Mem · Off
+#. chrys-meta={"fingerprint":"076e6cf611362cc3a038356da39c6f2fb066c4fc5eb79889847991f36bdc2667","multiline":false,"placeholders":[]}
 #: src/chrys/app/tui/screens/personal_memory/messages.py
 msgid "tui.personal_memory.off_badge"
 msgstr "记忆 · 已关闭"
+
+#. English: Earlier activity
+#. chrys-meta={"fingerprint":"0d5c04fb7d858ae5f3dc830d709b206d6837c6b89ad3c4beb2686139ab987486","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.older_activity"
+msgstr "更早活动"
+
+#. English: Earlier revisions
+#. chrys-meta={"fingerprint":"208c12ff13380ec492aacec38e3a2666a6059f4bb51af8c2287ba0cd9093c608","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.older_revisions"
+msgstr "更早修订"
 
 #. English: More options
 #. chrys-meta={"fingerprint":"eba0b7e58b775c5b1e1b1eb53d5017c05477f36583aada0bac68ed54eed2da99","multiline":false,"placeholders":[]}
@@ -9758,8 +10260,29 @@ msgstr "记忆 · 已关闭"
 msgid "tui.personal_memory.options"
 msgstr "更多选项"
 
-#. English: Memory · Review {pending}
-#. chrys-meta={"fingerprint":"3a5c61587959993c7b9bd161aa1eef5d322a953e76e82bbefcffe444131e6431","multiline":false,"placeholders":["pending"]}
+#. English: Review together
+#. chrys-meta={"fingerprint":"54a5d9a3fbe3a41841cad2b8e42ac4c4bdc8725b1073d52a0f200f908507e00b","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.organize"
+msgstr "复盘整理"
+
+#. English: Review my habits and conditional experience about {topic}. Inspect
+#. these memories: {references}. Propose a concise synthesis or merge, explain
+#. what each source contributes and which exceptions remain. Wait for my
+#. confirmation before retiring sources.
+#. chrys-meta={"fingerprint":"6b32307907387c831630316ad200ce271caba8cf843f1dd682aba0a9040920c9","multiline":false,"placeholders":["references","topic"]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.organize_prompt"
+msgstr "复盘我在{topic}方面的习惯和有条件的经验。请检查这些记忆：{references}。提出简洁的归纳或合并建议，说明每条来源的贡献和仍需保留的例外；停用来源前等待我确认。"
+
+#. English: To do
+#. chrys-meta={"fingerprint":"81a7d14e30c7d3a5d23b66272f2a4a88898385c1d82ea5f294a8bc5612bac637","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.pending"
+msgstr "未开始"
+
+#. English: Mem · Review {pending}
+#. chrys-meta={"fingerprint":"586e63e7e229187968697635b2c7b862b6f522f6fa87665241ebdb38e2a8d752","multiline":false,"placeholders":["pending"]}
 #: src/chrys/app/tui/screens/personal_memory/messages.py
 msgid "tui.personal_memory.pending_badge"
 msgstr "记忆 · 待确认 {pending}"
@@ -9776,12 +10299,6 @@ msgstr "跨项目"
 msgid "tui.personal_memory.preference"
 msgstr "偏好"
 
-#. English: Memory · Checking
-#. chrys-meta={"fingerprint":"6a8663946fc44ce2c8104a82b61d6733e97c25741a2c8b3091d5b45bccbc2d90","multiline":false,"placeholders":[]}
-#: src/chrys/app/tui/screens/personal_memory/messages.py
-msgid "tui.personal_memory.processing"
-msgstr "记忆 · 提炼中"
-
 #. English: This project only
 #. chrys-meta={"fingerprint":"3dda4a0050761248dfb540d190eef84735386c0a46f1eb98c0d9f0cfde700471","multiline":false,"placeholders":[]}
 #: src/chrys/app/tui/screens/personal_memory/messages.py
@@ -9794,11 +10311,17 @@ msgstr "仅当前项目"
 msgid "tui.personal_memory.proposed"
 msgstr "待确认记忆：{title}"
 
-#. English: Memory · {recalled} sent
-#. chrys-meta={"fingerprint":"0240edc387bbf87ac27b83846ea8b624d4bf1892d4fb7ca51c9d0fde00524758","multiline":false,"placeholders":["recalled"]}
+#. English: Provided
+#. chrys-meta={"fingerprint":"34cfc8280209fe6105ce6f4826d88fadff55da2dfc4eb90d350e499212a32af7","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.provided"
+msgstr "已提供"
+
+#. English: Mem · {recalled} sent
+#. chrys-meta={"fingerprint":"f4884ac3edf94ba023d0744a04aa9098cc0ed71f3251a3bb694376cde06a1abe","multiline":false,"placeholders":["recalled"]}
 #: src/chrys/app/tui/screens/personal_memory/messages.py
 msgid "tui.personal_memory.recall_badge"
-msgstr "记忆 · 参考 {recalled}"
+msgstr "记忆 · 已提供 {recalled} 条"
 
 #. English: Why it was selected
 #. chrys-meta={"fingerprint":"8e373003e77543e1db755699a106e1acf4a0e817454051b34c24fa989c136542","multiline":false,"placeholders":[]}
@@ -9806,10 +10329,16 @@ msgstr "记忆 · 参考 {recalled}"
 msgid "tui.personal_memory.recall_details"
 msgstr "为什么提供这条记忆"
 
+#. English: Recall stage: {layer}
+#. chrys-meta={"fingerprint":"23f86f6c98d3663c9cee548f671cb2e8ad09c72bc28c61a6ff7c67b52d01e0b9","multiline":false,"placeholders":["layer"]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.recall_layer"
+msgstr "召回阶段：{layer}"
+
 #. English: Provided to the agent for reference. This does not confirm it was
 #. applied in the answer.
 #. chrys-meta={"fingerprint":"52377312d8ea971568033bbb407e9dc854a02344a5acd77106f9ca1e88f26da1","multiline":false,"placeholders":[]}
-#: src/chrys/app/tui/screens/personal_memory/messages.py
+#: src/chrys/app/tui/personal_memory_messages.py
 msgid "tui.personal_memory.recall_tip"
 msgstr "已提供给智能体参考，不代表已在回答中正确采用。"
 
@@ -9819,11 +10348,18 @@ msgstr "已提供给智能体参考，不代表已在回答中正确采用。"
 msgid "tui.personal_memory.recalled"
 msgstr "本轮参考"
 
-#. English: Reconsider when
-#. chrys-meta={"fingerprint":"4e9fb47f8f6c38badd925f0400bea5961e8c976d6906213a86662c7c5ae17327","multiline":false,"placeholders":[]}
+#. English: When this no longer applies
+#. chrys-meta={"fingerprint":"229186b3a8dd73b2ef65c4f8b8cc2ff5daa955e9ac792534db7243843f3a4611","multiline":false,"placeholders":[]}
 #: src/chrys/app/tui/screens/personal_memory/messages.py
 msgid "tui.personal_memory.reconsider"
-msgstr "重新考虑的条件"
+msgstr "何时不再适用"
+
+#. English: For example: use sparse slides for distant projection. Recheck or
+#. update the memory in these situations; it is not deleted automatically.
+#. chrys-meta={"fingerprint":"70208a399f4bc117079574f55e868428f17e0f165fb02417127b6130538b807b","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.reconsider_tip"
+msgstr "例如：改为远距离投影演示时。遇到这些情况应重新核实或更新这条记忆，不会自动删除。"
 
 #. English: Refresh
 #. chrys-meta={"fingerprint":"cdcc53c1d944dc0b8624e6ff30f4dc15597148bb724b4ff37b44c11a223330ab","multiline":false,"placeholders":[]}
@@ -9831,11 +10367,30 @@ msgstr "重新考虑的条件"
 msgid "tui.personal_memory.refresh"
 msgstr "刷新"
 
+#. English: Related evidence
+#. chrys-meta={"fingerprint":"37aac73e3b85ba57e66e34a7b51e870a58d780c4d00da58fa81666776a2a1cbb","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.related"
+msgstr "关联依据"
+
 #. English: Remembered: {title}
 #. chrys-meta={"fingerprint":"bd965c69e7b57d9760e89f66bfc63f664394f1ac13d05c046e9d9e31fe6cd034","multiline":false,"placeholders":["title"]}
 #: src/chrys/app/tui/screens/personal_memory/messages.py
 msgid "tui.personal_memory.remembered"
 msgstr "已记住：{title}"
+
+#. English: Remind at
+#. chrys-meta={"fingerprint":"dd54be33bad8522a2957e2dd5667f285e71c51440a0157b98e0b4fe840458427","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.remind_at"
+msgstr "提醒时间"
+
+#. English: Local time unless an offset is given. Appears during app use; no
+#. notification while closed.
+#. chrys-meta={"fingerprint":"fe73b59a5a94b6a44d125aa35af84b3c5f5abbc8f714e6564185cc126398f4cd","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.remind_tip"
+msgstr "未指定时区时按本机时间处理。在使用应用时提醒，关闭应用后不会推送。"
 
 #. English: Proposed correction to {title}
 #. chrys-meta={"fingerprint":"156befa5fb3cb54c62f659db03397ba8f7810a01ad3e71addad20501f32eb25b","multiline":false,"placeholders":["title"]}
@@ -9855,11 +10410,109 @@ msgstr "请填写要记住的内容。"
 msgid "tui.personal_memory.restore"
 msgstr "恢复"
 
+#. English: Repeated skips: check whether the usage conditions need narrowing.
+#. chrys-meta={"fingerprint":"a47d5b1a8c2e8fb5e08d23a527f08379c2d98bcbc587617036bac90677bb6fee","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.review_context"
+msgstr "多次跳过：请检查是否需要收紧适用情境。"
+
+#. English: Unreviewed for 30 days; archived for later inspection.
+#. chrys-meta={"fingerprint":"d0b8454559bcf78d541da31ec5e2744cfb63181fba123cfa352a0f6d6c3c7162","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.review_expired"
+msgstr "超过 30 天未审，已归档，仍可查看。"
+
+#. English: Provided at least five times in six months without helpful
+#. feedback. Check its usefulness; this does not prove it is wrong.
+#. chrys-meta={"fingerprint":"416b4714a977f84ce25a2575c13ef9a5b6cb690e96b87d8e6d421e6816f85a6d","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.review_no_feedback"
+msgstr "六个月内至少提供五次，却没有“有帮助”反馈。请检查用途；这不代表它有错。"
+
+#. English: Needs review
+#. chrys-meta={"fingerprint":"196ea4d367aaca19544541195740d4c1ad35b2300a63db153fc8b2ecef1f0a59","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.review_required"
+msgstr "待复审"
+
+#. English: Skipped in three different turns. Check the conditions, then
+#. confirm or edit.
+#. chrys-meta={"fingerprint":"1db857ad9ffe96e0da94eeac3efa3786be44ba06b5a6fffc8dd97dd80e3f1c32","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.review_skipped"
+msgstr "已在三个不同回合被跳过。请核对适用条件，再确认或编辑。"
+
+#. English: Earlier revision imported
+#. chrys-meta={"fingerprint":"a037cbb545ba7c733b016eae06b06883ed4600cb39525390ac6f6dd4c95e9fb8","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.revision_imported"
+msgstr "已导入早期修订"
+
+#. English: Your retrieval phrases
+#. chrys-meta={"fingerprint":"19c9d642fc5e8bdb61f5cb5009d8705873a097368248b75dbc97564b0e74e2fc","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.route_alias"
+msgstr "自定检索说法"
+
+#. English: Linked evidence
+#. chrys-meta={"fingerprint":"e94feee144b229b751e8850a2c288ddc180fb8b314c1d536562fc12e8d1de54e","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.route_association"
+msgstr "关联依据"
+
+#. English: Continuing the previous task
+#. chrys-meta={"fingerprint":"fbdfc1411cf8c36451ed25e819927cb9e796e3366593d11163779b0dc2fef46f","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.route_context"
+msgstr "延续前一任务"
+
+#. English: Due follow-up
+#. chrys-meta={"fingerprint":"c9ee578e39ab0df0c5422e9727a1223b7ec8a4f60882d2b157052b3b831239ae","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.route_follow_up"
+msgstr "到期待办"
+
+#. English: Memory ID
+#. chrys-meta={"fingerprint":"a6a2a59844e82b27c6ddb53a5eed2bfa2885999dbfd8ccee9385752785312d4a","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.route_id"
+msgstr "记忆 ID"
+
+#. English: Keywords
+#. chrys-meta={"fingerprint":"015311137c61dba36fffced0f62ec5505116e0589927f4b4145485a76b8a1fb9","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.route_keywords"
+msgstr "关键词"
+
+#. English: Similar spelling
+#. chrys-meta={"fingerprint":"9fc371f14e15177332795780c678827519683712e197de2febdf60c94f09c331","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.route_spelling"
+msgstr "相近拼写"
+
+#. English: Title match
+#. chrys-meta={"fingerprint":"cdc5318fda7e3a11a5c41870bd7b1b72dc1c5b61daf060adac018ed976921811","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.route_title"
+msgstr "标题匹配"
+
+#. English: Related terminology
+#. chrys-meta={"fingerprint":"2989d63b998d3c7454accf5cdeb1751cf494022ac4b9260c0ac5793036a34bfb","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.route_topic"
+msgstr "关联术语"
+
 #. English: Save
 #. chrys-meta={"fingerprint":"c412f9116c212d2749697d0fce560e880e82ef767c87d9614d341b4ce1ee2061","multiline":false,"placeholders":[]}
 #: src/chrys/app/tui/screens/personal_memory/messages.py
 msgid "tui.personal_memory.save"
 msgstr "保存"
+
+#. English: Not saved: {title}
+#. chrys-meta={"fingerprint":"a3ee30bfeda352a9dd72d1b2972e09e3fe9b5f30d9cc6f7d690e7e15fa995509","multiline":false,"placeholders":["title"]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.save_failed"
+msgstr "未保存：{title}"
 
 #. English: Saved by you
 #. chrys-meta={"fingerprint":"108cbd026e8e3bac2abc3a702c2be51b320bc056358b1394d4aecde6b412bb64","multiline":false,"placeholders":[]}
@@ -9867,11 +10520,43 @@ msgstr "保存"
 msgid "tui.personal_memory.saved_by_user"
 msgstr "由你保存"
 
+#. English: Personal
+#. chrys-meta={"fingerprint":"e2188b625195a1760b627e2a5501428eb59e95cbb81382e94665148641175f52","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.scope_personal"
+msgstr "个人"
+
+#. English: Project
+#. chrys-meta={"fingerprint":"bb494880de8a82165303fb5db8a2bd69147f6fff4874591b25d51ec1569bafb1","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.scope_project"
+msgstr "项目"
+
+#. English: Current workspace
+#. chrys-meta={"fingerprint":"3652a1b64bba54fe21760762bbd061c617642ecff22f15170ba06b003dc5617b","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.scopes"
+msgstr "当前工作区"
+
 #. English: Search memories
 #. chrys-meta={"fingerprint":"68ad700ce221233d6d31507369fb63242e6c31a3d3dfbadb0ecf5da88b59f760","multiline":false,"placeholders":[]}
 #: src/chrys/app/tui/screens/personal_memory/messages.py
 msgid "tui.personal_memory.search"
 msgstr "搜索记忆"
+
+#. English: {count} selected · Esc
+#. English-plural: {count} selected · Esc
+#. chrys-meta={"fingerprint":"5226dd9e481ee42ec24ed4fc36ff4a411efa7168ee3282b0bfd5a726f6179b70","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.selected"
+msgid_plural "tui.personal_memory.selected#plural"
+msgstr[0] "已选 {count} 条 · Esc 退出"
+
+#. English: Later
+#. chrys-meta={"fingerprint":"80d99ee0ffe54f5e037d5ce733ddf310b97a29dd4a60eaff9f4b7161b43f48b3","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.snoozed"
+msgstr "稍后"
 
 #. English: Source
 #. chrys-meta={"fingerprint":"8a23381b73255be7becb386ff5bf8b4846f3fcba4f6d5404413d16d72d5ed687","multiline":false,"placeholders":[]}
@@ -9886,17 +10571,79 @@ msgstr "来源"
 msgid "tui.personal_memory.stale"
 msgstr "本次召回的是第 {revision} 版；这条记忆此后已修改。"
 
+#. English: System
+#. chrys-meta={"fingerprint":"50cfdad4e6677a482a3d5fd542d4e5bebbe401c03003f574f867224b32d9c173","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.system_actor"
+msgstr "系统"
+
+#. English: Separate entries with commas.
+#. chrys-meta={"fingerprint":"b877dbf90487ac6c690812de78d65f979310c964fe39f7ee5f750fc3669490a1","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.terms_tip"
+msgstr "多项内容用逗号分隔。"
+
 #. English: Personal Memory
 #. chrys-meta={"fingerprint":"d1e2d57c3574c521aa66938b1cb35ac2c411fcb77bead601ed15fcd69d544ace","multiline":false,"placeholders":[]}
 #: src/chrys/app/tui/screens/personal_memory/messages.py
 msgid "tui.personal_memory.title"
-msgstr "个人记忆"
+msgstr "个性化记忆"
+
+#. English: Topics
+#. chrys-meta={"fingerprint":"26862a8fecbd7cb1a1264db2e245d32ab8c4570c01cac0bfacaa5b7fea787a3e","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.topics"
+msgstr "主题"
+
+#. English: Keep as a follow-up
+#. chrys-meta={"fingerprint":"dfe7e931ee0d4823ae795dcc0aac0e78d329f855f3fab1895aced63e550db045","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.track"
+msgstr "作为待办跟进"
+
+#. English: All types
+#. chrys-meta={"fingerprint":"07ba023d42bb58e01b256cd1e680e6b559aaa59fb43a47931e7bbfbbf703f2b0","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.types"
+msgstr "所有类型"
+
+#. English: Mem · Unavailable
+#. chrys-meta={"fingerprint":"e1dc2a9a5dae8e226cff86c0616645ddb01ac77de9b6f0b870061471c6130c99","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.unavailable_badge"
+msgstr "记忆 · 不可用"
+
+#. English: Recent activity (v{revision}): {provided} recall turns · {applied}
+#. agent uses · {helpful} helpful · {user_skipped} user skips · {agent_skipped}
+#. agent skips
+#. chrys-meta={"fingerprint":"5147572b5d170d3ffa0b89b069fbbc44bb92397b27d262fb40a6049d50784ed4","multiline":false,"placeholders":["agent_skipped","applied","helpful","provided","revision","user_skipped"]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.usage"
+msgstr "近期记录（v{revision}）：{provided} 个召回回合 · 智能体采用 {applied} · 有帮助 {helpful} · 用户跳过 {user_skipped} · 智能体跳过 {agent_skipped}"
+
+#. English: You
+#. chrys-meta={"fingerprint":"e5649b96eececaed2ad70b7757356cd3a75cc6714c8b2a2ffa20d9cbafba8e9e","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.user_actor"
+msgstr "你"
 
 #. English: User message
 #. chrys-meta={"fingerprint":"b73dd91a2d46a1906ba7b0a45641a6fe7b17c28b9ff7ef864a4a1161155c6dfa","multiline":false,"placeholders":[]}
 #: src/chrys/app/tui/screens/personal_memory/messages.py
 msgid "tui.personal_memory.user_source"
 msgstr "用户原话"
+
+#. English: Waiting
+#. chrys-meta={"fingerprint":"7638fc6eaff773fd4e172b76c3dd4b751b172785d1a39a63545e71bd6b58dae8","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.waiting"
+msgstr "等待"
+
+#. English: Weekly review
+#. chrys-meta={"fingerprint":"eb8eb645fd11bec4140d6f1d304829782ffa80655f3fe8042c780ef555595880","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.weekly_review"
+msgstr "本周回顾"
 
 #. English: When to use
 #. chrys-meta={"fingerprint":"e9a8c608c172670f588708baba8c5883ddd121c99b2037a533647983cda6ad97","multiline":false,"placeholders":[]}
@@ -13265,6 +14012,30 @@ msgid "tui.tool_card.group.action.mcp_calls"
 msgid_plural "tui.tool_card.group.action.mcp_calls#plural"
 msgstr[0] "调用 MCP {count} 次"
 
+#. English: made {count} memory lookup
+#. English-plural: made {count} memory lookups
+#. chrys-meta={"fingerprint":"4c1ab5ec7e7c13b3b09f3c99abd3c92170068b7d2491bc86952a8375d91363ab","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/widgets/chat/fold_rows.py
+msgid "tui.tool_card.group.action.memory_lookups"
+msgid_plural "tui.tool_card.group.action.memory_lookups#plural"
+msgstr[0] "查找记忆 {count} 次"
+
+#. English: requested {count} memory pause
+#. English-plural: requested {count} memory pauses
+#. chrys-meta={"fingerprint":"a81932be225ce0b5018a13a5565a5c7fb0eca87d4e2c3fe22358bae92db6a9c5","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/widgets/chat/fold_rows.py
+msgid "tui.tool_card.group.action.memory_pauses"
+msgid_plural "tui.tool_card.group.action.memory_pauses#plural"
+msgstr[0] "请求停用记忆 {count} 次"
+
+#. English: requested {count} memory write
+#. English-plural: requested {count} memory writes
+#. chrys-meta={"fingerprint":"fd381a09967feccee6d14a187faaab3caea4dc9f45bcec82ad96cbf081d4fad1","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/widgets/chat/fold_rows.py
+msgid "tui.tool_card.group.action.memory_writes"
+msgid_plural "tui.tool_card.group.action.memory_writes#plural"
+msgstr[0] "请求写入记忆 {count} 次"
+
 #. English: made {count} other call
 #. English-plural: made {count} other calls
 #. chrys-meta={"fingerprint":"ea5001abcc8d33c06dfb39002d9a8927a9a1392a6958808ebc11a54630c385fb","multiline":false,"placeholders":[]}
@@ -13350,6 +14121,24 @@ msgstr "正在查找 {pattern}"
 #: src/chrys/app/tui/widgets/chat/tool_call.py
 msgid "tui.tool_card.group.activity.loading_skill"
 msgstr "正在加载 Skill {skill}"
+
+#. English: Looking up memories
+#. chrys-meta={"fingerprint":"5f339bd644cf2efdeca9950411b7e7c05309028c1b9266f23947312f00ea22d5","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/widgets/chat/tool_call.py
+msgid "tui.tool_card.group.activity.memory_lookup"
+msgstr "查找记忆"
+
+#. English: Pausing memory
+#. chrys-meta={"fingerprint":"33761e5e2cb6ac15710bb07656e271f0b8c53b2d7cda99d5472a63f12ee8d54a","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/widgets/chat/tool_call.py
+msgid "tui.tool_card.group.activity.memory_pause"
+msgstr "停用记忆"
+
+#. English: Preparing memory: {title}
+#. chrys-meta={"fingerprint":"71b7bac20222622d7c7e891950179fd41ff605e2e4cddc1e4d4a576cd169e39b","multiline":false,"placeholders":["title"]}
+#: src/chrys/app/tui/widgets/chat/tool_call.py
+msgid "tui.tool_card.group.activity.memory_write"
+msgstr "整理记忆：{title}"
 
 #. English: Reading {path}
 #. chrys-meta={"fingerprint":"803de55b37b9e2588ab63f843f9443c388d470b54f6323933559dec086a7452e","multiline":false,"placeholders":["path"]}
@@ -13489,6 +14278,12 @@ msgstr "抓取 {url}"
 msgid "tui.tool_card.group.single.find_files"
 msgstr "查找文件 {pattern}"
 
+#. English: Updated follow-up: {title}
+#. chrys-meta={"fingerprint":"906f9abeb1b3eef48be04559e04f0b5c9530ff306bdc93a2f6e7a1127c9f7b09","multiline":false,"placeholders":["title"]}
+#: src/chrys/app/tui/widgets/chat/single_call_row.py
+msgid "tui.tool_card.group.single.follow_up_updated"
+msgstr "已更新待办：{title}"
+
 #. English: Loaded skill {skill}
 #. chrys-meta={"fingerprint":"4c3ba41e1b3f2ba8dea6ef55f8e9c8e944bba19eb72d881940361c50c9e2a274","multiline":false,"placeholders":["skill"]}
 #: src/chrys/app/tui/widgets/chat/single_call_row.py
@@ -13500,6 +14295,66 @@ msgstr "加载 Skill {skill}"
 #: src/chrys/app/tui/widgets/chat/single_call_row.py
 msgid "tui.tool_card.group.single.mcp"
 msgstr "调用 MCP 工具 {tool}"
+
+#. English: Reported memory use: {title}
+#. chrys-meta={"fingerprint":"cfd6790b5cab7793b815be6988df559460ca3319998b6354930c195d7d020832","multiline":false,"placeholders":["title"]}
+#: src/chrys/app/tui/widgets/chat/single_call_row.py
+msgid "tui.tool_card.group.single.memory_applied"
+msgstr "已声明采用记忆：{title}"
+
+#. English: Memory to review: {title}
+#. chrys-meta={"fingerprint":"722c96c43165ce9b323b2673efe0df83002807af3ce84c3b3c1732b117050e03","multiline":false,"placeholders":["title"]}
+#: src/chrys/app/tui/widgets/chat/single_call_row.py
+msgid "tui.tool_card.group.single.memory_candidate"
+msgstr "待确认记忆：{title}"
+
+#. English: Recorded memory feedback: {title}
+#. chrys-meta={"fingerprint":"701c3d8ed7cac9ea9ef93cbb5fada963cccea4fd4ec42ac71b7fa84a9ccbe212","multiline":false,"placeholders":["title"]}
+#: src/chrys/app/tui/widgets/chat/single_call_row.py
+msgid "tui.tool_card.group.single.memory_feedback"
+msgstr "已记录记忆反馈：{title}"
+
+#. English: Checked related memories: {query}
+#. chrys-meta={"fingerprint":"4c2f7149441cc6879f3af1b7a75e6382aa7f1143328cda9cb6daed3694b5fabf","multiline":false,"placeholders":["query"]}
+#: src/chrys/app/tui/widgets/chat/single_call_row.py
+msgid "tui.tool_card.group.single.memory_inspect"
+msgstr "已检查相关记忆：{query}"
+
+#. English: Looked up memories: {query}
+#. chrys-meta={"fingerprint":"af0d584eec101a8e8b99001e830aef663bf96995034d05b3a3449cf5aad515aa","multiline":false,"placeholders":["query"]}
+#: src/chrys/app/tui/widgets/chat/single_call_row.py
+msgid "tui.tool_card.group.single.memory_lookup"
+msgstr "已查找记忆：{query}"
+
+#. English: Paused memory: {title}
+#. chrys-meta={"fingerprint":"2b66d6ed7741e35ada670bbc5f00131698f7baf3974168631d03c29b46a71037","multiline":false,"placeholders":["title"]}
+#: src/chrys/app/tui/widgets/chat/single_call_row.py
+msgid "tui.tool_card.group.single.memory_paused"
+msgstr "已停用记忆：{title}"
+
+#. English: Processed memory: {title}
+#. chrys-meta={"fingerprint":"8a6263386dcc0ddcfc70e6f5a2b0d0e65387897687bac5901fc1f9ff4a4cb818","multiline":false,"placeholders":["title"]}
+#: src/chrys/app/tui/widgets/chat/single_call_row.py
+msgid "tui.tool_card.group.single.memory_processed"
+msgstr "已处理记忆：{title}"
+
+#. English: Saved memory: {title}
+#. chrys-meta={"fingerprint":"b11e52c66f76227988ecab0a8838a0acda244db7c0a7b68dac213a2c68c73dc4","multiline":false,"placeholders":["title"]}
+#: src/chrys/app/tui/widgets/chat/single_call_row.py
+msgid "tui.tool_card.group.single.memory_saved"
+msgstr "已保存记忆：{title}"
+
+#. English: Memory unchanged: {title}
+#. chrys-meta={"fingerprint":"482cd4caddf7601f5dae00fa1d9a90005444f01312d246facdf1279f5a2c6647","multiline":false,"placeholders":["title"]}
+#: src/chrys/app/tui/widgets/chat/single_call_row.py
+msgid "tui.tool_card.group.single.memory_unchanged"
+msgstr "记忆未变：{title}"
+
+#. English: Updated memory: {title}
+#. chrys-meta={"fingerprint":"40ce40d0c683de06b769d25a4243db2416ccbf7f91e054d5d15fce7df0b5d3c8","multiline":false,"placeholders":["title"]}
+#: src/chrys/app/tui/widgets/chat/single_call_row.py
+msgid "tui.tool_card.group.single.memory_updated"
+msgstr "已更新记忆：{title}"
 
 #. English: Called {tool}
 #. chrys-meta={"fingerprint":"31f4725ceb8aaca35b31cf08aed1c6e9f352f04336e8ecacd2356f05823d76df","multiline":false,"placeholders":["tool"]}
@@ -13648,6 +14503,30 @@ msgstr[0] "{count} 次中断"
 msgid "tui.tool_card.group.summary.mcp_calls"
 msgid_plural "tui.tool_card.group.summary.mcp_calls#plural"
 msgstr[0] "{count} 次 MCP 调用"
+
+#. English: {count} memory lookup
+#. English-plural: {count} memory lookups
+#. chrys-meta={"fingerprint":"518cb4e55a3df21838ee432e54e43e1e7903720166b811bb137de4939b708013","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/widgets/chat/fold_rows.py
+msgid "tui.tool_card.group.summary.memory_lookups"
+msgid_plural "tui.tool_card.group.summary.memory_lookups#plural"
+msgstr[0] "记忆查找 {count} 次"
+
+#. English: {count} memory pause
+#. English-plural: {count} memory pauses
+#. chrys-meta={"fingerprint":"c5d8ec78e209a39173ab1a2190fbda1b9d66c4a0a91dd2b847a399e8fb0c8222","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/widgets/chat/fold_rows.py
+msgid "tui.tool_card.group.summary.memory_pauses"
+msgid_plural "tui.tool_card.group.summary.memory_pauses#plural"
+msgstr[0] "记忆停用 {count} 次"
+
+#. English: {count} memory write
+#. English-plural: {count} memory writes
+#. chrys-meta={"fingerprint":"5b7fa7a42caf219651e724a2f7e43bbc4e3f7c47b3ba600ee188e312f79b1cb9","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/widgets/chat/fold_rows.py
+msgid "tui.tool_card.group.summary.memory_writes"
+msgid_plural "tui.tool_card.group.summary.memory_writes#plural"
+msgstr[0] "记忆写入 {count} 次"
 
 #. English: {count} other call
 #. English-plural: {count} other calls
@@ -17169,6 +18048,15 @@ msgstr "提示已被钩子阻止。"
 #~ msgid "tui.buddy.hums"
 #~ msgstr "💭 {name} 若有所思地哼着歌..."
 
+#~ msgid "tui.buddy.memory.empty"
+#~ msgstr "还没翻到相关的"
+
+#~ msgid "tui.buddy.memory.reference_tip"
+#~ msgstr "已提供给智能体参考，不代表回答已经采用。"
+
+#~ msgid "tui.buddy.memory.review_title"
+#~ msgstr "这条要记下吗？"
+
 #~ msgid "tui.buddy.pet_love"
 #~ msgstr "💕 {name} 感受到了你的爱！（正在生成回复……）"
 
@@ -17235,6 +18123,12 @@ msgstr "提示已被钩子阻止。"
 
 #~ msgid "tui.notifications.save_rejected"
 #~ msgstr "无法保存通知设置；存储拒绝了：{keys}。"
+
+#~ msgid "tui.personal_memory.fail_other"
+#~ msgstr "本次写入被拒绝。可展开工具结果查看原因，或在 /memory 中管理。"
+
+#~ msgid "tui.personal_memory.processing"
+#~ msgstr "记忆 · 提炼中"
 
 #~ msgid "tui.prompt_card.cancelled"
 #~ msgstr "已取消发送"

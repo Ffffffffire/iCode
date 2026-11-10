@@ -5,7 +5,6 @@
 from __future__ import annotations
 
 import asyncio
-import json
 from unittest.mock import create_autospec
 
 import pytest
@@ -14,7 +13,7 @@ from chrys.foundation.config.settings import Settings
 from chrys.foundation.events.bus import EventBus
 from chrys.foundation.events.personal_memory import PersonalMemoryChanged, PersonalMemoryCommand
 from chrys.foundation.events.types import UserMessage
-from chrys.foundation.models.personal_memory import MemoryDraft, MemorySource
+from chrys.foundation.models.personal_memory import MemoryDraft, MemoryFollowUp, MemorySource
 from chrys.orchestration.engine.build import builder
 from chrys.service.approval.policy import ApprovalMode
 from chrys.service.llm.mock import MockChatClient, MockResponse
@@ -33,45 +32,97 @@ def _profile() -> AgentProfile:
     )
 
 
-def _extraction_response(quote: str, content: str, **fields) -> MockResponse:
-    return MockResponse(
-        text=json.dumps(
-            {
-                "memories": [
-                    {
-                        "title": "Reusable choice",
-                        "content": content,
-                        "when_to_use": "Similar future tasks",
-                        "source_quote": quote,
-                        "basis": "request",
-                        **fields,
-                    }
-                ]
-            },
-            ensure_ascii=False,
-        )
-    )
-
-
-async def test_enabled_capture_extracts_without_a_memory_tool_call(
+async def test_real_engine_records_use_and_user_completion_without_extra_model(
     agent_engine, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    preference = "我做技术汇报更习惯用图讲清楚结构，信息可以密一点，别整页都是文字。"  # noqa: RUF001
-    extracted = {
-        "memories": [
-            {
-                "title": "技术汇报版式",
-                "content": "技术汇报偏好图形化、信息密度较高的版式，避免整页纯文字。",  # noqa: RUF001
-                "when_to_use": "制作技术汇报 PPT",
-                "kind": "preference",
-                "project_only": False,
-                "source_quote": preference,
-                "basis": "stated",
-            }
+    store = PersonalMemoryStore()
+    entry = await asyncio.to_thread(
+        store.save,
+        MemoryDraft(
+            "Release drill",
+            "Verify rollback",
+            "release rollback",
+            kind="intention",
+            follow_up=MemoryFollowUp(next_step="Run staging rollback"),
+        ),
+        MemorySource(),
+    )
+    quote = "The release rollback drill is completed."
+    client = MockChatClient(
+        [
+            MockResponse(
+                tool_calls=[
+                    (
+                        "review_memory",
+                        "applied",
+                        {
+                            "memory_id": entry.id,
+                            "revision": 1,
+                            "outcome": "applied",
+                            "reason": "Located the user's open commitment",
+                        },
+                    )
+                ]
+            ),
+            MockResponse(
+                tool_calls=[
+                    (
+                        "update_follow_up",
+                        "done",
+                        {"memory_id": entry.id, "revision": 1, "status": "completed", "source_quote": quote},
+                    )
+                ]
+            ),
+            MockResponse(text="Marked the release drill completed."),
         ]
+    )
+    monkeypatch.setattr(builder, "create_client", create_autospec(builder.create_client, return_value=client))
+    bus = EventBus()
+    engine = agent_engine(bus, settings=Settings(), initial_approval_mode=ApprovalMode.BYPASS)
+    await engine.start(_profile())
+    await bus.publish(UserMessage(text=quote))
+    await await_run_task_chain(engine, turn_state=engine.turns.turn_state)
+    snapshot = await asyncio.to_thread(store.load)
+    assert snapshot.entries[0].draft.follow_up.status == "completed"
+    applied = next(e for e in snapshot.activity if e.action == "applied")
+    assert applied.turn_id and applied.actor == "agent"
+    assert len(client.call_history) == 3
+
+
+async def test_ordinary_task_with_capture_enabled_makes_only_the_main_model_call(
+    agent_engine, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    client = MockChatClient([MockResponse(text="Here is the requested technical report.")])
+    monkeypatch.setattr(builder, "create_client", create_autospec(builder.create_client, return_value=client))
+    store = PersonalMemoryStore()
+    await asyncio.to_thread(store.configure, "auto", True, auto_save=True)
+    bus = EventBus()
+    engine = agent_engine(bus, settings=Settings(), initial_approval_mode=ApprovalMode.BYPASS)
+    await engine.start(_profile())
+    await bus.publish(UserMessage(text="Prepare a technical report about the memory implementation."))
+    await await_run_task_chain(engine, turn_state=engine.turns.turn_state)
+    assert len(client.call_history) == 1
+    assert (await asyncio.to_thread(store.load)).entries == ()
+
+
+async def test_enabled_capture_uses_the_main_agents_tool_without_a_second_extractor(
+    agent_engine, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    preference = "I prefer dense diagrams for technical slides."
+    proposal = {
+        "title": "Technical slides",
+        "content": "Prefer dense diagrams.",
+        "when_to_use": "Technical slides",
+        "kind": "preference",
+        "project_only": False,
+        "source_quote": preference,
+        "basis": "stated",
     }
     client = MockChatClient(
-        [MockResponse(text=json.dumps(extracted, ensure_ascii=False)), MockResponse(text="会按这个风格制作。")]
+        [
+            MockResponse(tool_calls=[("propose_memory", "save-choice", proposal)]),
+            MockResponse(text="Remembered the technical-slide preference."),
+        ]
     )
     monkeypatch.setattr(builder, "create_client", create_autospec(builder.create_client, return_value=client))
     store = PersonalMemoryStore()
@@ -81,12 +132,10 @@ async def test_enabled_capture_extracts_without_a_memory_tool_call(
     await engine.start(_profile())
     await bus.publish(UserMessage(text=preference))
     await await_run_task_chain(engine, turn_state=engine.turns.turn_state)
-    entries = (await asyncio.to_thread(store.load)).entries
-    assert len(entries) == 1
-    assert entries[0].source.quote == preference
-    assert entries[0].draft.content == extracted["memories"][0]["content"]
-    assert entries[0].draft.workspace == ""
-    assert entries[0].state == "active"
+    (entry,) = (await asyncio.to_thread(store.load)).entries
+    assert entry.source.quote == preference and entry.draft.content == proposal["content"]
+    assert entry.draft.workspace == "" and entry.state == "active"
+    assert len(client.call_history) == 2
 
 
 async def test_followup_save_uses_the_earlier_user_preference_as_evidence(
@@ -112,9 +161,6 @@ async def test_followup_save_uses_the_earlier_user_preference_as_evidence(
                         },
                     )
                 ]
-            ),
-            _extraction_response(
-                preference, "技术 PPT 使用图文结合、信息密度较高的版式。", kind="preference", project_only=False
             ),
             MockResponse(text="已记住这条技术 PPT 偏好。"),
         ]
@@ -186,7 +232,6 @@ async def test_model_suggestion_has_quote_and_waits_for_confirmation(
     quote = "客户宣讲要突出价值和落地。"
     client = MockChatClient(
         [
-            MockResponse(text='{"memories": []}'),
             MockResponse(
                 tool_calls=[
                     (
@@ -202,14 +247,6 @@ async def test_model_suggestion_has_quote_and_waits_for_confirmation(
                         },
                     )
                 ]
-            ),
-            _extraction_response(
-                quote,
-                "客户宣讲优先解释应用价值与落地路径。",
-                kind="preference",
-                basis="stated",
-                project_only=False,
-                when_to_use="制作客户宣讲材料",
             ),
             MockResponse(text="已提出一条记忆建议。等待确认。"),
         ]
@@ -263,9 +300,6 @@ async def test_explicit_user_request_saves_without_suggestion_review(
                     )
                 ]
             ),
-            _extraction_response(
-                request, "报告缓存仍旧时, 先检查持久化产物版本。", title="报告缓存排查", when_to_use="报告缓存仍旧"
-            ),
             MockResponse(text="已经记住。"),
             MockResponse(text="先检查产物版本。"),
         ]
@@ -305,7 +339,6 @@ async def test_unrequested_direct_save_is_rejected(agent_engine, monkeypatch: py
                     )
                 ]
             ),
-            MockResponse(text='{"memories": []}'),
             MockResponse(text="未保存。"),
         ]
     )
@@ -359,6 +392,7 @@ async def test_chat_correction_replaces_the_memory_in_the_next_request(
     client = MockChatClient(
         [
             MockResponse(text="Earlier advice was offered."),
+            MockResponse(tool_calls=[("recall_memory", "inspect-memory", {"query": old.id, "for_update": True})]),
             MockResponse(
                 tool_calls=[
                     (
@@ -375,13 +409,6 @@ async def test_chat_correction_replaces_the_memory_in_the_next_request(
                         },
                     )
                 ]
-            ),
-            _extraction_response(
-                correction,
-                "Inspect artifact versions before deleting report cache",
-                replaces_id=old.id,
-                replaces_revision=old.revision,
-                when_to_use="stale report cache",
             ),
             MockResponse(text="Corrected the existing memory."),
             MockResponse(text="Inspect artifact versions first."),

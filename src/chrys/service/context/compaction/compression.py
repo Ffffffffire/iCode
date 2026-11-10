@@ -31,6 +31,7 @@ from .groups import (
     _matches_summary_id,
     _message_present,
 )
+from .summary_extension import SummaryExtension
 from .turns import _resolve_turns
 
 if TYPE_CHECKING:
@@ -133,7 +134,9 @@ class CompressionEngine:
         self._compressed_context_cache.clear()
         self._state = state
 
-    def queue_compression(self, marker_id: str, summary_text: str) -> tuple[str, int]:
+    def queue_compression(
+        self, marker_id: str, summary_text: str, *, summary_extension: SummaryExtension | None = None
+    ) -> tuple[str, int]:
         """Validate and queue one agent-requested compression."""
         if self._state is None:
             raise RuntimeError("Strategy not bound — call bind_state() first.")
@@ -146,8 +149,10 @@ class CompressionEngine:
             PendingCompression(
                 compressed_context_id=ctx_id,
                 marker_id=marker_id,
-                summary_text=summary_text,
+                summary_text=summary_extension.split(summary_text)[0] if summary_extension else summary_text,
                 freed_count=freed_count,
+                summary_extension=summary_extension,
+                source_summary=summary_text if summary_extension else "",
             )
         )
         return ctx_id, freed_count
@@ -345,6 +350,8 @@ class CompressionEngine:
                     tokens_after=max(0, tokens_before - freed_tokens),
                 )
                 self._record_published_fold(pending.compressed_context_id)
+                if pending.summary_extension is not None:
+                    await pending.summary_extension.prepare(pending.source_summary, fold_range).committed()
             self._pending_compressions.clear()
 
         return compressions_processed
@@ -380,6 +387,8 @@ class CompressionEngine:
                 tokens_after=max(0, tokens_before - _fold_tokens(fold_range)),
             )
             self._record_published_fold(pending.compressed_context_id)
+            if pending.summary_extension is not None:
+                await pending.summary_extension.prepare(pending.source_summary, fold_range).committed()
         self._pending_compressions.clear()
         return any_processed
 

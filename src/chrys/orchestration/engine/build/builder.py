@@ -757,14 +757,10 @@ async def build_agent(
         # Personal experiences belong to the interactive user's main agent.
         # Child and workflow builds deliberately receive no private catalog
         # or memory-writing tools; their task context is supplied by the caller.
-        from chrys.service.personal_memory.extraction import MemoryExtractor
         from chrys.service.personal_memory.runtime import PersonalMemoryRuntime
 
         shared_tools = list(tools)
-        memory_extractor = MemoryExtractor(client, chat_options, on_side_call_usage)
-        personal_memory = PersonalMemoryRuntime(
-            bus=bus, session_id=session_id or "", workspace=runtime.cwd, extractor=memory_extractor
-        )
+        personal_memory = PersonalMemoryRuntime(bus=bus, session_id=session_id or "", workspace=runtime.cwd)
         personal_memory_tools = personal_memory.tools()
         tools.extend(personal_memory_tools)
 
@@ -909,7 +905,6 @@ async def build_agent(
                 bus=bus,
                 session_id=session_id or "",
                 workspace=runtime.cwd,
-                extractor=memory_extractor,
             ),
         )
         web_tools.check_names(tools)

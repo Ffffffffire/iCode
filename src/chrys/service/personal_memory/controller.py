@@ -20,25 +20,49 @@ class PersonalMemoryController:
 
     async def handle(self, event: PersonalMemoryCommand) -> None:
         try:
-            snapshot, saved_memory_id = await asyncio.to_thread(self._apply, event)
-            reply = PersonalMemoryChanged(
-                request_id=event.event_id,
-                snapshot=snapshot,
-                session_id=event.session_id,
-                saved_memory_id=saved_memory_id,
-            )
+            reply = await asyncio.to_thread(self._reply, event)
         except MemoryStoreError as error:
-            reply = PersonalMemoryChanged(request_id=event.event_id, error=str(error), session_id=event.session_id)
+            reply = PersonalMemoryChanged(
+                request_id=event.event_id, error=str(error), error_code=error.code, session_id=event.session_id
+            )
         except OSError:
             reply = PersonalMemoryChanged(
                 request_id=event.event_id,
                 error="Personal memory could not be saved. Check local file access.",
+                error_code="memory_unavailable",
                 session_id=event.session_id,
             )
         await self._bus.publish(reply)
 
+    def _reply(self, event: PersonalMemoryCommand) -> PersonalMemoryChanged:
+        history = None
+        revisions = None
+        saved_memory_id = ""
+        previous = self._store.load() if event.action == "save" else None
+        if event.action == "history":
+            snapshot, history = self._store.history_page(before=event.before_sequence)
+        elif event.action == "revisions":
+            revisions = self._store.revisions(
+                event.memory_id, before_revision=event.before_revision, expected_revision=event.revision
+            )
+            snapshot = self._store.load()
+        else:
+            snapshot, saved_memory_id = self._apply(event)
+        return PersonalMemoryChanged(
+            request_id=event.event_id,
+            snapshot=snapshot,
+            session_id=event.session_id,
+            saved_memory_id=saved_memory_id,
+            saved_changed=previous is None or previous.entries != snapshot.entries,
+            used_bytes=self._store.used_bytes,
+            history=history,
+            revisions=revisions,
+        )
+
     def _apply(self, event: PersonalMemoryCommand) -> tuple[MemorySnapshot, str]:
         saved_memory_id = ""
+        if event.action == "load":
+            return self._store.maintain(notify=False), ""
         if event.action == "save":
             if event.draft is None:
                 raise MemoryStoreError("Memory content is required.")
@@ -50,9 +74,38 @@ class PersonalMemoryController:
             )
             saved_memory_id = saved.id
         elif event.action == "state":
-            return self._store.set_state(event.memory_id, event.revision, event.state), ""
+            return self._store.set_state(
+                event.memory_id, event.revision, event.state, session_id=event.session_id or ""
+            ), ""
         elif event.action == "forget":
             return self._store.forget(event.memory_id, event.revision), ""
+        elif event.action == "batch_forget":
+            return self._store.forget_many(event.references), ""
+        elif event.action == "batch_state":
+            return self._store.set_states(event.references, event.state, session_id=event.session_id or ""), ""
         elif event.action == "settings":
             return self._store.configure(event.mode, event.capture, auto_save=event.auto_save), ""
+        elif event.action == "notifications":
+            return self._store.set_buddy_notifications(event.buddy_notifications), ""
+        elif event.action == "dismiss_review":
+            return self._store.dismiss_review(), ""
+        elif event.action == "feedback":
+            return self._store.feedback(
+                event.memory_id,
+                event.revision,
+                event.outcome,
+                session_id=event.session_id or "",
+                turn_id=event.turn_id,
+                source=MemorySource(session_id=event.session_id or "", role="user"),
+            ), ""
+        elif event.action == "follow_up":
+            if event.follow_up is None:
+                raise MemoryStoreError("Follow-up details are required.")
+            updated = self._store.update_follow_up(
+                event.memory_id,
+                event.revision,
+                event.follow_up,
+                MemorySource(session_id=event.session_id or "", role="user"),
+            )
+            saved_memory_id = updated.id
         return self._store.load(), saved_memory_id

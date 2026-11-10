@@ -175,6 +175,7 @@ async def test_correcting_a_memory_keeps_its_identity_and_reports_the_replaced_r
     old = store.save(MemoryDraft("Cache", "Delete it first", "stale cache"), MemorySource(quote="Old request"))
     prompt = "Update this memory: check cache versions before deletion."
     runtime.observe([Message("user", [prompt])])
+    await runtime.recall_memory(old.id, for_update=True)
     result = json.loads(
         await runtime.propose_memory(
             title="Cache",
@@ -248,6 +249,21 @@ async def test_off_lookup_reports_disabled_instead_of_claiming_the_library_has_n
     assert "disabled" in result.lower() and "no search" in result.lower()
     assert "No applicable active memories found" not in result
     assert "Inspect artifact versions" not in result
+
+
+async def test_short_followups_recall_the_users_task_but_a_new_task_clears_it(tmp_path: Path) -> None:
+    runtime, store = _runtime(tmp_path)
+    entry = store.save(MemoryDraft("PPT", "Use editable diagrams", "Technical slides"), MemorySource())
+    messages = [Message("user", ["帮我准备技术幻灯片"]), Message("assistant", ["Cache testing unrelated text"])]
+    for prompt in ("继续", "继续吧"):
+        messages.append(Message("user", [prompt]))
+        prepared = await runtime.prepare(messages)
+        assert entry.id in (prepared or "")
+        assert "context" in store.load().recalls[-1].matches[0].routes
+    messages.append(Message("user", ["设计一个数据库连接池"]))
+    prepared = await runtime.prepare(messages)
+    assert entry.id not in (prepared or "")
+    assert not store.load().recalls[-1].matches
 
 
 async def test_a_followup_search_does_not_hide_memories_already_provided_this_turn(tmp_path: Path) -> None:

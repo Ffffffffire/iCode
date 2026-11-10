@@ -10,6 +10,7 @@ import shutil
 import stat
 import sys
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from unittest.mock import create_autospec
 
 import pytest
@@ -84,22 +85,24 @@ async def test_previews_and_runs_keep_bytecode_only_in_the_private_cache_of_the_
     monkeypatch.setattr(catalog_module, "worker_bytecode_cache_dir", worker_bytecode_cache_dir)
     monkeypatch.setattr(coordinator_module, "worker_bytecode_cache_dir", worker_bytecode_cache_dir)
     patch_runtime(monkeypatch, [MockChatClient(responses=[])])
-    project = make_project(tmp_path)
-    write_workflow_package(project, "pkg", _entry(tmp_path / "loaded"), _helpers("hello"))
-    cache = get_platform().config_dir / "workflows" / ".pycache"
-    host = make_host(tmp_path, project=project)
-    try:
-        await confirm(host, "pkg")
-        assert list(cache.rglob("helpers.*.pyc"))
-        await asyncio.to_thread(shutil.rmtree, cache)
-        await run(host, "pkg", input_text="x")
-    finally:
-        await host.shutdown()
+    # CPython mirrors the absolute source path inside the cache; keep it below Windows' path limit.
+    with TemporaryDirectory(prefix="wf-") as directory:
+        project = Path(directory)
+        write_workflow_package(project, "pkg", _entry(tmp_path / "loaded"), _helpers("hello"))
+        cache = get_platform().config_dir / "workflows" / ".pycache"
+        host = make_host(tmp_path, project=project)
+        try:
+            await confirm(host, "pkg")
+            assert list(cache.rglob("helpers.*.pyc"))
+            await asyncio.to_thread(shutil.rmtree, cache)
+            await run(host, "pkg", input_text="x")
+        finally:
+            await host.shutdown()
 
-    assert list(cache.rglob("helpers.*.pyc"))
-    if sys.platform != "win32":
-        assert stat.S_IMODE(cache.stat().st_mode) == 0o700
-    assert not list(project.rglob("*.pyc"))
+        assert list(cache.rglob("helpers.*.pyc"))
+        if sys.platform != "win32":
+            assert stat.S_IMODE(cache.stat().st_mode) == 0o700
+        assert not list(project.rglob("*.pyc"))
 
 
 async def test_a_helper_edit_that_keeps_its_size_and_time_runs_once_confirmed_again(

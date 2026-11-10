@@ -35,7 +35,7 @@ if TYPE_CHECKING:
     from chrys.foundation.models.session_env import SessionEnvironment
     from chrys.foundation.retry import RetryAttemptInfo
     from chrys.kernel.client import BaseChatClient
-    from chrys.kernel.middleware import ChatMiddleware
+    from chrys.kernel.middleware import ChatMiddleware, FunctionMiddleware
     from chrys.service.agent_middleware.injection import InjectionMiddleware
     from chrys.service.approval.judge import ApprovalJudge
     from chrys.service.approval.policy import ApprovalMode, ApprovalPolicy
@@ -246,22 +246,28 @@ def create_runtime(
     ctx = create_context(recipe.context) if context is None else context
     reminder_inputs = recipe.reminder.copy()
     tools = list(shared.tools)
+    summary_extension = None
     if isinstance(recipe, MainRecipe) and recipe.personal_memory is not None:
         personal_memory = recipe.personal_memory() if personal_memory is None else personal_memory
         reminder_inputs["personal_memory"] = personal_memory
         tools.extend(personal_memory.tools())
+        summary_extension = personal_memory.summary
+        if ctx.context_mgmt_provider is not None:
+            ctx.context_mgmt_provider.summary_extension = summary_extension
     reminder, last_words = create_reminder(reminder_inputs)
     ctx.compaction_strategy.bind_reminder(reminder, last_words)
     if isinstance(recipe, MainRecipe) and recipe.persist_recovery is not None:
         ctx.compaction_strategy.set_recovery_persistence_callback(recipe.persist_recovery)
-    generator = LastWordsGenerator(**recipe.last_words)
+    generator = LastWordsGenerator(**recipe.last_words, summary_extension=summary_extension)
     owner.own(generator.aclose)
     ctx.compaction_strategy.set_last_words_generator(generator)
     validation = recipe.validation(owner) if isinstance(recipe, MainRecipe) else None
     if isinstance(recipe, MainRecipe):
         injection = owner.retain(recipe.injection() if injection is None else injection)
         injection.set_on_drained_reminders(reminder.queue_drained_injection_reminders)
-    chain: list[ChatMiddleware] = []
+    chain: list[ChatMiddleware | FunctionMiddleware] = []
+    if isinstance(recipe, MainRecipe) and personal_memory is not None:
+        chain.append(personal_memory)
     if isinstance(recipe, MainRecipe):
         if injection is None:
             raise RuntimeError("The main agent recipe requires injection middleware.")

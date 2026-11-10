@@ -195,6 +195,7 @@ _LLM_CLIENT_SOURCES = (
 # those dependency edges explicit: subprocess fixtures, filesystem scanners,
 # and import-every-module checks are invisible to the AST import graph.
 REGULAR_RULES = (
+    TestRule("tests/app/acp/test_server_capabilities.py", ("src/chrys/app/acp/server.py",)),
     TestRule("tests/app/tui/behaviors/test_startup_imports.py", ("src/chrys/**",)),
     TestRule("tests/service/approval/test_formal_core.py", ("src/chrys/service/approval/principles.json",)),
     TestRule("tests/app/tui/screens/test_approval_review_reason.py", ("src/chrys/service/approval/principles.json",)),
@@ -220,6 +221,10 @@ REGULAR_RULES = (
     TestRule("tests/app/tui/widgets/test_workflow_transcript_order.py", _WORKFLOW_WORKER_HOST),
     TestRule("tests/support/test_workflow_previews.py", _WORKFLOW_WORKER_HOST),
     TestRule("tests/service/workflows/test_py39_harness.py", _WORKFLOW_WORKER_HOST),
+    TestRule(
+        "tests/service/personal_memory/test_recall_evaluation.py",
+        ("scripts/evaluate_personal_memory.py", "tests/service/personal_memory/fixtures/recall_cases.json"),
+    ),
     TestRule("tests/service/agent_middleware/test_reminder_lifecycle.py", _REMINDER_PIPELINE),
     TestRule("tests/service/llm/test_client_contracts.py", _LLM_CLIENT_SOURCES),
     TestRule("tests/service/llm/test_persisted_names.py", ("src/chrys/service/llm/**",)),

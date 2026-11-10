@@ -88,6 +88,7 @@ from .last_words_state import DropRoundBreakerState, LastWordsState, Phase4Retry
 from .scoped import ScopedGroup
 from .spill import SpillQuota
 from .summaries import _compact_group, _remove_group
+from .summary_extension import SummaryExtension
 from .turns import _resolve_turns
 
 _log = logging.getLogger(__name__)
@@ -492,13 +493,15 @@ class UnifiedContextStrategy:
     # Cross-turn compression API
     # ------------------------------------------------------------------
 
-    def queue_compression(self, marker_id: str, summary_text: str) -> tuple[str, int]:
+    def queue_compression(
+        self, marker_id: str, summary_text: str, *, summary_extension: SummaryExtension | None = None
+    ) -> tuple[str, int]:
         """Queue a compression request.  Returns ``(compressed_context_id, freed_count)``.
 
         Validates the marker exists in state (raises ``ValueError`` if not).
         The actual compression is executed inside :meth:`__call__`.
         """
-        return self._compression.queue_compression(marker_id, summary_text)
+        return self._compression.queue_compression(marker_id, summary_text, summary_extension=summary_extension)
 
     def list_compressed(self) -> dict[str, Any]:
         """Return compressed blocks and available markers, accounting for pending compressions."""

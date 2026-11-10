@@ -4,7 +4,6 @@
 
 from __future__ import annotations
 
-import json
 from dataclasses import replace
 from pathlib import Path
 from unittest.mock import create_autospec
@@ -120,7 +119,7 @@ async def test_main_conversations_exclude_context_management_from_shared_runtime
         agent_engine,
         monkeypatch,
         tmp_path,
-        main=[MockResponse(text=json.dumps({"memories": [proposal]}))],
+        main=[],
         child=[],
     )
     assert len(captured) == 1
@@ -159,14 +158,20 @@ async def test_main_conversations_exclude_context_management_from_shared_runtime
         assert first_provider._session is sessions[0]
         assert second_provider._session is sessions[1]
         assert contexts[0].tools[0] is not contexts[1].tools[0]
+        assert first.reminder.sources.personal_memory._runtime is not None
+        assert second.reminder.sources.personal_memory._runtime is not None
+        assert first_provider.summary_extension is first.reminder.sources.personal_memory._runtime.summary
+        assert second_provider.summary_extension is second.reminder.sources.personal_memory._runtime.summary
+        assert first_provider.summary_extension is not second_provider.summary_extension
         first.reminder.sources.personal_memory.observe([Message("user", ["Validate the IR consumer first."])])
         second.reminder.sources.personal_memory.observe([Message("user", ["Explain the customer rollout first."])])
         PersonalMemoryStore().configure("auto", True)
         first_propose = next(tool for tool in first.agent.default_options["tools"] if tool.name == "propose_memory")
         second_propose = next(tool for tool in second.agent.default_options["tools"] if tool.name == "propose_memory")
         assert '"state": "candidate"' in await first_propose(**proposal)
-        assert "must occur verbatim" in await second_propose(**proposal)
-        assert not {"recall_memory", "propose_memory"} & {tool.name for tool in shared.tools}
+        assert "verbatim" in await second_propose(**proposal)
+        assert len(PersonalMemoryStore().load().entries) == 1
+        assert not {"recall_memory", "propose_memory", "pause_memory"} & {tool.name for tool in shared.tools}
     finally:
         await engine.shutdown()
 
@@ -223,6 +228,7 @@ async def test_real_build_preserves_main_child_model_context_approval_and_chat_i
 
     await engine.event_bus.subscribe(ApprovalRequest, reject)
     try:
+        PersonalMemoryStore().configure("auto", True)
         await engine.event_bus.publish(UserMessage(text="root question"))
         await await_run_task_chain(engine, turn_state=engine.turns.turn_state, expect_installed=True)
         assert main.call_count == child.call_count == 2
@@ -232,9 +238,11 @@ async def test_real_build_preserves_main_child_model_context_approval_and_chat_i
         assert "iCode documentation" in root_options["instructions"]
         assert "Product documentation could not be found" in root_options["instructions"]
         assert "ROOT-MEMORY-SENTINEL" in root_options["instructions"]
+        assert "Personal memory suggestions" in root_options["instructions"]
         assert child_options["instructions"].startswith("CHILD-INSTRUCTION")
         assert "iCode documentation" not in child_options["instructions"]
         assert "ROOT-MEMORY-SENTINEL" not in child_options["instructions"]
+        assert "Personal memory suggestions" not in child_options["instructions"]
         root_names = {tool.name for tool in root_options["tools"]}
         child_names = {tool.name for tool in child_options["tools"]}
         assert {"Explore", "compress_context", "recall_context", "list_compressed_contexts"} <= root_names
@@ -244,10 +252,25 @@ async def test_real_build_preserves_main_child_model_context_approval_and_chat_i
             "list_compressed_contexts",
             "recall_memory",
             "propose_memory",
+            "pause_memory",
+            "review_memory",
+            "update_follow_up",
+            "organize_memory",
         ]
         assert "read_file" in child_names
         assert (
-            not {"Explore", "compress_context", "recall_context", "view_image", "recall_memory", "propose_memory"}
+            not {
+                "Explore",
+                "compress_context",
+                "recall_context",
+                "view_image",
+                "recall_memory",
+                "propose_memory",
+                "pause_memory",
+                "review_memory",
+                "update_follow_up",
+                "organize_memory",
+            }
             & child_names
         )
         assert root_messages[-1].text.startswith("root question <system-reminder>")

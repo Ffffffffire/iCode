@@ -78,6 +78,7 @@ from chrys.service.trajectory.retries import RetryBackoffTrace
 
 from .groups import _render_tool_result_value
 from .scoped import DEGRADED_SCOPED_PREAMBLE, ScopedGroup, prepare_scoped_slice
+from .summary_extension import PreparedSummary, SummaryExtension
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
@@ -624,9 +625,12 @@ class LastWordsGenerator:
         publish_retry: Callable[[RetryAttemptInfo], Awaitable[None]] | None = None,
         publish_status: Callable[[CompactionStatus], Awaitable[None]] | None = None,
         report_usage: Callable[[Mapping[str, Any]], None] | None = None,
+        summary_extension: SummaryExtension | None = None,
     ) -> None:
         self._profile = profile
         self._template = template
+        self._summary_extension = summary_extension
+        self._prepared_summary: PreparedSummary | None = None
         self._max_output_tokens = max_output_tokens
         self._log_dir = log_dir
         self._session_id = session_id
@@ -816,6 +820,7 @@ class LastWordsGenerator:
         # Remembered so the strategy's post-commit publish_committed() call
         # can correlate with this round's started/finished pair.
         self._last_compaction_id = compaction_id
+        self._prepared_summary = None
         started_at = time.monotonic()
         outcome = "failed"
         note = ""
@@ -827,6 +832,9 @@ class LastWordsGenerator:
             # canceled/finished machinery below — swallowing it would let
             # the expensive LLM call start after the user already cancelled.
             await self._publish_status_cancellable(CompactionStatus(compaction_id=compaction_id, stage="started"))
+            summary_guidance = (
+                await self._summary_extension.instructions() if self._summary_extension is not None else ""
+            )
             generated = await self._generate(
                 scoped_groups,
                 previous_last_words,
@@ -839,8 +847,15 @@ class LastWordsGenerator:
                 request_overhead_tokens=request_overhead_tokens,
                 calibration_ratio=calibration_ratio,
                 spend_side_call_tokens=spend_side_call_tokens,
+                summary_guidance=summary_guidance,
             )
             note = generated.text
+            if self._summary_extension is not None:
+                self._prepared_summary = self._summary_extension.prepare(
+                    note,
+                    [message for group in scoped_groups for message in group.messages],
+                )
+                note = self._prepared_summary.text
             format_violation = generated.format_violation
             outcome = "ok" if note else "failed"
             return note
@@ -871,6 +886,7 @@ class LastWordsGenerator:
                 # it would merely replace the original traceback, so let
                 # the propagating one win.
                 if outcome != "canceled":
+                    self._prepared_summary = None
                     raise
                 _log.debug("LAST_WORDS finished publish cancelled during teardown", exc_info=True)
 
@@ -914,10 +930,16 @@ class LastWordsGenerator:
         # Consumed on publish: one generate, one committed signal.  A stray
         # second call must not re-emit "committed" for an old round.
         self._last_compaction_id = ""
-        publish = asyncio.ensure_future(self._publish_status_cancellable(status))
+        prepared, self._prepared_summary = self._prepared_summary, None
+        publish = asyncio.ensure_future(self._publish_committed_summary(status, prepared))
         self._detached_publishes.add(publish)
         publish.add_done_callback(self._discard_detached_publish)
         await asyncio.shield(publish)
+
+    async def _publish_committed_summary(self, status: CompactionStatus, prepared: PreparedSummary | None) -> None:
+        await self._publish_status_cancellable(status)
+        if prepared is not None:
+            await prepared.committed()
 
     def _discard_detached_publish(self, task: asyncio.Future) -> None:
         self._detached_publishes.discard(task)
@@ -957,6 +979,7 @@ class LastWordsGenerator:
         request_overhead_tokens: int,
         calibration_ratio: float,
         spend_side_call_tokens: Callable[[int], bool] | None,
+        summary_guidance: str = "",
     ) -> _GeneratedNote:
         """Generate from one scoped timeline, with the bounded reconstruction as terminal path."""
         format_state = _FormatRetryState([])
@@ -972,6 +995,7 @@ class LastWordsGenerator:
                 calibration_ratio=calibration_ratio,
                 spend_side_call_tokens=spend_side_call_tokens,
                 format_state=format_state,
+                summary_guidance=summary_guidance,
             )
             if side_call_note is not None:
                 return side_call_note
@@ -983,6 +1007,7 @@ class LastWordsGenerator:
             has_continuation_nudges=has_continuation_nudges,
             spend_side_call_tokens=spend_side_call_tokens,
             format_state=format_state,
+            summary_guidance=summary_guidance,
         )
 
     async def _generate_via_fallback(
@@ -994,6 +1019,7 @@ class LastWordsGenerator:
         has_continuation_nudges: bool,
         spend_side_call_tokens: Callable[[int], bool] | None,
         format_state: _FormatRetryState,
+        summary_guidance: str = "",
     ) -> _GeneratedNote:
         note_budget, wire_max_tokens = self._output_budgets()
         candidate_index = 0
@@ -1009,7 +1035,7 @@ class LastWordsGenerator:
             candidates = _fallback_candidates(
                 scoped_groups,
                 previous_last_words,
-                template=self._template,
+                template="\n\n".join(filter(None, (self._template, summary_guidance))),
                 degraded_opener=degraded_opener,
                 has_continuation_nudges=has_continuation_nudges,
                 note_budget=note_budget,
@@ -1069,7 +1095,7 @@ class LastWordsGenerator:
                     candidate = _fallback_candidates(
                         scoped_groups,
                         previous_last_words,
-                        template=self._template,
+                        template="\n\n".join(filter(None, (self._template, summary_guidance))),
                         degraded_opener=degraded_opener,
                         has_continuation_nudges=has_continuation_nudges,
                         note_budget=clamped_note_budget,
@@ -1158,7 +1184,7 @@ class LastWordsGenerator:
             repeated_violation = False
             canonical_text = output_text
             if output_text:
-                violation, canonical_text = _validate_note_format(output_text)
+                violation, canonical_text = self._validate_summary_format(output_text)
                 if violation is not None:
                     format_violation = _bounded_format_violation(violation)
                     repeated_violation = format_violation in format_state.violations
@@ -1313,6 +1339,7 @@ class LastWordsGenerator:
         calibration_ratio: float,
         spend_side_call_tokens: Callable[[int], bool] | None,
         format_state: _FormatRetryState,
+        summary_guidance: str = "",
     ) -> _GeneratedNote | None:
         """Run the physically scoped side call within its global input budget.
 
@@ -1347,7 +1374,7 @@ class LastWordsGenerator:
                 _format_correction(format_state.correction_violation) if format_state.correction_violation else ""
             )
             instruction = _completer_instruction(
-                self._template,
+                "\n\n".join(filter(None, (self._template, summary_guidance))),
                 has_continuation_nudges=has_continuation_nudges,
                 max_output_tokens=note_budget,
                 format_correction=format_correction,
@@ -1441,7 +1468,7 @@ class LastWordsGenerator:
             repeated_violation = False
             canonical_text = output_text
             if output_text:
-                violation, canonical_text = _validate_note_format(output_text)
+                violation, canonical_text = self._validate_summary_format(output_text)
                 if violation is not None:
                     format_violation = _bounded_format_violation(violation)
                     repeated_violation = format_violation in format_state.violations
@@ -1598,6 +1625,11 @@ class LastWordsGenerator:
             return 0
         return schedule[min(attempt, len(schedule) - 1)]
 
+    def _validate_summary_format(self, text: str) -> tuple[str | None, str]:
+        body, appendix = self._summary_extension.split(text) if self._summary_extension is not None else (text, "")
+        violation, canonical = _validate_note_format(body)
+        return violation, canonical + appendix
+
     def _note_shortfall(self, text: str) -> str | None:
         """Why ``text`` is unusable as a note (``None`` when acceptable).
 
@@ -1611,6 +1643,8 @@ class LastWordsGenerator:
         the accepted note to shrink below it and authorize dropping the
         current turn.
         """
+        if self._summary_extension is not None:
+            text = self._summary_extension.split(text)[0]
         substantive_chars = len("".join(text.split()))
         if not substantive_chars:
             return "empty response"

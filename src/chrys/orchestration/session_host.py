@@ -15,6 +15,7 @@ from typing import Literal
 from chrys.foundation.config.settings import Settings
 from chrys.foundation.config.settings_store import LoadedSettings
 from chrys.foundation.events.bus import EventBus
+from chrys.foundation.events.personal_memory import PersonalMemoryChanged
 from chrys.foundation.events.types import (
     AgentLoadFailed,
     AgentLoadFinished,
@@ -129,6 +130,7 @@ _HEADLESS_INTERACTION_REQUIRED = msg(
 )
 
 _HEADLESS_RUN_EVENT_TYPES = (
+    PersonalMemoryChanged,
     AgentLoadFailed,
     AgentLoadFinished,
     AgentLoadProgress,

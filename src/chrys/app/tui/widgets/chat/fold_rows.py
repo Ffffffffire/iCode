@@ -21,6 +21,7 @@ from chrys.foundation.i18n import Localizer, MessageDef, msg
 from chrys.foundation.i18n.formatting import sanitize_legacy_scalar
 from chrys.foundation.tool_kinds import (
     KIND_ASK_USER,
+    KIND_CONTEXT,
     KIND_DOC_CONVERTER,
     KIND_FILESYSTEM_READ,
     KIND_FILESYSTEM_WRITE,
@@ -111,6 +112,21 @@ _TODO_UPDATES = msg(
     "tui.tool_card.group.summary.todo_updates", fallback="{count} todo update", plural_fallback="{count} todo updates"
 )
 _SLEEPS = msg("tui.tool_card.group.summary.sleeps", fallback="{count} sleep", plural_fallback="{count} sleeps")
+_MEMORY_LOOKUPS = msg(
+    "tui.tool_card.group.summary.memory_lookups",
+    fallback="{count} memory lookup",
+    plural_fallback="{count} memory lookups",
+)
+_MEMORY_WRITES = msg(
+    "tui.tool_card.group.summary.memory_writes",
+    fallback="{count} memory write",
+    plural_fallback="{count} memory writes",
+)
+_MEMORY_PAUSES = msg(
+    "tui.tool_card.group.summary.memory_pauses",
+    fallback="{count} memory pause",
+    plural_fallback="{count} memory pauses",
+)
 _OTHER_CALLS = msg(
     "tui.tool_card.group.summary.other_calls", fallback="{count} other call", plural_fallback="{count} other calls"
 )
@@ -128,6 +144,9 @@ _CATEGORIES: Final[tuple[tuple[str, MessageDef], ...]] = (
     ("question", _QUESTIONS),
     ("todo", _TODO_UPDATES),
     ("sleep", _SLEEPS),
+    ("memory_lookup", _MEMORY_LOOKUPS),
+    ("memory_write", _MEMORY_WRITES),
+    ("memory_pause", _MEMORY_PAUSES),
     ("other", _OTHER_CALLS),
 )
 """Every category a folded row counts, in the order it lists them, with the words for its count."""
@@ -202,6 +221,21 @@ _MADE_OTHER_CALLS = msg(
     fallback="made {count} other call",
     plural_fallback="made {count} other calls",
 )
+_LOOKED_UP_MEMORIES = msg(
+    "tui.tool_card.group.action.memory_lookups",
+    fallback="made {count} memory lookup",
+    plural_fallback="made {count} memory lookups",
+)
+_REQUESTED_MEMORY_WRITES = msg(
+    "tui.tool_card.group.action.memory_writes",
+    fallback="requested {count} memory write",
+    plural_fallback="requested {count} memory writes",
+)
+_REQUESTED_MEMORY_PAUSES = msg(
+    "tui.tool_card.group.action.memory_pauses",
+    fallback="requested {count} memory pause",
+    plural_fallback="requested {count} memory pauses",
+)
 
 _ACTIONS: Final[tuple[MessageDef, ...]] = (
     _READ_FILES,
@@ -216,6 +250,9 @@ _ACTIONS: Final[tuple[MessageDef, ...]] = (
     _ASKED_QUESTIONS,
     _UPDATED_TODOS,
     _SLEPT,
+    _LOOKED_UP_MEMORIES,
+    _REQUESTED_MEMORY_WRITES,
+    _REQUESTED_MEMORY_PAUSES,
     _MADE_OTHER_CALLS,
 )
 """What a tool group's calls of each category did, in :data:`_CATEGORIES` order: the clauses of its folded row."""
@@ -249,9 +286,20 @@ def duration_words(localizer: Localizer, seconds: int) -> str:
     return render_str(localizer, words)
 
 
-def tool_category(tool_kind: str, hosted_family: str = "") -> str:
+def tool_category(tool_kind: str, hosted_family: str = "", *, tool_name: str = "") -> str:
     """The category a folded row counts a call under: a provider-hosted call by its family, others by kind."""
-    return _CATEGORY_BY_HOSTED_FAMILY.get(hosted_family) or _CATEGORY_BY_KIND.get(tool_kind, "other")
+    if category := _CATEGORY_BY_HOSTED_FAMILY.get(hosted_family):
+        return category
+    if tool_kind == KIND_CONTEXT:
+        return {
+            "recall_memory": "memory_lookup",
+            "propose_memory": "memory_write",
+            "pause_memory": "memory_pause",
+            "review_memory": "memory_write",
+            "update_follow_up": "memory_write",
+            "organize_memory": "memory_write",
+        }.get(tool_name, "other")
+    return _CATEGORY_BY_KIND.get(tool_kind, "other")
 
 
 @dataclass(frozen=True)

@@ -12,6 +12,8 @@ from typing import Any
 from chrys.kernel import Message
 from chrys.kernel.identity import WeakIdentityRegistry
 
+from .summary_extension import SummaryExtension
+
 _log = logging.getLogger(__name__)
 
 # Exclude reasons set by this compaction strategy's _compact_group (Phase 1)
@@ -132,6 +134,9 @@ class PendingCompression:
 
     freed_count: int = 0
     """Pre-computed count of messages in the fold range."""
+
+    summary_extension: SummaryExtension | None = None
+    source_summary: str = ""
 
 
 @dataclass(frozen=True)

@@ -233,10 +233,16 @@ async def test_short_sidebar_scrolls_details_and_suspends_offscreen_portrait(
             return rows[y][level.region.x : level.region.right].strip()
 
         assert row_text(level.region.y) == "Level 100"
-        assert row_text(status.region.y) == "Click to pet!"
-        assert status.region.y == level.region.bottom + 1
+        assert status.region.y == panel.query_one("#buddy-memory").region.bottom + 1
         assert not row_text(level.region.bottom)
         assert level.styles.text_align == status.styles.text_align == "center"
+
+        # Memory controls now sit between the level and petting status. On a
+        # 15-row panel the status is reached by scrolling, just like the details.
+        panel.scroll_to_widget(status, animate=False)
+        await wait_for(lambda: is_widget_shown(status), pilot=pilot)
+        rows = [strip.text for strip in compositor.render_strips()]
+        assert row_text(status.region.y) == "Click to pet!"
 
         panel.scroll_end(animate=False)
         await wait_for(

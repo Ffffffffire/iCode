@@ -169,6 +169,9 @@ _TOOL_ACTIVITY_AGENT_DETAIL = msg(
 _TOOL_ACTIVITY_SLEEPING = msg("tui.tool_card.group.activity.sleeping", fallback="Sleeping")
 _TOOL_ACTIVITY_SLEEPING_REASON = msg("tui.tool_card.group.activity.sleeping_reason", fallback="Sleeping: {reason}")
 _TOOL_ACTIVITY_SLEEP_LEFT = msg("tui.tool_card.group.activity.sleep_left", fallback="{duration} left")
+_TOOL_ACTIVITY_MEMORY_LOOKUP = msg("tui.tool_card.group.activity.memory_lookup", fallback="Looking up memories")
+_TOOL_ACTIVITY_MEMORY_WRITE = msg("tui.tool_card.group.activity.memory_write", fallback="Preparing memory: {title}")
+_TOOL_ACTIVITY_MEMORY_PAUSE = msg("tui.tool_card.group.activity.memory_pause", fallback="Pausing memory")
 
 
 @runtime_checkable
@@ -345,6 +348,7 @@ _ACTIVITY_ARG_KEYS = frozenset(
         "resource_name",
         "script_name",
         "skill_name",
+        "title",
     }
 )
 
@@ -359,6 +363,13 @@ def _compact_activity_args(args: dict[str, Any] | None) -> dict[str, Any]:
 def _tool_activity_reference(tool_name: str, tool_kind: str, args: dict[str, Any] | None) -> _ToolActivity:
     """Build localized activity prose for a running tool record."""
     safe_name = sanitize_legacy_scalar(tool_name)
+    category = tool_category(tool_kind, tool_name=tool_name)
+    if category == "memory_lookup":
+        return _TOOL_ACTIVITY_MEMORY_LOOKUP.bind()
+    if category == "memory_write" and (title := _activity_arg(args, "title") or _activity_arg(args, "memory_id")):
+        return _TOOL_ACTIVITY_MEMORY_WRITE.bind(title=title)
+    if category == "memory_pause":
+        return _TOOL_ACTIVITY_MEMORY_PAUSE.bind()
     if tool_kind == KIND_SHELL:
         if reason := _activity_arg(args, "reason"):
             return reason
@@ -2211,7 +2222,13 @@ class ToolGroup(ToolCopyExcludedMixin, FoldGap, ProcessMember):
         """How many calls of each kind this group made, not counting its sub-agents' own, and how they ended."""
         records = [record for record in self._tool_records.values() if record is not None]
         return ToolTally.of(
-            ((tool_category(record.tool_kind, record.hosted_family), _record_outcome(record)) for record in records),
+            (
+                (
+                    tool_category(record.tool_kind, record.hosted_family, tool_name=record.tool_name),
+                    _record_outcome(record),
+                )
+                for record in records
+            ),
             slept_ms=sum(map(_slept_ms, records)),
         )
 
@@ -2270,6 +2287,7 @@ class ToolGroup(ToolCopyExcludedMixin, FoldGap, ProcessMember):
             record.tool_name,
             record.tool_kind,
             record.args,
+            result=record.result,
             hosted_family=record.hosted_family,
             slept_ms=_slept_ms(record),
             workspace_cwd=self._workspace_cwd() if self._workspace_cwd is not None else "",

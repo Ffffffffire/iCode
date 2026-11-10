@@ -118,6 +118,7 @@ from chrys.app.tui.widgets.chrome.status_bar import StatusBar
 from chrys.app.tui.widgets.chrome.suggestion_list import SuggestionList
 from chrys.app.tui.widgets.editor import MESSAGE_EDITOR_MAX_CHARACTERS, EditorBufferSnapshot, EditorMode
 from chrys.app.tui.widgets.sidebar.background_tasks import BackgroundTaskList
+from chrys.app.tui.widgets.sidebar.buddy_memory import BuddyMemoryCard
 from chrys.app.tui.widgets.sidebar.context import ContextUsageState
 from chrys.app.tui.widgets.sidebar.hooks import HookRunList
 from chrys.app.tui.widgets.sidebar.panel import SIDEBAR_HOOKS_TAB, SidebarPanel
@@ -134,6 +135,7 @@ from chrys.foundation.config.settings import (
     persist_editor_keymap,
     persist_tool_groups_expanded,
 )
+from chrys.foundation.events.personal_memory import PersonalMemoryCommand
 from chrys.foundation.events.types import (
     ApprovalModeUpdated,
     Error,
@@ -1214,6 +1216,8 @@ class MainScreen(RightClickScreenCopyMixin, Screen):
     def on_resize(self, event: Resize) -> None:
         self._set_theme_editor_compact(self.theme_editor is not None and event.size.width < 128)
         self.query_one(PersonalMemoryIndicator).set_compact(event.size.width < 123)
+        # Keep sidebar controls onscreen beside the transcript's 35-column floor.
+        self.query_one(SidebarPanel).styles.min_width = min(42, max(18, event.size.width - 35))
 
     def _set_theme_editor_compact(self, compact: bool) -> None:
         if self.has_class("--theme-editor-compact") == compact:
@@ -2091,7 +2095,29 @@ class MainScreen(RightClickScreenCopyMixin, Screen):
     def _on_personal_memory_requested(self, event: PersonalMemoryIndicator.OpenRequested) -> None:
         self.action_personal_memory(event.view)
 
-    def action_personal_memory(self, initial_view: str = "") -> None:
+    @on(PersonalMemoryIndicator.StateChanged)
+    def _on_memory_state_changed(self, event: PersonalMemoryIndicator.StateChanged) -> None:
+        self.query_one(SidebarPanel).buddy_panel.update_memory(
+            event.snapshot, event.session_id, event.workspace, announce=event.announce
+        )
+
+    @on(BuddyMemoryCard.OpenRequested)
+    async def _on_buddy_memory_requested(self, event: BuddyMemoryCard.OpenRequested) -> None:
+        if event.dismiss_review:
+            await self._services.bus.publish(
+                PersonalMemoryCommand(session_id=self.chat_session_id, action="dismiss_review")
+            )
+        self.action_personal_memory(event.view, event.memory_id)
+
+    @on(BuddyMemoryCard.NotificationsRequested)
+    async def _on_buddy_memory_notifications(self, event: BuddyMemoryCard.NotificationsRequested) -> None:
+        await self._services.bus.publish(
+            PersonalMemoryCommand(
+                session_id=self.chat_session_id, action="notifications", buddy_notifications=event.enabled
+            )
+        )
+
+    def action_personal_memory(self, initial_view: str = "", memory_id: str = "") -> None:
         """Open personal memory without rebuilding the agent or the chat screen."""
         from chrys.app.tui.screens.personal_memory.screen import PersonalMemoryScreen
 
@@ -2102,8 +2128,17 @@ class MainScreen(RightClickScreenCopyMixin, Screen):
                 session_id=self.chat_session_id,
                 locale_controller=self._locale_controller,
                 initial_view=initial_view,
+                memory_id=memory_id,
+                continue_follow_up=self._continue_memory_follow_up,
             )
         )
+
+    def _continue_memory_follow_up(self, prompt: str) -> bool:
+        input_bar = self.query_one(InputBar)
+        if not input_bar.can_commit_editor_draft() or not input_bar.restore_draft(prompt):
+            return False
+        input_bar.call_after_refresh(input_bar.focus_input)
+        return True
 
     def prompt_shortcut_sources_loader(self) -> Callable[[], list[tuple[Path, list[PromptShortcut]]]]:
         """A blocking read of the prompt shortcuts by source folder, as the / list reads them now."""

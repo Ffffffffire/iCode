@@ -9,35 +9,56 @@ PersonalMemoryScreen #personal-memory {
     background: $surface; padding: 0;
 }
 PersonalMemoryScreen #memory-toolbar { height: 3; padding: 1 1; }
+PersonalMemoryScreen #memory-capacity { height: 1; padding: 0 2; color: $text-muted; }
+PersonalMemoryScreen #memory-selection { height: 1; }
+PersonalMemoryScreen #memory-selected { height: 1; width: 1fr; color: $text-muted; }
+PersonalMemoryScreen #memory-mark { min-width: 0; padding: 0 1; }
+PersonalMemoryScreen #memory-history-actions { height: 1; display: none; padding: 0 1; }
+PersonalMemoryScreen #memory-usage { height: auto; color: $text-muted; margin-bottom: 1; }
 PersonalMemoryScreen #memory-search {
     height: 1; width: 1fr; border: none; padding: 0 1; margin-right: 2;
-    background: $foreground 5%;
+    background: $foreground 8%;
 }
-PersonalMemoryScreen #memory-search:focus { background: $foreground 10%; }
-PersonalMemoryScreen Button { height: 1; width: auto; min-width: 7; border: none; padding: 0 2; }
+PersonalMemoryScreen #memory-search:focus { background: $foreground 12%; }
+PersonalMemoryScreen Button { height: 1; width: auto; min-width: 7; border: none; padding: 0 2; transition: background 150ms linear; }
 PersonalMemoryScreen #memory-view { height: 2; }
 PersonalMemoryScreen #memory-view Tab { padding: 0 2; }
 PersonalMemoryScreen #memory-body { height: 1fr; }
+PersonalMemoryScreen #memory-filters { height: 2; padding: 0 1; }
+PersonalMemoryScreen #memory-filters Select { width: 1fr; height: auto; margin-right: 1; }
+PersonalMemoryScreen #memory-filters SelectCurrent { height: 1; border: none; padding: 0 1; background: $foreground 8%; }
+PersonalMemoryScreen Select:focus > SelectCurrent { background: $foreground 12%; }
+PersonalMemoryScreen #memory-filters SelectOverlay { max-height: 9; }
+PersonalMemoryScreen #memory-follow-actions, PersonalMemoryScreen #memory-feedback-actions { height: 1; margin-bottom: 1; }
+PersonalMemoryScreen #memory-follow-actions Button, PersonalMemoryScreen #memory-feedback-actions Button { margin-right: 1; }
+PersonalMemoryScreen #memory-activity { height: 1fr; padding: 1 2; display: none; }
+PersonalMemoryScreen #memory-activity-text, PersonalMemoryScreen #memory-entry-activity-text,
+PersonalMemoryScreen #memory-relations-text { height: auto; }
+PersonalMemoryScreen #memory-relations-list { height: auto; max-height: 6; border: none; padding: 0; margin-bottom: 1; }
 PersonalMemoryScreen #memory-index {
-    width: 30%; min-width: 22; height: 1fr;
+    width: 38%; min-width: 28; height: 1fr;
     border-right: solid $tui-border-foreground 15%;
 }
 PersonalMemoryScreen #memory-list {
     height: 1fr; border: none; padding: 0 0 0 1;
     scrollbar-size: 1 1; scrollbar-gutter: stable;
+    text-wrap: nowrap; text-overflow: ellipsis;
 }
 PersonalMemoryScreen #memory-detail {
     width: 1fr; height: 1fr; scrollbar-size: 1 1; scrollbar-gutter: stable; padding: 1 2;
 }
 PersonalMemoryScreen #memory-title { height: auto; text-style: bold; color: $primary; }
 PersonalMemoryScreen #memory-meta { height: auto; color: $text-muted; margin-bottom: 1; }
-PersonalMemoryScreen #memory-content { height: auto; margin-bottom: 1; }
+PersonalMemoryScreen #memory-empty { height: 5; }
 PersonalMemoryScreen #memory-replacement { height: auto; color: $warning; margin-bottom: 1; }
-PersonalMemoryScreen .memory-section {
-    height: auto; border-left: thick $tui-border-secondary 45%; border-top: none;
-    border-title-color: $text-muted; padding: 0 1; margin-bottom: 1;
+PersonalMemoryScreen .memory-card {
+    height: auto; border: solid $tui-border-foreground 15%; background: $foreground 5%;
+    border-title-color: $secondary; border-title-style: bold; padding: 0 1; margin-bottom: 1;
 }
-PersonalMemoryScreen Collapsible { border: none; padding: 0; margin: 0; }
+PersonalMemoryScreen Collapsible {
+    border: round $tui-border-foreground 15%; padding: 0; margin: 0 0 1 0;
+}
+PersonalMemoryScreen Collapsible > CollapsibleTitle { color: $secondary; text-style: bold; }
 PersonalMemoryScreen Collapsible > Contents { padding: 0 1 1 1; }
 PersonalMemoryScreen #memory-source,
 PersonalMemoryScreen #memory-match,
@@ -45,7 +66,7 @@ PersonalMemoryScreen #memory-recall-query,
 PersonalMemoryScreen #memory-recall-tip,
 PersonalMemoryScreen #memory-history-text { height: auto; color: $text-muted; }
 PersonalMemoryScreen #memory-recall-tip { margin-bottom: 1; }
-PersonalMemoryScreen #memory-error { height: auto; color: $error; padding: 0 1; }
+PersonalMemoryScreen #memory-error { height: auto; color: $error; background: $error 15%; padding: 0 1; display: none; }
 PersonalMemoryScreen #memory-settings {
     height: 2; border-top: solid $tui-border-foreground 15%; padding: 0 1;
 }
@@ -53,6 +74,8 @@ PersonalMemoryScreen #memory-mode { width: 25; height: auto; margin-right: 2; }
 PersonalMemoryScreen #memory-settings SelectCurrent {
     height: 1; border: none; padding: 0 1; background: $foreground 8%;
 }
+PersonalMemoryScreen #memory-settings Select:focus > SelectCurrent { background: $foreground 12%; }
+PersonalMemoryScreen #memory-filters Select:focus > SelectCurrent { background: $foreground 12%; }
 PersonalMemoryScreen #memory-settings SelectOverlay {
     border: round $tui-border-primary $border-opacity; max-height: 8;
 }
@@ -65,10 +88,22 @@ PersonalMemoryScreen #memory-action-spacer { width: 1fr; height: 1; }
 PersonalMemoryScreen.-compact #personal-memory { width: 100%; height: 96%; }
 PersonalMemoryScreen.-compact #memory-body { layout: vertical; }
 PersonalMemoryScreen.-compact #memory-index {
-    width: 100%; height: 4; min-height: 3; border-right: none;
+    width: 100%; height: 6; min-height: 4; max-height: 40%; border-right: none;
     border-bottom: solid $tui-border-foreground 15%;
 }
 PersonalMemoryScreen.-compact #memory-detail { width: 100%; height: 1fr; padding: 1; }
 PersonalMemoryScreen.-compact #memory-view Tab { padding: 0 1; }
 PersonalMemoryScreen.-compact #memory-actions Button { padding: 0 1; min-width: 5; }
 PersonalMemoryScreen.-compact #memory-mode { width: 23; margin-right: 1; }
+PersonalMemoryScreen.-compact #memory-follow-actions Button,
+PersonalMemoryScreen.-compact #memory-feedback-actions Button { padding: 0 1; min-width: 5; }
+PersonalMemoryScreen.-compact #memory-toolbar { height: 2; padding: 0 1; }
+PersonalMemoryScreen.-compact #memory-filters { height: 1; }
+PersonalMemoryScreen.-compact #memory-actions { height: 2; padding: 0 1; }
+/* Match the status colors used by settings, checkboxes and the footer. */
+PersonalMemoryScreen > .memory--candidate { color: $primary; }
+PersonalMemoryScreen > .memory--stale { color: $warning; }
+PersonalMemoryScreen > .memory--archived { color: $text-muted; text-style: italic; }
+PersonalMemoryScreen > .memory--marked { color: $success; }
+PersonalMemoryScreen > .memory--muted { color: $text-muted; }
+PersonalMemoryScreen > .memory--warning { color: $warning; }

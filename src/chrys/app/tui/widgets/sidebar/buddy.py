@@ -28,9 +28,10 @@ from chrys.app.tui.buddy_messages import BUDDY_TITLE
 from chrys.app.tui.buddy_reply import PetReplyFlow
 from chrys.app.tui.i18n import render_str
 from chrys.app.tui.util.visibility import is_widget_shown_on_active_screen
+from chrys.app.tui.widgets.sidebar.buddy_memory import MEMORY_NOTICE, BuddyMemoryCard
 from chrys.app.tui.widgets.sidebar.empty_state import SidebarEmptyStateLabel
 from chrys.foundation.i18n import MessageRef, msg
-from chrys.foundation.i18n.formatting import format_message
+from chrys.foundation.i18n.formatting import format_message, sanitize_legacy_scalar
 
 if TYPE_CHECKING:
     from textual.events import Click
@@ -39,6 +40,7 @@ if TYPE_CHECKING:
 
     from chrys.app.features.buddy.model import Buddy
     from chrys.app.tui.i18n import LocaleController
+    from chrys.foundation.models.personal_memory import MemorySnapshot
 
 _IDLE_TICK_SECONDS = 0.4
 _PETTING_SECONDS = 2.0
@@ -57,7 +59,7 @@ _BUDDY_RARITY = msg("tui.sidebar.buddy.rarity", fallback="Rarity: {rarity}")
 _BUDDY_SHINY = msg("tui.sidebar.buddy.shiny", fallback="✨ Shiny!")
 _BUDDY_NOTIFICATIONS_MUTED = msg("tui.sidebar.buddy.notifications_muted", fallback="🔇 Notifications muted")
 
-_CONTENT_IDS = ("#buddy-sprite", "#buddy-level", "#buddy-info", "#buddy-status")
+_CONTENT_IDS = ("#buddy-sprite", "#buddy-level", "#buddy-info", "#buddy-status", "#buddy-memory")
 
 
 def _run_timer(timer: Timer, running: bool) -> None:
@@ -162,6 +164,7 @@ class BuddyPanel(Widget):
         sprite.styles.height = PORTRAIT_HEIGHT
         yield sprite
         yield Static("", id="buddy-level")
+        yield BuddyMemoryCard(locale_controller=self._locale_controller)
         yield Static("", id="buddy-status")
         yield Static("", id="buddy-info")
 
@@ -181,6 +184,15 @@ class BuddyPanel(Widget):
     def reload(self) -> None:
         """Show the buddy as it is saved now. An unchanged buddy redraws nothing."""
         self.buddy = current_buddy()
+
+    def update_memory(self, snapshot: MemorySnapshot, session_id: str, workspace: str, *, announce: bool) -> None:
+        title = self.query_one(BuddyMemoryCard).update_memory(snapshot, session_id, workspace, announce=announce)
+        if title:
+            self.reload()
+            if self.buddy is not None and not self.buddy.muted:
+                self._toast(
+                    MEMORY_NOTICE.bind(name=sanitize_legacy_scalar(self.buddy.display_name), title=title), timeout=5
+                )
 
     def on_show(self) -> None:
         self._composited = True
@@ -213,6 +225,7 @@ class BuddyPanel(Widget):
         """Retranslate the visible empty, level, and interaction status chrome."""
         if self.is_mounted:
             self._show(".buddy-empty", Text(self._render_message(_BUDDY_EMPTY.bind())))
+            self.query_one(BuddyMemoryCard).refresh_localization()
             self._redraw()
 
     def watch_buddy(self, _buddy: Buddy | None) -> None:
@@ -224,7 +237,7 @@ class BuddyPanel(Widget):
         has_buddy = self.buddy is not None
         self.query_one(".buddy-empty", Static).display = not has_buddy
         for selector in _CONTENT_IDS:
-            self.query_one(selector, Static).display = has_buddy
+            self.query_one(selector, Widget).display = has_buddy
         if has_buddy:
             self._update_info()
             self._update_status(self._status_message, style=self._status_style)

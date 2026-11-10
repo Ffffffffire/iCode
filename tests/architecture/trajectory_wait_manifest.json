@@ -15,11 +15,18 @@
       "reason": "Execution-state notification delivery and draining have no enclosing trajectory interval proven for every call path.",
       "when": "all_paths"
     },
+    "personal-memory-action-delegation": {
+      "classification": "B",
+      "container_rule": "unresolved_outer_container",
+      "degradation_rule": "Mark the containing residual Unresolved; never report it as exact.",
+      "reason": "Delegates the actual tool and remaining middleware, which can await provider or process work; direct function-middleware harnesses have no enclosing trajectory interval proven on every path.",
+      "when": "all_paths"
+    },
     "personal-memory-processing": {
       "classification": "B",
       "container_rule": "unresolved_outer_container",
       "degradation_rule": "Mark the containing residual Unresolved; never report it as exact.",
-      "reason": "Turn-local memory processing waits on bounded inference, locked local storage and inline event handlers. Provider intervals cover wire time only; no enclosing interval is proven for every direct runtime call.",
+      "reason": "Memory processing waits on locked local storage and inline event handlers, without a provider side call. No enclosing trajectory interval is proven for every direct runtime call.",
       "when": "all_paths"
     },
     "session-transition-work": {
@@ -3994,14 +4001,16 @@
         ["awaitable", "await self._strategy._notify_compress(CompressInfo(compressed_context_id=compressed_context_id, summary=summary, freed_messages=len(fold_range), turn_range=_compressed_turn_range(self._state, compressed_context_id), source='auto'), trigger='usage_threshold', tokens_before=tokens_before, tokens_after=included_token_count(messages))", "unresolved"]
       ],
       "CompressionEngine.flush_pending_compressions": [
-        ["awaitable", "await self._strategy._notify_compress(CompressInfo(compressed_context_id=pending.compressed_context_id, summary=pending.summary_text, freed_messages=len(fold_range), turn_range=_compressed_turn_range(self._state, pending.compressed_context_id), source='agent'), trigger='agent_request', tokens_before=tokens_before, tokens_after=max(0, tokens_before - _fold_tokens(fold_range)))", "unresolved"]
+        ["awaitable", "await self._strategy._notify_compress(CompressInfo(compressed_context_id=pending.compressed_context_id, summary=pending.summary_text, freed_messages=len(fold_range), turn_range=_compressed_turn_range(self._state, pending.compressed_context_id), source='agent'), trigger='agent_request', tokens_before=tokens_before, tokens_after=max(0, tokens_before - _fold_tokens(fold_range)))", "unresolved"],
+        ["awaitable", "await pending.summary_extension.prepare(pending.source_summary, fold_range).committed()", "unresolved"]
       ],
       "CompressionEngine.force_compress": [
         ["awaitable", "await self._strategy._fire_pre_compact('force', usage_pct=usage_pct, tokens_before=tokens_before)", "unresolved"],
         ["awaitable", "await self._strategy._notify_compress(CompressInfo(compressed_context_id=ctx_id, summary=summary, freed_messages=len(fold_range), turn_range=_compressed_turn_range(self._state, ctx_id), source=source), trigger='force', tokens_before=tokens_before, tokens_after=max(0, tokens_before - _fold_tokens(fold_range)), token_source=MeasurementSource.PROVIDER)", "unresolved"]
       ],
       "CompressionEngine.run_queued": [
-        ["awaitable", "await self._strategy._notify_compress(CompressInfo(compressed_context_id=pending.compressed_context_id, summary=pending.summary_text, freed_messages=len(fold_range), turn_range=_compressed_turn_range(self._state, pending.compressed_context_id), source='agent'), trigger='agent_request', tokens_before=tokens_before, tokens_after=max(0, tokens_before - freed_tokens))", "unresolved"]
+        ["awaitable", "await self._strategy._notify_compress(CompressInfo(compressed_context_id=pending.compressed_context_id, summary=pending.summary_text, freed_messages=len(fold_range), turn_range=_compressed_turn_range(self._state, pending.compressed_context_id), source='agent'), trigger='agent_request', tokens_before=tokens_before, tokens_after=max(0, tokens_before - freed_tokens))", "unresolved"],
+        ["awaitable", "await pending.summary_extension.prepare(pending.source_summary, fold_range).committed()", "unresolved"]
       ]
     },
     "chrys.service.context.compaction.current_turn_drop": {
@@ -4028,8 +4037,8 @@
     },
     "chrys.service.context.compaction.last_words": {
       "LastWordsGenerator._generate": [
-        ["wrapper", "await self._generate_via_completer(completer, scoped_groups, tokenizer=tokenizer, has_continuation_nudges=has_continuation_nudges, system_overhead_tokens=system_overhead_tokens, tool_definition_tokens=tool_definition_tokens, request_overhead_tokens=request_overhead_tokens, calibration_ratio=calibration_ratio, spend_side_call_tokens=spend_side_call_tokens, format_state=format_state)", "unresolved", "chrys.service.context.compaction.last_words.LastWordsGenerator._generate_via_completer"],
-        ["wrapper", "await self._generate_via_fallback(scoped_groups, previous_last_words, degraded_opener=degraded_opener, has_continuation_nudges=has_continuation_nudges, spend_side_call_tokens=spend_side_call_tokens, format_state=format_state)", "unresolved", "chrys.service.context.compaction.last_words.LastWordsGenerator._generate_via_fallback"]
+        ["wrapper", "await self._generate_via_completer(completer, scoped_groups, tokenizer=tokenizer, has_continuation_nudges=has_continuation_nudges, system_overhead_tokens=system_overhead_tokens, tool_definition_tokens=tool_definition_tokens, request_overhead_tokens=request_overhead_tokens, calibration_ratio=calibration_ratio, spend_side_call_tokens=spend_side_call_tokens, format_state=format_state, summary_guidance=summary_guidance)", "unresolved", "chrys.service.context.compaction.last_words.LastWordsGenerator._generate_via_completer"],
+        ["wrapper", "await self._generate_via_fallback(scoped_groups, previous_last_words, degraded_opener=degraded_opener, has_continuation_nudges=has_continuation_nudges, spend_side_call_tokens=spend_side_call_tokens, format_state=format_state, summary_guidance=summary_guidance)", "unresolved", "chrys.service.context.compaction.last_words.LastWordsGenerator._generate_via_fallback"]
       ],
       "LastWordsGenerator._generate_once": [
         ["wrapper", "await self._get_client()", "unresolved", "chrys.service.context.compaction.last_words.LastWordsGenerator._get_client"],
@@ -4057,6 +4066,10 @@
         ["sync_primitive", "async with self._client_lock", "unresolved"],
         ["wrapper", "await create_client(self._profile, session_id=self._session_id, parent_session_id=self._parent_session_id, session_dir=self._session_dir)", "unresolved", "chrys.service.llm.clients.create_client"]
       ],
+      "LastWordsGenerator._publish_committed_summary": [
+        ["wrapper", "await self._publish_status_cancellable(status)", "unresolved", "chrys.service.context.compaction.last_words.LastWordsGenerator._publish_status_cancellable"],
+        ["awaitable", "await prepared.committed()", "unresolved"]
+      ],
       "LastWordsGenerator._publish_retry_attempt": [
         ["awaitable", "await self._publish_retry(RetryAttemptInfo(reason=reason, attempt=attempt, max_attempts=max_attempts, delay_seconds=delay_seconds))", "unresolved"]
       ],
@@ -4074,7 +4087,8 @@
       ],
       "LastWordsGenerator.generate": [
         ["wrapper", "await self._publish_status_cancellable(CompactionStatus(compaction_id=compaction_id, stage='started'))", "unresolved", "chrys.service.context.compaction.last_words.LastWordsGenerator._publish_status_cancellable"],
-        ["wrapper", "await self._generate(scoped_groups, previous_last_words, degraded_opener=degraded_opener, has_continuation_nudges=has_continuation_nudges, completer=completer, tokenizer=tokenizer or MixedLanguageTokenizer(), system_overhead_tokens=system_overhead_tokens, tool_definition_tokens=tool_definition_tokens, request_overhead_tokens=request_overhead_tokens, calibration_ratio=calibration_ratio, spend_side_call_tokens=spend_side_call_tokens)", "unresolved", "chrys.service.context.compaction.last_words.LastWordsGenerator._generate"],
+        ["awaitable", "await self._summary_extension.instructions()", "unresolved"],
+        ["wrapper", "await self._generate(scoped_groups, previous_last_words, degraded_opener=degraded_opener, has_continuation_nudges=has_continuation_nudges, completer=completer, tokenizer=tokenizer or MixedLanguageTokenizer(), system_overhead_tokens=system_overhead_tokens, tool_definition_tokens=tool_definition_tokens, request_overhead_tokens=request_overhead_tokens, calibration_ratio=calibration_ratio, spend_side_call_tokens=spend_side_call_tokens, summary_guidance=summary_guidance)", "unresolved", "chrys.service.context.compaction.last_words.LastWordsGenerator._generate"],
         ["wrapper", "await self._publish_status_cancellable(finished)", "unresolved", "chrys.service.context.compaction.last_words.LastWordsGenerator._publish_status_cancellable"]
       ],
       "LastWordsGenerator.publish_breaker_trip": [
@@ -4137,6 +4151,11 @@
         ["awaitable", "await self._compression.force_compress(marker_id, summary, source, usage_pct=usage_pct, tokens_before=tokens_before)", "unresolved"]
       ]
     },
+    "chrys.service.context.compaction.summary_extension": {
+      "PreparedSummary.committed": [
+        ["awaitable", "await self.on_commit()", "unresolved"]
+      ]
+    },
     "chrys.service.context.middleware.usage": {
       "UsageTrackingMiddleware.process": [
         ["awaitable", "await call_next()", "unresolved"]
@@ -4146,6 +4165,9 @@
       "ContextManagementProvider._recall_context": [
         ["wrapper", "async with scoped_client(self._profile, session_id=self._session_id, parent_session_id=self._parent_session_id, session_dir=self._session_dir)", "unresolved", "chrys.service.llm.clients.scoped_client"],
         ["wrapper", "await get_final_response(client, messages, stream=self._profile.stream, options=chat_options, timeout=self._profile.http_read_timeout)", "unresolved", "chrys.service.llm.one_shot.get_final_response"]
+      ],
+      "ContextManagementProvider.before_run": [
+        ["awaitable", "await self.summary_extension.instructions()", "unresolved"]
       ]
     },
     "chrys.service.context.providers.history": {
@@ -4826,58 +4848,84 @@
     },
     "chrys.service.personal_memory.controller": {
       "PersonalMemoryController.handle": [
-        ["thread_pool", "await asyncio.to_thread(self._apply, event)", "unresolved"],
-        ["awaitable", "await self._bus.publish(reply)", "unresolved"]
-      ]
-    },
-    "chrys.service.personal_memory.extraction": {
-      "MemoryExtractor.extract": [
-        ["timeout", "async with asyncio.timeout(EXTRACTION_TIMEOUT)", "personal-memory-processing"],
-        ["awaitable", "await self._client.get_response([Message('system', [_INSTRUCTIONS]), Message('user', [json.dumps(payload, ensure_ascii=False)])], stream=False, options=options)", "personal-memory-processing"]
+        ["thread_pool", "await asyncio.to_thread(self._reply, event)", "personal-memory-processing"],
+        ["awaitable", "await self._bus.publish(reply)", "personal-memory-processing"]
       ]
     },
     "chrys.service.personal_memory.runtime": {
       "PersonalMemoryRuntime._changed": [
         ["thread_pool", "await asyncio.to_thread(self._store.load)", "personal-memory-processing"],
-        ["awaitable", "await self._bus.publish(PersonalMemoryChanged(snapshot=snapshot, session_id=self._session_id, saved_memory_id=saved_memory_id))", "personal-memory-processing"]
+        ["awaitable", "await self._bus.publish(PersonalMemoryChanged(snapshot=snapshot, session_id=self._session_id, saved_memory_id=saved_memory_id, saved_changed=saved_changed, used_bytes=self._store.used_bytes))", "personal-memory-processing"]
       ],
-      "PersonalMemoryRuntime._extract": [
-        ["awaitable", "await self._bus.publish(PersonalMemoryChanged(session_id=self._session_id, processing=True))", "personal-memory-processing"],
-        ["awaitable", "await self._extractor.extract(self._current_user[0], [(source.role, text) for text, source in self._evidence], existing, proposed)", "personal-memory-processing"],
-        ["awaitable", "await self._bus.publish(PersonalMemoryChanged(session_id=self._session_id))", "personal-memory-processing"]
+      "PersonalMemoryRuntime._reject_save": [
+        ["awaitable", "await self._bus.publish(PersonalMemoryChanged(session_id=self._session_id, attempted_title=key[0], error_code=code, error=detail))", "personal-memory-processing"]
       ],
-      "PersonalMemoryRuntime._save_extracted": [
-        ["thread_pool", "await asyncio.to_thread(self._store.save, MemoryDraft(memory.title, memory.content, memory.when_to_use, memory.reconsider_when, memory.kind, self._workspace if memory.project_only else ''), source, memory_id=memory.replaces_id if active else '', revision=memory.replaces_revision if active else 0, candidate=not active, replaces_id='' if active else memory.replaces_id, replaces_revision=0 if active else memory.replaces_revision, request_workspace=self._workspace, authorization='request' if requested else 'capture')", "personal-memory-processing"],
-        ["wrapper", "await self._changed(saved_memory_id=saved.id if changed else '')", "personal-memory-processing", "chrys.service.personal_memory.runtime.PersonalMemoryRuntime._changed"]
+      "PersonalMemoryRuntime.organize_memory": [
+        ["thread_pool", "await asyncio.to_thread(self._store.load)", "personal-memory-processing"],
+        ["thread_pool", "await asyncio.to_thread(self._store.set_state, proposal.id, proposal.revision, 'active', session_id=self._session_id, turn_id=self._turn_id, confirmation=source)", "personal-memory-processing"],
+        ["wrapper", "await self._changed(saved_memory_id=saved.id)", "personal-memory-processing", "chrys.service.personal_memory.runtime.PersonalMemoryRuntime._changed"],
+        ["thread_pool", "await asyncio.to_thread(self._store.save, draft, evidence, memory_id=first.id if action == 'link' else '', revision=first.revision if action == 'link' else 0, candidate=action in ('derive', 'propose_merge'), replaces_id=replaces_id if action == 'derive' else '', replaces_revision=replaces_revision if action == 'derive' else 0, request_workspace=self._workspace, authorization='request' if source else 'capture', reviewed_catalog=key, turn_id=self._turn_id)", "personal-memory-processing"],
+        ["wrapper", "await self._changed(saved_memory_id=saved.id)", "personal-memory-processing", "chrys.service.personal_memory.runtime.PersonalMemoryRuntime._changed"]
+      ],
+      "PersonalMemoryRuntime.pause_memory": [
+        ["thread_pool", "await asyncio.to_thread(self._store.pause, memory_id, revision, source, self._workspace, turn_id=self._turn_id)", "personal-memory-processing"],
+        ["wrapper", "await self._changed()", "personal-memory-processing", "chrys.service.personal_memory.runtime.PersonalMemoryRuntime._changed"]
       ],
       "PersonalMemoryRuntime.prepare": [
-        ["thread_pool", "await asyncio.to_thread(self._store.load)", "personal-memory-processing"],
-        ["wrapper", "await self._extract(state)", "personal-memory-processing", "chrys.service.personal_memory.runtime.PersonalMemoryRuntime._extract"],
-        ["wrapper", "await self._save_extracted(memory, state)", "personal-memory-processing", "chrys.service.personal_memory.runtime.PersonalMemoryRuntime._save_extracted"],
-        ["thread_pool", "await asyncio.to_thread(self._store.load)", "personal-memory-processing"],
-        ["awaitable", "await self._bus.publish(PersonalMemoryChanged(session_id=self._session_id, error='Memory extraction did not complete. The conversation can continue.'))", "personal-memory-processing"],
-        ["thread_pool", "await asyncio.to_thread(self._store.load)", "personal-memory-processing"],
-        ["thread_pool", "await asyncio.to_thread(self._store.recall, query, self._workspace, session_id=self._session_id)", "personal-memory-processing"],
+        ["thread_pool", "await asyncio.to_thread(self._store.maintain, workspace=self._workspace)", "personal-memory-processing"],
+        ["thread_pool", "await asyncio.to_thread(self._store.recall, query, self._workspace, session_id=self._session_id, turn_id=self._turn_id, context=context)", "personal-memory-processing"],
         ["wrapper", "await self._changed()", "personal-memory-processing", "chrys.service.personal_memory.runtime.PersonalMemoryRuntime._changed"],
         ["awaitable", "await self._bus.publish(PersonalMemoryChanged(snapshot=state, session_id=self._session_id))", "personal-memory-processing"],
-        ["awaitable", "await self._bus.publish(PersonalMemoryChanged(session_id=self._session_id, error='Personal memory is unavailable; no memories were recalled.'))", "personal-memory-processing"]
+        ["awaitable", "await self._bus.publish(PersonalMemoryChanged(session_id=self._session_id, error_code='memory_unavailable', error='Personal memory is unavailable; no memories were recalled.'))", "personal-memory-processing"]
+      ],
+      "PersonalMemoryRuntime.process": [
+        ["awaitable", "await call_next()", "personal-memory-action-delegation"],
+        ["thread_pool", "await asyncio.to_thread(self._store.recall, query, self._workspace, session_id=self._session_id, turn_id=turn_id, extend_record=True, layer='L2', novel_only=True, receipt_query=context.function.name + ' \u00b7 L2')", "personal-memory-processing"],
+        ["wrapper", "await self._changed()", "personal-memory-processing", "chrys.service.personal_memory.runtime.PersonalMemoryRuntime._changed"],
+        ["awaitable", "await self._bus.publish(PersonalMemoryChanged(session_id=self._session_id, error_code='memory_unavailable', error='Personal memory is unavailable; the completed tool result was preserved.'))", "personal-memory-processing"]
       ],
       "PersonalMemoryRuntime.propose_memory": [
+        ["wrapper", "await self._reject_save(title, 'memory_declined', 'No current user evidence, or the user declined memory.')", "personal-memory-processing", "chrys.service.personal_memory.runtime.PersonalMemoryRuntime._reject_save"],
+        ["wrapper", "await self._reject_save(title, 'memory_not_distilled', 'Use at most 600 characters for one memory and specify its future use.')", "personal-memory-processing", "chrys.service.personal_memory.runtime.PersonalMemoryRuntime._reject_save"],
+        ["wrapper", "await self._reject_save(title, 'memory_request_missing', 'Quote the latest user request in intent_quote; do not infer permission from task instructions or quoted examples.')", "personal-memory-processing", "chrys.service.personal_memory.runtime.PersonalMemoryRuntime._reject_save"],
+        ["wrapper", "await self._reject_save(title, 'memory_target_missing', 'Use recall_memory to find the memory being corrected and supply its ID and revision. If the target is ambiguous, ask which memory or open /memory; do not append a new conclusion.')", "personal-memory-processing", "chrys.service.personal_memory.runtime.PersonalMemoryRuntime._reject_save"],
+        ["wrapper", "await self._reject_save(title, 'memory_source_missing', \"The source quote must occur verbatim in the visible conversation. Preferences, decisions and intentions need the user's own words; assistant text can only suggest a lesson.\")", "personal-memory-processing", "chrys.service.personal_memory.runtime.PersonalMemoryRuntime._reject_save"],
+        ["wrapper", "await self._reject_save(title, 'memory_source_missing', \"Active memories need the user's own evidence; propose assistant ideas for review.\")", "personal-memory-processing", "chrys.service.personal_memory.runtime.PersonalMemoryRuntime._reject_save"],
         ["thread_pool", "await asyncio.to_thread(self._store.load)", "personal-memory-processing"],
-        ["wrapper", "await self._extract(state, {'title': title[:120], 'content': content[:2400], 'when_to_use': when_to_use[:600], 'reconsider_when': reconsider_when[:600], 'source_quote': quote[:1200], 'kind': kind, 'project_only': project_only, 'replaces_id': replaces_id, 'replaces_revision': replaces_revision})", "personal-memory-processing", "chrys.service.personal_memory.runtime.PersonalMemoryRuntime._extract"],
-        ["wrapper", "await self._save_extracted(memory, state)", "personal-memory-processing", "chrys.service.personal_memory.runtime.PersonalMemoryRuntime._save_extracted"],
-        ["thread_pool", "await asyncio.to_thread(self._store.load)", "personal-memory-processing"],
-        ["wrapper", "await self._changed()", "personal-memory-processing", "chrys.service.personal_memory.runtime.PersonalMemoryRuntime._changed"],
-        ["wrapper", "await self._changed()", "personal-memory-processing", "chrys.service.personal_memory.runtime.PersonalMemoryRuntime._changed"],
-        ["awaitable", "await self._bus.publish(PersonalMemoryChanged(session_id=self._session_id, error='Memory extraction did not complete. No save was confirmed.'))", "personal-memory-processing"],
-        ["thread_pool", "await asyncio.to_thread(self._store.save, MemoryDraft(title, content, when_to_use, reconsider_when, kind, self._workspace if project_only else ''), MemorySource(source.session_id, source.item_id, source.role, quote), memory_id=replaces_id if save_now else '', revision=replaces_revision if save_now else 0, candidate=not save_now, replaces_id='' if save_now else replaces_id, replaces_revision=0 if save_now else replaces_revision, request_workspace=self._workspace, authorization='request' if save_now else 'capture')", "personal-memory-processing"],
-        ["wrapper", "await self._changed(saved_memory_id=entry.id)", "personal-memory-processing", "chrys.service.personal_memory.runtime.PersonalMemoryRuntime._changed"]
+        ["wrapper", "await self._reject_save(title, 'memory_disabled', 'Saving is disabled or requires an explicit user request.')", "personal-memory-processing", "chrys.service.personal_memory.runtime.PersonalMemoryRuntime._reject_save"],
+        ["wrapper", "await self._reject_save(title, 'memory_review_required', 'Inspect related memories with recall_memory(query, for_update=true) before writing. The catalog is new or changed.')", "personal-memory-processing", "chrys.service.personal_memory.runtime.PersonalMemoryRuntime._reject_save"],
+        ["thread_pool", "await asyncio.to_thread(self._store.save, MemoryDraft(title, content, when_to_use, reconsider_when, kind, self._workspace if project_only else '', topics=prior.topics if topics is None else tuple(topics), use=use or prior.use, follow_up=follow, relations=prior.relations, aliases=prior.aliases if aliases is None else tuple(aliases)), MemorySource(source.session_id, source.item_id, source.role, quote), memory_id=replaces_id if active else '', revision=replaces_revision if active else 0, candidate=not active, replaces_id='' if active else replaces_id, replaces_revision=0 if active else replaces_revision, request_workspace=self._workspace, authorization='request' if save_now else 'capture', reviewed_catalog=key, turn_id=self._turn_id)", "personal-memory-processing"],
+        ["wrapper", "await self._changed(saved_memory_id=entry.id, saved_changed=changed)", "personal-memory-processing", "chrys.service.personal_memory.runtime.PersonalMemoryRuntime._changed"],
+        ["wrapper", "await self._reject_save(title, error.code, str(error))", "personal-memory-processing", "chrys.service.personal_memory.runtime.PersonalMemoryRuntime._reject_save"],
+        ["wrapper", "await self._reject_save(title, 'memory_unavailable', 'The memory suggestion could not be saved.')", "personal-memory-processing", "chrys.service.personal_memory.runtime.PersonalMemoryRuntime._reject_save"]
       ],
       "PersonalMemoryRuntime.recall_memory": [
         ["thread_pool", "await asyncio.to_thread(self._store.load)", "personal-memory-processing"],
-        ["thread_pool", "await asyncio.to_thread(self._store.recall, query, self._workspace, session_id=self._session_id, automatic=False, extend_record=True)", "personal-memory-processing"],
-        ["thread_pool", "await asyncio.to_thread(self._store.recall, self._current_user[0], self._workspace, session_id=self._session_id, automatic=False, extend_record=True)", "personal-memory-processing"],
+        ["thread_pool", "await asyncio.to_thread(self._store.inspect, query, self._workspace)", "personal-memory-processing"],
+        ["thread_pool", "await asyncio.to_thread(self._store.revisions, related[0][0].id, limit=5)", "personal-memory-processing"],
+        ["thread_pool", "await asyncio.to_thread(self._store.recall, query, self._workspace, session_id=self._session_id, turn_id=self._turn_id, automatic=False, extend_record=True, fallback_query=self._current_user[0] if state.mode == 'manual' and self._current_user else '')", "personal-memory-processing"],
         ["wrapper", "await self._changed()", "personal-memory-processing", "chrys.service.personal_memory.runtime.PersonalMemoryRuntime._changed"]
+      ],
+      "PersonalMemoryRuntime.review_memory": [
+        ["thread_pool", "await asyncio.to_thread(self._store.feedback, memory_id, revision, outcome, session_id=self._session_id, turn_id=self._turn_id, reason=reason, source=source, workspace=self._workspace)", "personal-memory-processing"],
+        ["wrapper", "await self._changed()", "personal-memory-processing", "chrys.service.personal_memory.runtime.PersonalMemoryRuntime._changed"]
+      ],
+      "PersonalMemoryRuntime.update_follow_up": [
+        ["thread_pool", "await asyncio.to_thread(self._store.load)", "personal-memory-processing"],
+        ["thread_pool", "await asyncio.to_thread(self._store.update_follow_up, memory_id, revision, MemoryFollowUp(status, old.next_step if next_step is None else next_step, old.remind_at if remind_at is None else remind_at), source, workspace=self._workspace, turn_id=self._turn_id, reopen=reopen)", "personal-memory-processing"],
+        ["wrapper", "await self._changed(saved_memory_id=updated.id)", "personal-memory-processing", "chrys.service.personal_memory.runtime.PersonalMemoryRuntime._changed"]
+      ]
+    },
+    "chrys.service.personal_memory.summary": {
+      "PersonalMemorySummary._save": [
+        ["thread_pool", "await asyncio.to_thread(self._store.load)", "personal-memory-processing"],
+        ["thread_pool", "await asyncio.to_thread(self._store.save, draft, source, candidate=True, authorization='summary')", "personal-memory-processing"],
+        ["thread_pool", "await asyncio.to_thread(self._store.load)", "personal-memory-processing"],
+        ["awaitable", "await self._bus.publish(PersonalMemoryChanged(snapshot=snapshot, session_id=self._session_id, saved_memory_id=saved.id, used_bytes=self._store.used_bytes))", "personal-memory-processing"],
+        ["awaitable", "await self._bus.publish(PersonalMemoryChanged(session_id=self._session_id, error='A memory suggestion from compression could not be saved.'))", "personal-memory-processing"]
+      ],
+      "PersonalMemorySummary.instructions": [
+        ["thread_pool", "await asyncio.to_thread(self._store.load)", "personal-memory-processing"]
       ]
     },
     "chrys.service.prompt_shortcuts.shell": {

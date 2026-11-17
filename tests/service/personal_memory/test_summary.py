@@ -15,9 +15,9 @@ from chrys.foundation.events.personal_memory import PersonalMemoryChanged
 from chrys.foundation.models.history_markers import HistoryMarkerKind
 from chrys.foundation.models.personal_memory import MemoryDraft, MemorySource
 from chrys.foundation.trajectory.metadata import ANALYTICS_ITEM_ID_KEY
-from chrys.kernel import AgentSession, Message, SessionContext
+from chrys.kernel import AgentSession, LastWordsCompletion, Message, SessionContext
 from chrys.service.context.compaction import UnifiedContextStrategy
-from chrys.service.context.compaction.last_words import LastWordsGenerator
+from chrys.service.context.compaction.last_words import _CUT_OFF_NOTICE, LastWordsGenerator
 from chrys.service.context.compaction.scoped import ScopedGroup
 from chrys.service.context.providers.context_management import ContextManagementProvider
 from chrys.service.context.providers.history import CompressibleHistoryProvider
@@ -61,17 +61,27 @@ async def _setup(tmp_path: Path) -> tuple[PersonalMemorySummary, PersonalMemoryS
     return PersonalMemorySummary(store, bus, "session-one"), store, events
 
 
-async def test_generated_note_is_not_a_commit_and_commit_is_candidate_only(tmp_path: Path) -> None:
+@pytest.mark.parametrize("extend_request", [False, True])
+async def test_generated_note_is_not_a_commit_and_commit_is_candidate_only(
+    tmp_path: Path, extend_request: bool
+) -> None:
     bridge, store, events = await _setup(tmp_path)
     completer = FakeCompleter([_summary()])
     generator = LastWordsGenerator(default_profile(), summary_extension=bridge)
-    groups = [ScopedGroup("user", "user", (_message(),), True)]
+    message = _message()
+    groups = [ScopedGroup("user", "user", (message,), True)]
     note = await generator.generate(
-        groups, None, degraded_opener=False, has_continuation_nudges=False, completer=completer
+        groups,
+        None,
+        degraded_opener=False,
+        has_continuation_nudges=False,
+        completer=completer,
+        entry_messages=[message] if extend_request else None,
     )
     assert note == _NOTE
     assert store.load().entries == ()
     assert len(completer.calls) == 1
+    assert completer.calls[0]["keep_tool_choice"] is extend_request
     assert "Personal memory suggestions" in completer.calls[0]["instruction"]
     await generator.publish_committed()
     await generator.publish_committed()
@@ -80,6 +90,25 @@ async def test_generated_note_is_not_a_commit_and_commit_is_candidate_only(tmp_p
     assert entry.source == MemorySource("session-one", "a" * 32, "user", _QUOTE)
     assert entry.draft.workspace == ""
     assert [event.saved_memory_id for event in events] == [entry.id]
+
+
+async def test_cut_off_note_keeps_task_context_without_staging_memory(tmp_path: Path) -> None:
+    bridge, store, events = await _setup(tmp_path)
+    completer = FakeCompleter([LastWordsCompletion(_summary(), cut_off=True)])
+    generator = LastWordsGenerator(default_profile(), summary_extension=bridge)
+    message = _message()
+    note = await generator.generate(
+        [ScopedGroup("user", "user", (message,), True)],
+        None,
+        degraded_opener=False,
+        has_continuation_nudges=False,
+        completer=completer,
+        entry_messages=[message],
+    )
+    assert note == f"{_NOTE}\n\n{_CUT_OFF_NOTICE}"
+    assert len(completer.calls) == 2
+    await generator.publish_committed()
+    assert store.load().entries == () and not events
 
 
 @pytest.mark.parametrize("flush", [False, True])
@@ -258,7 +287,7 @@ async def test_appendix_cannot_supply_missing_task_section_content(tmp_path: Pat
     bridge, _, _ = await _setup(tmp_path)
     generator = LastWordsGenerator(default_profile(), summary_extension=bridge)
     incomplete = "## Task\nDo it\n## Progress\nDone\n## Next\n"
-    violation, _ = generator._validate_summary_format(_summary().replace(_NOTE, incomplete))
+    violation, _ = generator._validate_summary_format(_summary().replace(_NOTE, incomplete), cut_off=False)
     assert violation is not None
 
 

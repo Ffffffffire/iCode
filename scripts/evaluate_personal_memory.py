@@ -91,7 +91,9 @@ async def evaluate(dataset: dict) -> dict:
                 await runtime.process(context, complete)
             search_errors = []
             for search in case.get("searches", ()):
-                response = await runtime.recall_memory(search["query"], for_update=search.get("for_update", False))
+                response = await runtime.recall_memory(
+                    search["query"], for_update=search.get("for_update", False), alternatives=search.get("alternatives")
+                )
                 if response.startswith("Error: "):
                     search_errors.append(response)
             state = store.load()

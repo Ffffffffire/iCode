@@ -64,6 +64,7 @@ REQUIRED = msg("tui.personal_memory.required", fallback="Write something to reme
 SAVED_BY_USER = msg("tui.personal_memory.saved_by_user", fallback="Saved by you")
 USER_SOURCE = msg("tui.personal_memory.user_source", fallback="User message")
 ASSISTANT_SOURCE = msg("tui.personal_memory.assistant_source", fallback="Assistant message · review the claim")
+TOOL_SOURCE = msg("tui.personal_memory.tool_source", fallback="Tool result")
 CAPTURE_TIP = msg(
     "tui.personal_memory.capture_tip",
     fallback="The agent writes through tools when a lasting preference or useful experience is expressed. Ordinary tasks make no extra extraction request. Inferred knowledge needs review.",
@@ -130,6 +131,8 @@ APPLIED = msg("tui.personal_memory.applied", fallback="Agent reported use")
 HELPFUL = msg("tui.personal_memory.helpful", fallback="Helpful")
 INCORRECT = msg("tui.personal_memory.incorrect", fallback="Incorrect")
 NOT_APPLICABLE = msg("tui.personal_memory.not_applicable", fallback="Skip this turn")
+EFFECT_UNKNOWN = msg("tui.personal_memory.effect_unknown", fallback="Effect unknown")
+CONFIRM_CONDITIONS = msg("tui.personal_memory.confirm_conditions", fallback="Keep conditions")
 PROVIDED = msg("tui.personal_memory.provided", fallback="Provided")
 NO_MATCH = msg("tui.personal_memory.no_match", fallback="No match")
 USER_ACTOR = msg("tui.personal_memory.user_actor", fallback="You")
@@ -157,6 +160,10 @@ FAIL_REQUEST = msg(
     "tui.personal_memory.fail_request",
     fallback="No supported save request was found. You can add this memory in /memory.",
 )
+FAIL_DISTILLED = msg(
+    "tui.personal_memory.fail_distilled",
+    fallback="Check the rule, its future use and length. A lesson from research also needs an application.",
+)
 FAIL_REVIEW = msg(
     "tui.personal_memory.fail_review",
     fallback="Related memories must be checked first. The agent can inspect them and retry.",
@@ -177,11 +184,11 @@ NEARLY_FULL = msg("tui.personal_memory.nearly_full", fallback="Needs review")
 REVIEW_REQUIRED = msg("tui.personal_memory.review_required", fallback="Needs review")
 REVIEW_SKIPPED = msg(
     "tui.personal_memory.review_skipped",
-    fallback="Skipped in three different turns. Check the conditions, then confirm or edit.",
+    fallback="Applicability was questioned in three turns. Review the conditions.",
 )
 REVIEW_NO_FEEDBACK = msg(
     "tui.personal_memory.review_no_feedback",
-    fallback="Provided at least five times in six months without helpful feedback. Check its usefulness; this does not prove it is wrong.",
+    fallback="No helpful feedback was recorded. Its effect is unknown.",
 )
 REVIEW_EXPIRED = msg(
     "tui.personal_memory.review_expired", fallback="Unreviewed for 30 days; archived for later inspection."
@@ -192,11 +199,38 @@ ORGANIZE_PROMPT = msg(
     "tui.personal_memory.organize_prompt",
     fallback="Review my habits and conditional experience about {topic}. Inspect these memories: {references}. Propose a concise synthesis or merge, explain what each source contributes and which exceptions remain. Wait for my confirmation before retiring sources.",
 )
+ORGANIZE_PROMPT_TOPIC = msg(
+    "tui.personal_memory.organize_prompt_topic",
+    fallback="Review my habits and conditional experience about {topic}. Propose a concise synthesis or merge and explain which exceptions remain. Wait for my confirmation before retiring sources.",
+)
+ORGANIZE_VIEW = msg("tui.personal_memory.organize_view", fallback="To organize")
+ORGANIZE_WHY = msg("tui.personal_memory.organize_why", fallback="Why it needs organizing")
+ORGANIZE_REASON_DUPLICATE = msg("tui.personal_memory.organize_reason_duplicate", fallback="Similar content")
+ORGANIZE_REASON_SOURCE = msg("tui.personal_memory.organize_reason_source", fallback="Source changed")
+ORGANIZE_REASON_SKIPS = msg("tui.personal_memory.organize_reason_skips", fallback="Repeatedly not applicable")
+ORGANIZE_REASON_REVIEW = msg("tui.personal_memory.organize_reason_review", fallback="Marked for review")
+ORGANIZE_PARTNERS = msg(
+    "tui.personal_memory.organize_partners",
+    fallback="Same content (same type and scope): {partners}",
+)
+ORGANIZE_REVIEW_GENERIC = msg(
+    "tui.personal_memory.organize_review_generic",
+    fallback="Marked for review. Check whether it still applies.",
+)
+ORGANIZE_EMPTY = msg("tui.personal_memory.organize_empty", fallback="No memories need organizing.")
+ORGANIZE_EMPTY_FILTERED = msg(
+    "tui.personal_memory.organize_empty_filtered",
+    fallback="No memories need organizing with the current filters.",
+)
+ORGANIZE_SELECT_HINT = msg(
+    "tui.personal_memory.organize_select_hint",
+    fallback="Select a memory, or choose a topic or search first.",
+)
 OLDER_REVISIONS = msg("tui.personal_memory.older_revisions", fallback="Earlier revisions")
 RECALL_LAYER = msg("tui.personal_memory.recall_layer", fallback="Recall stage: {layer}")
 LAYER_STANDING = msg("tui.personal_memory.layer_standing", fallback="Always available")
 LAYER_OPENING = msg("tui.personal_memory.layer_opening", fallback="Task start")
-LAYER_ACTION = msg("tui.personal_memory.layer_action", fallback="After an action")
+LAYER_ACTION = msg("tui.personal_memory.layer_action", fallback="Before an action")
 LAYER_REQUESTED = msg("tui.personal_memory.layer_requested", fallback="On request")
 REVISION_IMPORTED = msg("tui.personal_memory.revision_imported", fallback="Earlier revision imported")
 WEEKLY_REVIEW = msg("tui.personal_memory.weekly_review", fallback="Weekly review")
@@ -207,6 +241,7 @@ def review_message(reason: str) -> MessageDef | None:
         "repeated_mismatch": REVIEW_SKIPPED,
         "no_helpful_feedback": REVIEW_NO_FEEDBACK,
         "candidate_expired": REVIEW_EXPIRED,
+        "incorrect": INCORRECT,
     }.get(reason)
 
 
@@ -265,6 +300,7 @@ def failure_message(code: str) -> MessageDef:
     """Keep model-facing retry instructions out of visible UI error prose."""
     return {
         "memory_source_missing": FAIL_SOURCE,
+        "memory_not_distilled": FAIL_DISTILLED,
         "memory_request_missing": FAIL_REQUEST,
         "memory_review_required": FAIL_REVIEW,
         "memory_disabled": FAIL_DISABLED,

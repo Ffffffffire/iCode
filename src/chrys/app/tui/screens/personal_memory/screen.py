@@ -37,7 +37,8 @@ from chrys.foundation.models.personal_memory import (
     PersonalMemory,
 )
 from chrys.service.personal_memory.activity import recent_usage
-from chrys.service.personal_memory.lifecycle import health
+from chrys.service.personal_memory.lifecycle import condition_review_ids, health
+from chrys.service.personal_memory.organize import OrganizeItem, OrganizeReason, duplicate_partners, organize_items
 from chrys.service.personal_memory.retrieval import MemoryRetriever
 from chrys.service.personal_memory.store import MAX_BATCH, PersonalMemoryStore
 
@@ -58,6 +59,21 @@ class _MemoryUpdate(Message):
     def __init__(self, event: PersonalMemoryChanged) -> None:
         super().__init__()
         self.event = event
+
+
+# The former review-required view is the same queue under its new name.
+_VIEW_ALIASES = {"stale": "organize"}
+
+_REASON_LABELS = {
+    OrganizeReason.DUPLICATE: m.ORGANIZE_REASON_DUPLICATE,
+    OrganizeReason.SOURCE_CHANGED: m.ORGANIZE_REASON_SOURCE,
+    OrganizeReason.REPEATED_SKIPS: m.ORGANIZE_REASON_SKIPS,
+    OrganizeReason.NEEDS_REVIEW: m.ORGANIZE_REASON_REVIEW,
+}
+
+
+def _normalize_view(view: str) -> str:
+    return _VIEW_ALIASES.get(view, view)
 
 
 class _MemorySearchInput(EnhancedInput):
@@ -107,10 +123,13 @@ class PersonalMemoryScreen(BaseDialog[None]):
         self._workspace = workspace
         self._session_id = session_id
         self._locale_controller = locale_controller
-        self._initial_view = initial_view
+        self._initial_view = _normalize_view(initial_view)
         self._continue_follow_up = continue_follow_up
         self.snapshot = MemorySnapshot()
         self._selected_id = memory_id
+        self._organize: dict[str, OrganizeItem] = {}
+        self._organize_in_scope = False
+        self._visible_count = 0
         self._updating = False
         self._loaded = False
         self._shown_id = ""
@@ -167,6 +186,7 @@ class PersonalMemoryScreen(BaseDialog[None]):
                     yield HatchedEmptyState(self._text(m.EMPTY), id="memory-empty")
                     yield Static("", id="memory-content", classes="memory-card", markup=False)
                     yield Static("", id="memory-replacement", markup=False)
+                    yield Static("", id="memory-organize-reasons", classes="memory-card", markup=False)
                     for section in ("when", "reconsider"):
                         card = Static("", id=f"memory-{section}", classes="memory-card", markup=False)
                         if section == "reconsider":
@@ -275,7 +295,7 @@ class PersonalMemoryScreen(BaseDialog[None]):
             for value, label in (
                 ("active", m.ACTIVE),
                 ("candidate", m.CANDIDATE),
-                ("stale", m.REVIEW_REQUIRED),
+                ("organize", m.ORGANIZE_VIEW),
                 ("recalled", m.RECALLED),
                 ("followups", m.FOLLOW_UPS),
                 ("activity", m.ACTIVITY),
@@ -431,6 +451,15 @@ class PersonalMemoryScreen(BaseDialog[None]):
     def _in_workspace(self, entry: PersonalMemory) -> bool:
         return not entry.draft.workspace or entry.draft.workspace == os.path.normcase(os.path.abspath(self._workspace))
 
+    def _matches_scope(self, entry: PersonalMemory, scope: str) -> bool:
+        if scope == "all":
+            return True
+        if scope == "personal":
+            return not entry.draft.workspace
+        if scope == "project":
+            return bool(entry.draft.workspace) and self._in_workspace(entry)
+        return self._in_workspace(entry)
+
     def _theme_changed(self, _theme: object) -> None:
         if self._loaded:
             self.call_after_refresh(self._refresh_list)
@@ -447,7 +476,7 @@ class PersonalMemoryScreen(BaseDialog[None]):
         resolved = self.get_component_rich_style(component)
         return Style(color=resolved.color, bold=resolved.bold, italic=resolved.italic)
 
-    def _row_label(self, entry: PersonalMemory) -> Text:
+    def _row_label(self, entry: PersonalMemory, organize: bool = False) -> Text:
         label = Text()
         prefix = "☑ " if entry.id in self._marked else "☐ " if self._marked else "  "
         label.append(prefix, self._foreground_style("memory--marked"))
@@ -466,6 +495,10 @@ class PersonalMemoryScreen(BaseDialog[None]):
             f" · {sanitize_legacy_scalar(scope)} · v{entry.revision} · {format_memory_time(entry.updated_at, self._text)}",
             self._foreground_style("memory--muted"),
         )
+        item = self._organize.get(entry.id) if organize else None
+        if item is not None:
+            reasons = " · ".join(self._text(_REASON_LABELS[reason]) for reason in item.reasons)
+            label.append("\n  " + reasons, self._foreground_style("memory--warning"))
         return label
 
     def _refresh_list(self) -> None:
@@ -477,24 +510,19 @@ class PersonalMemoryScreen(BaseDialog[None]):
         recall = next((item for item in reversed(self.snapshot.recalls) if item.session_id == self._session_id), None)
         recalled_ids = {match.memory_id for match in recall.matches} if recall else set()
         kind = self.query_one("#memory-kind-filter", Select).value
-        scope = self.query_one("#memory-scope-filter", Select).value
+        scope = str(self.query_one("#memory-scope-filter", Select).value)
         topic = self.query_one("#memory-topic-filter", Select).value
+        self._organize = {item.memory_id: item for item in organize_items(self.snapshot)}
+        self._organize_in_scope = any(
+            entry.id in self._organize for entry in self.snapshot.entries if self._matches_scope(entry, scope)
+        )
         matches = self._browser.browse(self.snapshot.entries, query) if query else ()
         ranks = {match.memory_id: index for index, match in enumerate(matches)}
         filtered = [
             entry
             for entry in reversed(self.snapshot.entries)
             if (
-                (
-                    scope == "all"
-                    or (
-                        not entry.draft.workspace
-                        if scope == "personal"
-                        else bool(entry.draft.workspace) and self._in_workspace(entry)
-                        if scope == "project"
-                        else self._in_workspace(entry)
-                    )
-                )
+                self._matches_scope(entry, scope)
                 and (kind == "all" or entry.draft.kind == kind)
                 and (not topic or topic in entry.draft.topics)
                 and (
@@ -513,15 +541,16 @@ class PersonalMemoryScreen(BaseDialog[None]):
                 if view == "recalled"
                 else entry.draft.follow_up is not None and entry.state == "active"
                 if view == "followups"
+                else entry.id in self._organize
+                if view == "organize"
                 else view in ("all", "activity") or entry.state == view
             )
         ]
+        self._visible_count = len(entries) if view == "organize" else 0
         if query:
             entries.sort(key=lambda entry: ranks.get(entry.id, len(ranks)))
         elif view == "candidate":
             entries.sort(key=lambda entry: entry.source.role != "user")
-        elif view == "stale":
-            entries.sort(key=lambda entry: (entry.review_reason != "repeated_mismatch", entry.updated_at, entry.id))
         visible_revisions = {entry.id: entry.revision for entry in entries}
         self._marked = {
             mid: revision for mid, revision in self._marked.items() if visible_revisions.get(mid) == revision
@@ -542,13 +571,16 @@ class PersonalMemoryScreen(BaseDialog[None]):
         capacity_text = Text(capacity)
         if warning:
             capacity_text.append(
-                " · " + self._text(m.HEALTH_REVIEW.bind(stale=status.stale, duplicates=status.duplicates)),
+                " · "
+                + self._text(
+                    m.HEALTH_REVIEW.bind(stale=status.stale + status.conditions, duplicates=status.duplicates)
+                ),
                 self._foreground_style("memory--warning"),
             )
         capacity_widget.update(capacity_text)
         capacity_widget.tooltip = Text(self._text(m.CAPACITY_WARNING)) if warning else None
         options = self.query_one("#memory-list", OptionList)
-        rows = tuple((entry.id, self._row_label(entry)) for entry in entries)
+        rows = tuple((entry.id, self._row_label(entry, view == "organize")) for entry in entries)
         if rows != self._list_rows:
             self._list_rows = rows
             with options.prevent(OptionList.OptionHighlighted):
@@ -593,12 +625,16 @@ class PersonalMemoryScreen(BaseDialog[None]):
         entry = self._selected()
         empty = self.query_one("#memory-empty", HatchedEmptyState)
         empty.display = entry is None
-        empty.update_label(self._text(m.NO_RECALL if self.current_view == "recalled" else m.EMPTY))
+        if self.current_view == "organize":
+            empty.update_label(self._text(m.ORGANIZE_EMPTY_FILTERED if self._organize_in_scope else m.ORGANIZE_EMPTY))
+        else:
+            empty.update_label(self._text(m.NO_RECALL if self.current_view == "recalled" else m.EMPTY))
         for name in (
             "title",
             "meta",
             "content",
             "replacement",
+            "organize-reasons",
             "usage",
             "when",
             "reconsider",
@@ -616,12 +652,15 @@ class PersonalMemoryScreen(BaseDialog[None]):
             self.query_one(f"#memory-{name}", Button).display = entry is not None
         if entry is None:
             self.query_one("#memory-title", Static).update("")
-            for name in ("meta", "match", "content", "replacement", "usage"):
+            for name in ("meta", "match", "content", "replacement", "organize-reasons", "usage"):
                 self.query_one(f"#memory-{name}", Static).update("")
             self._shown_id = ""
             return
-        self.query_one("#memory-accept", Button).display = entry.state != "active"
-        self._button_label("accept", m.RESTORE if entry.state == "archived" else m.ACCEPT)
+        condition_review = entry.id in condition_review_ids(self.snapshot)
+        self.query_one("#memory-accept", Button).display = entry.state != "active" or condition_review
+        self._button_label(
+            "accept", m.CONFIRM_CONDITIONS if condition_review else m.RESTORE if entry.state == "archived" else m.ACCEPT
+        )
         self.query_one("#memory-archive", Button).display = entry.state != "archived"
         self._button_label("archive", m.IGNORE if entry.state == "candidate" else m.ARCHIVE)
         self.query_one("#memory-forget", Button).display = entry.state != "candidate"
@@ -703,6 +742,10 @@ class PersonalMemoryScreen(BaseDialog[None]):
             else ""
         )
         if usage.last_provided:
+            effect = {"helpful": m.HELPFUL, "not_applicable": m.NOT_APPLICABLE, "incorrect": m.INCORRECT}.get(
+                usage.effect, m.EFFECT_UNKNOWN
+            )
+            usage_text += "\n" + self._text(effect)
             usage_text += "\n" + self._text(
                 m.LAST_PROVIDED.bind(date=format_memory_time(usage.last_provided, self._text))
             )
@@ -738,10 +781,8 @@ class PersonalMemoryScreen(BaseDialog[None]):
             section.update(Text(sanitize_legacy_block(value)))
             section.display = bool(value)
         source = self.query_one("#memory-source", Static)
-        label = (
-            m.ASSISTANT_SOURCE
-            if entry.source.role == "assistant"
-            else (m.USER_SOURCE if entry.source.quote else m.SAVED_BY_USER)
+        label = {"assistant": m.ASSISTANT_SOURCE, "tool": m.TOOL_SOURCE}.get(
+            entry.source.role, m.USER_SOURCE if entry.source.quote else m.SAVED_BY_USER
         )
         source.update(
             Text(
@@ -805,7 +846,9 @@ class PersonalMemoryScreen(BaseDialog[None]):
             if match.revision != entry.revision:
                 reason += "\n" + self._text(m.STALE.bind(revision=match.revision))
         replacement = ""
-        review_message = m.review_message(entry.review_reason)
+        review_message = m.review_message(
+            "repeated_mismatch" if entry.id in condition_review_ids(self.snapshot) else entry.review_reason
+        )
         if review_message is not None:
             replacement = self._text(review_message)
         if entry.replaces_id:
@@ -815,6 +858,14 @@ class PersonalMemoryScreen(BaseDialog[None]):
             replacement = "\n".join(filter(None, (replacement, self._text(m.EVIDENCE_STALE))))
         self.query_one("#memory-replacement", Static).update(Text(sanitize_legacy_block(replacement)))
         self.query_one("#memory-replacement").display = bool(replacement)
+        reasons = self._organize_reasons(entry)
+        reasons_widget = self.query_one("#memory-organize-reasons", Static)
+        if reasons:
+            reasons_widget.border_title = Text(self._text(m.ORGANIZE_WHY))
+            reasons_widget.update(Text(sanitize_legacy_block(reasons)))
+        else:
+            reasons_widget.update("")
+        reasons_widget.display = bool(reasons)
         self.query_one("#memory-recall-details").display = match is not None
         self.query_one("#memory-match", Static).update(Text(sanitize_legacy_block(reason)))
         self.query_one("#memory-history").display = entry.revision > 1
@@ -832,6 +883,22 @@ class PersonalMemoryScreen(BaseDialog[None]):
                 )
             )
         )
+
+    def _organize_reasons(self, entry: PersonalMemory) -> str:
+        item = self._organize.get(entry.id) if self.current_view == "organize" else None
+        if item is None:
+            return ""
+        lines = [self._text(_REASON_LABELS[reason]) for reason in item.reasons]
+        if OrganizeReason.DUPLICATE in item.reasons:
+            partners = [
+                f"{sanitize_legacy_scalar(partner.draft.title)} ({partner.id})" if partner.draft.title else partner.id
+                for partner in duplicate_partners(self.snapshot, entry)
+            ]
+            if partners:
+                lines.append(self._text(m.ORGANIZE_PARTNERS.bind(partners=", ".join(partners))))
+        if OrganizeReason.NEEDS_REVIEW in item.reasons and m.review_message(entry.review_reason) is None:
+            lines.append(self._text(m.ORGANIZE_REVIEW_GENERIC))
+        return "\n".join(lines)
 
     def _activity_text(
         self, ids: set[str], *, include_global: bool = False, events: tuple[MemoryActivity, ...] | None = None
@@ -854,6 +921,7 @@ class PersonalMemoryScreen(BaseDialog[None]):
             "candidate_expired": m.REVIEW_EXPIRED,
             "revision_imported": m.REVISION_IMPORTED,
             "review_digest": m.WEEKLY_REVIEW,
+            "conditions_confirmed": m.CONFIRM_CONDITIONS,
         }
         actors = {"user": m.USER_ACTOR, "agent": m.AGENT_ACTOR, "system": m.SYSTEM_ACTOR}
         entries = {e.id: e for e in self.snapshot.entries}
@@ -987,14 +1055,7 @@ class PersonalMemoryScreen(BaseDialog[None]):
             return
         action = event.button.id
         if action == "memory-organize":
-            topic = (
-                str(self.query_one("#memory-topic-filter", Select).value)
-                or self.query_one("#memory-search", EnhancedInput).value
-            )
-            references = ", ".join(f"{mid} v{revision}" for mid, revision in self._marked.items())
-            prompt = self._text(m.ORGANIZE_PROMPT.bind(topic=topic or self._workspace, references=references))
-            if self._continue_follow_up is not None and self._continue_follow_up(prompt):
-                self.dismiss_when_topmost()
+            self._review_together()
             return
         if action == "memory-history-more":
             entry = self._selected()
@@ -1120,10 +1181,46 @@ class PersonalMemoryScreen(BaseDialog[None]):
                         next_step=entry.draft.follow_up.next_step or entry.draft.content,
                     )
                 )
-                if self._continue_follow_up is not None and self._continue_follow_up(prompt):
-                    self.dismiss_when_topmost()
-                else:
-                    self.query_one("#memory-error", Static).update(Text(self._text(m.DRAFT_BUSY)))
+                if self._continue_follow_up is not None:
+                    if self._continue_follow_up(prompt):
+                        self.dismiss_when_topmost()
+                    else:
+                        self._show_hint(m.DRAFT_BUSY)
+
+    def _show_hint(self, reference: MessageDef | MessageRef) -> None:
+        error = self.query_one("#memory-error", Static)
+        error.update(Text("⚠ " + self._text(reference)))
+        error.display = True
+
+    def _review_together(self) -> None:
+        # Search repaints on a debounce, so a pending refresh leaves _marked and
+        # _visible_count describing the previous query. Flushing it here keeps the
+        # handoff to what the current filters show.
+        if self._search_timer is not None:
+            self._refresh_list()
+        topic = (
+            str(self.query_one("#memory-topic-filter", Select).value)
+            or self.query_one("#memory-search", EnhancedInput).value
+        ).strip()
+        references = ", ".join(f"{mid} v{revision}" for mid, revision in self._marked.items())
+        if self.current_view == "organize":
+            if not self._visible_count:
+                return
+            if self._marked:
+                prompt = self._text(m.ORGANIZE_PROMPT.bind(topic=topic or self._workspace, references=references))
+            elif topic:
+                prompt = self._text(m.ORGANIZE_PROMPT_TOPIC.bind(topic=topic))
+            else:
+                self._show_hint(m.ORGANIZE_SELECT_HINT)
+                return
+        else:
+            prompt = self._text(m.ORGANIZE_PROMPT.bind(topic=topic or self._workspace, references=references))
+        if self._continue_follow_up is None:
+            return
+        if self._continue_follow_up(prompt):
+            self.dismiss_when_topmost()
+        else:
+            self._show_hint(m.DRAFT_BUSY)
 
     async def _save_draft(self, draft: MemoryDraft, entry: PersonalMemory | None) -> str:
         reply = await self._send(

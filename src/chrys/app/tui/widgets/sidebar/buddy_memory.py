@@ -22,6 +22,7 @@ from chrys.app.tui.widgets.selection import NonSelectableTextMixin
 from chrys.foundation.i18n import MessageRef, msg
 from chrys.foundation.i18n.formatting import format_message, sanitize_legacy_scalar
 from chrys.foundation.models.personal_memory import MemoryReviewNotice, MemorySnapshot, PersonalMemory
+from chrys.service.personal_memory.organize import organize_ids
 
 if TYPE_CHECKING:
     from textual.app import ComposeResult
@@ -157,6 +158,7 @@ class BuddyMemoryCard(Widget):
         super().__init__(id="buddy-memory")
         self._locale_controller = locale_controller
         self._snapshot = MemorySnapshot()
+        self._workspace = ""
         self._view = "active"
         self._notes: tuple[PersonalMemory, ...] = ()
         self._position = 0
@@ -197,8 +199,8 @@ class BuddyMemoryCard(Widget):
 
     def update_memory(self, snapshot: MemorySnapshot, session_id: str, workspace: str, *, announce: bool) -> str:
         self._snapshot = snapshot
-        workspace = os.path.normcase(os.path.abspath(workspace)) if workspace else ""
-        entries = {e.id: e for e in snapshot.entries if not e.draft.workspace or e.draft.workspace == workspace}
+        self._workspace = os.path.normcase(os.path.abspath(workspace)) if workspace else ""
+        entries = {e.id: e for e in snapshot.entries if not e.draft.workspace or e.draft.workspace == self._workspace}
         recall = next((r for r in reversed(snapshot.recalls) if r.session_id == session_id), None)
         matches = (
             tuple(
@@ -244,7 +246,7 @@ class BuddyMemoryCard(Widget):
             if matches
             else ("followups" if due else "candidate" if pending else "all" if self._weekly else "active")
         )
-        selection_key = (session_id, workspace, self._view, recall.query if matches and recall else "")
+        selection_key = (session_id, self._workspace, self._view, recall.query if matches and recall else "")
         self._position = (
             next((i for i, e in enumerate(self._notes) if e.id == old_id), 0)
             if selection_key == self._selection_key
@@ -349,10 +351,14 @@ class BuddyMemoryCard(Widget):
         elif button_id == "buddy-memory-library":
             self.post_message(self.OpenRequested("active"))
         elif button_id == "buddy-memory-review" and self._weekly is not None:
+            visible = {
+                e.id for e in self._snapshot.entries if not e.draft.workspace or e.draft.workspace == self._workspace
+            }
+            members = visible.intersection(self._weekly.memory_ids)
             self.post_message(
                 self.OpenRequested(
-                    "stale"
-                    if any(e.state == "stale" and e.id in self._weekly.memory_ids for e in self._snapshot.entries)
+                    "organize"
+                    if members.intersection(organize_ids(self._snapshot))
                     else "candidate"
                     if self._pending
                     else "all",

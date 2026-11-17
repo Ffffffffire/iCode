@@ -14,7 +14,8 @@
     {"id":"0000000000000009","draft":{"title":"Retry policy","content":"Keep wire and validation retries independent.","when_to_use":"Changing retry policy."}},
     {"id":"000000000000000a","draft":{"title":"C++ ownership","content":"Keep ownership explicit.","when_to_use":"Changing C++ code."}},
     {"id":"000000000000000b","draft":{"title":"C# nullable references","content":"Enable nullable checks.","when_to_use":"Changing C# code."}},
-    {"id":"000000000000000c","draft":{"title":".NET runtime","content":"Check the runtime contract.","when_to_use":"Changing .NET code."}}
+    {"id":"000000000000000c","draft":{"title":".NET runtime","content":"Check the runtime contract.","when_to_use":"Changing .NET code."}},
+    {"id":"000000000000000d","draft":{"title":"轨迹 IR 的消费方","content":"验证下游消费后再增加字段。","when_to_use":"轨迹 IR 新增字段","workspace":"icode","kind":"lesson"}}
   ],
   "cases": [
     {"id":"slides-01","query":"Prepare technical slides","expected":{"L1":["0000000000000001"]}},
@@ -49,18 +50,18 @@
     {"id":"memory-04","query":"Review decision evidence in memory extraction","expected":{"L1":["0000000000000007"]}},
     {"id":"action-slides-01","query":"Fix the failure","action":{"name":"write_file","kind":"filesystem.write","arguments":{"path":"technical-slides.pptx"}},"expected":{"L2":["0000000000000001"]}},
     {"id":"action-slides-02","query":"继续处理","action":{"name":"run_command","kind":"shell","arguments":{"command":"python build_powerpoint.py --output slides.pptx"}},"expected":{"L2":["0000000000000001"]}},
-    {"id":"action-slides-03","query":"Please handle this","action":{"name":"convert","kind":"doc_converter","arguments":{"output":"slides.pptx"}},"expected":{"L2":["0000000000000001"]}},
+    {"id":"read-source-slides","query":"Please handle this","action":{"name":"convert_document","kind":"doc_converter","arguments":{"path":"slides.pptx"}},"expected":{"L0":["0000000000000008"]},"strict":true},
     {"id":"action-prose-01","query":"Finish the task","action":{"name":"write_file","kind":"filesystem.write","arguments":{"path":"technical-documents.md","content":"Concrete code logic and engineering reports"}},"expected":{"L2":["0000000000000002"]}},
     {"id":"action-prose-02","query":"Implement it","action":{"name":"run_command","kind":"shell","arguments":{"command":"python build.py --mode technical --kind documents --topic code"}},"expected":{"L2":["0000000000000002"]}},
     {"id":"action-skills-01","query":"Please proceed","action":{"name":"write_file","kind":"filesystem.write","arguments":{"path":".agents/skills/report/SKILL.md","content":"Agent skills instructions"}},"expected":{"L2":["0000000000000003"]}},
-    {"id":"action-skills-02","query":"修一下这个问题","action":{"name":"run_skill_script","kind":"skill","arguments":{"script":"review_agent_skills.py","task":"agent skills instructions"}},"expected":{"L2":["0000000000000003"]}},
+    {"id":"action-skills-02","query":"修一下这个问题","action":{"name":"run_skill_script","kind":"skill","arguments":{"skill_name":"agent-skills","script_name":"scripts/review_agent_skills_instructions.py"}},"expected":{"L2":["0000000000000003"]}},
     {"id":"action-profile-01","query":"Fix the failure","action":{"name":"write_file","kind":"filesystem.write","arguments":{"path":"agents/reviewer.yaml","content":"Agent profile configuration with dedicated skills"}},"expected":{"L2":["0000000000000004"]}},
     {"id":"action-profile-02","query":"Please proceed","action":{"name":"run_command","kind":"shell","arguments":{"command":"icode agent profile --check dedicated skills configuration"}},"expected":{"L2":["0000000000000004"]}},
     {"id":"action-html-01","query":"Finish it","action":{"name":"write_file","kind":"filesystem.write","arguments":{"path":"reports/analysis.html","content":"HTML analysis reports"}},"expected":{"L2":["0000000000000005"]}},
-    {"id":"action-html-02","query":"Fix the output","action":{"name":"fetch","kind":"web_fetch","arguments":{"url":"https://example.invalid/html/reports/layout"}},"expected":{"L2":["0000000000000005"]}},
+    {"id":"read-html-source","query":"Fix the output","action":{"name":"fetch","kind":"web_fetch","arguments":{"url":"https://example.invalid/html/reports/layout"}},"expected":{"L0":["0000000000000008"]},"strict":true},
     {"id":"action-tui-01","query":"Fix the bug","action":{"name":"write_file","kind":"filesystem.write","arguments":{"path":"src/chrys/app/tui/screens/memory.py","content":"TUI widgets and styles"}},"expected":{"L2":["0000000000000006"]}},
     {"id":"action-tui-02","query":"Proceed","action":{"name":"run_command","kind":"shell","arguments":{"command":"python tests/app/tui/test_widgets.py"}},"expected":{"L2":["0000000000000006"]}},
-    {"id":"action-memory-01","query":"Handle this issue","action":{"name":"write_file","kind":"filesystem.write","arguments":{"path":"memory-policy.md","content":"Personal memory extraction and retention policy"}},"expected":{"L2":["0000000000000007"]}},
+    {"id":"action-memory-01","query":"Handle this issue","action":{"name":"write_file","kind":"filesystem.write","arguments":{"path":"personal-memory-retention-policy.md"}},"expected":{"L2":["0000000000000007"]}},
     {"id":"action-memory-02","query":"继续处理","action":{"name":"run_command","kind":"shell","arguments":{"command":"python check.py --topic personal --memory extraction --retention policy"}},"expected":{"L2":["0000000000000007"]}},
     {"id":"standing-01","query":"What is 2+2?","expected":{"L0":["0000000000000008"]}},
     {"id":"standing-02","query":"Explain this error","expected":{"L0":["0000000000000008"]}},
@@ -104,6 +105,11 @@
     {"id":"protected-dotnet","query":"Change .NET","expected":{"L0":["0000000000000008"],"L1":["000000000000000c"]},"strict":true},
     {"id":"negative-hyphenated-model","query":"deepseek-v4-flash","expected":{"L0":["0000000000000008"]},"strict":true},
     {"id":"negative-collapsed-identifier","query":"retrypolicy","expected":{"L0":["0000000000000008"]},"strict":true},
-    {"id":"negative-extension-only","query":"another.py","expected":{"L0":["0000000000000008"]},"strict":true}
+    {"id":"negative-extension-only","query":"another.py","expected":{"L0":["0000000000000008"]},"strict":true},
+    {"id":"negative-slide-mention","query":"不要制作 PPT。只统计提供的文字中出现了多少次 PowerPoint。","expected":{"L0":["0000000000000008"]},"strict":true},
+    {"id":"negative-slide-payload","query":"Handle this issue","action":{"name":"write_file","kind":"filesystem.write","arguments":{"path":"formats.md","content":"| PowerPoint slides | supported input |"}},"expected":{"L0":["0000000000000008"]},"strict":true},
+    {"id":"negative-shell-input-slides","query":"Continue resolving the issue","action":{"name":"powershell","kind":"shell","arguments":{"command":"python inspect.py slides.pptx"}},"expected":{"L0":["0000000000000008"]},"strict":true},
+    {"id":"explicit-paraphrase-ir-keywords","query":"每层都多产出一些供下一层处理的数据，怎么判断哪些值得做","searches":[{"query":"每层增加供下一层处理的数据，如何取舍"}],"expected":{"L0":["0000000000000008"]},"strict":true},
+    {"id":"explicit-paraphrase-ir-reformulated","query":"每层都多产出一些供下一层处理的数据，怎么判断哪些值得做","searches":[{"query":"每层增加供下一层处理的数据，如何取舍","alternatives":["轨迹 IR 新增字段","IR 消费方"]}],"expected":{"L0":["0000000000000008"],"L3":["000000000000000d"]},"strict":true}
   ]
 }

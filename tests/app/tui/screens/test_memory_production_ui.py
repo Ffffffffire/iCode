@@ -69,14 +69,22 @@ async def test_older_revisions_are_loaded_when_requested(tmp_path: Path) -> None
         )
 
 
-async def test_stale_queue_explains_reason_and_can_confirm_memory(tmp_path: Path) -> None:
+async def test_review_queue_checks_conditions_without_globally_pausing_the_memory(tmp_path: Path) -> None:
     store = PersonalMemoryStore(tmp_path / "memory.json")
     entry = await asyncio.to_thread(
         store.save, MemoryDraft("Slides", "Use diagrams", "technical slides"), MemorySource()
     )
     for i in range(3):
         await asyncio.to_thread(store.recall, "technical slides", "", session_id="one", turn_id=str(i))
-        await asyncio.to_thread(store.feedback, entry.id, 1, "not_applicable", session_id="one", turn_id=str(i))
+        await asyncio.to_thread(
+            store.feedback,
+            entry.id,
+            1,
+            "not_applicable",
+            session_id="one",
+            turn_id=str(i),
+            source=MemorySource(role="user"),
+        )
     await asyncio.to_thread(store.maintain)
     bus = EventBus()
     await bus.subscribe(PersonalMemoryCommand, PersonalMemoryController(bus, store).handle)
@@ -86,8 +94,35 @@ async def test_stale_queue_explains_reason_and_can_confirm_memory(tmp_path: Path
         await wait_for(lambda: isinstance(app.screen, PersonalMemoryScreen) and app.screen._loaded, pilot=pilot)
         panel = app.screen
         assert "three" in rich_plain(panel.query_one("#memory-replacement", Static).content).lower()
+        assert panel.snapshot.entries[0].state == "active"
         await click_when_settled(pilot, "#memory-accept")
-        await wait_for(lambda: panel.snapshot.entries[0].state == "active", pilot=pilot)
+        await wait_for(lambda: not panel.snapshot.uses, pilot=pilot)
+
+
+async def test_panel_distinguishes_unknown_effect_from_confirmed_helpfulness(tmp_path: Path) -> None:
+    store = PersonalMemoryStore(tmp_path / "memory.json")
+    entry = await asyncio.to_thread(
+        store.save, MemoryDraft("Slides", "Use diagrams", "technical slides"), MemorySource()
+    )
+    await asyncio.to_thread(store.recall, "technical slides", "", session_id="one", turn_id="1")
+    await asyncio.to_thread(store.feedback, entry.id, 1, "applied", session_id="one", turn_id="1")
+    bus = EventBus()
+    await bus.subscribe(PersonalMemoryCommand, PersonalMemoryController(bus, store).handle)
+    app = make_chrys_app(tmp_path / "sessions", engine=SessionGenerationEngine(), event_bus=bus)
+    async with app.run_test(size=(100, 40)) as pilot:
+        app._main_screen.action_personal_memory()
+        await wait_for(lambda: isinstance(app.screen, PersonalMemoryScreen) and app.screen._loaded, pilot=pilot)
+        panel = app.screen
+        assert "Effect unknown" in rich_plain(panel.query_one("#memory-usage", Static).content)
+        assert not panel.query_one("#memory-replacement", Static).display
+        state = await asyncio.to_thread(
+            store.feedback, entry.id, 1, "helpful", session_id="one", turn_id="1", source=MemorySource(role="user")
+        )
+        await bus.publish(PersonalMemoryChanged(snapshot=state))
+        await wait_for(
+            lambda: "Effect unknown" not in rich_plain(panel.query_one("#memory-usage", Static).content), pilot=pilot
+        )
+        assert "Helpful" in rich_plain(panel.query_one("#memory-usage", Static).content)
 
 
 async def test_pending_memory_is_quiet_until_weekly_review_and_opening_dismisses_notice(

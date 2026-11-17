@@ -13,7 +13,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, NotRequired, TypedDict
 
-from chrys.foundation.tool_kinds import KIND_FILESYSTEM_READ, get_tool_kind
+from chrys.foundation.tool_kinds import KIND_FILESYSTEM_READ, get_tool_kind, is_extension_kind
 from chrys.kernel import Agent, AgentSession
 from chrys.service.agent_middleware import ApprovalMiddleware, AskUserMiddleware
 from chrys.service.agent_middleware.reminders.archive_pointer import CATALOG_POINTER_RECORD_COUNT_STATE_KEY
@@ -254,7 +254,10 @@ def create_runtime(
     if isinstance(recipe, MainRecipe) and recipe.personal_memory is not None:
         personal_memory = recipe.personal_memory() if personal_memory is None else personal_memory
         reminder_inputs["personal_memory"] = personal_memory
-        tools.extend(personal_memory.tools())
+        extension_start = next(
+            (i for i, tool in enumerate(tools) if is_extension_kind(get_tool_kind(tool))), len(tools)
+        )
+        tools[extension_start:extension_start] = personal_memory.tools()
         summary_extension = personal_memory.summary
         if ctx.context_mgmt_provider is not None:
             ctx.context_mgmt_provider.summary_extension = summary_extension
@@ -271,7 +274,7 @@ def create_runtime(
         injection.set_on_drained_reminders(reminder.queue_drained_injection_reminders)
     chain: list[ChatMiddleware | FunctionMiddleware] = []
     if isinstance(recipe, MainRecipe) and personal_memory is not None:
-        chain.append(personal_memory)
+        chain.extend(personal_memory.middleware())
     if isinstance(recipe, MainRecipe):
         if injection is None:
             raise RuntimeError("The main agent recipe requires injection middleware.")

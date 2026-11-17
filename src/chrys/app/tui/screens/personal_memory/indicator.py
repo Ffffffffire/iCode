@@ -161,9 +161,6 @@ class PersonalMemoryIndicator(NonSelectableStatic):
         recalled = len(recall.matches) if recall else 0
         status = health(replace(self._snapshot, entries=tuple(entries)))
         weekly = self._snapshot.buddy_notifications and self._snapshot.review_notice is not None
-        self._view = (
-            "stale" if status.stale else "candidate" if weekly and pending else ("recalled" if recalled else "active")
-        )
         if self._failed_title:
             label = m.FAIL_BADGE.bind()
             state = "failed"
@@ -185,6 +182,17 @@ class PersonalMemoryIndicator(NonSelectableStatic):
         else:
             label = (m.INDICATOR_COMPACT if self._compact else m.INDICATOR).bind()
             state = "quiet"
+        # Only the review badge (health().needs_review) opens the organize queue;
+        # pending, off and failure states keep their existing targets.
+        self._view = (
+            "organize"
+            if state == "capacity"
+            else "candidate"
+            if weekly and pending
+            else "recalled"
+            if recalled
+            else "active"
+        )
         for name in ("failed", "capacity", "review"):
             self.set_class(state == name, f"-{name}")
         summary = m.COUNTS.bind(

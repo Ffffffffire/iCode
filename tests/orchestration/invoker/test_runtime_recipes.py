@@ -11,7 +11,8 @@ from unittest.mock import create_autospec
 import pytest
 
 from chrys.foundation.events.types import ApprovalRequest, ApprovalResponse, SetModelProfile, UserMessage
-from chrys.kernel import AgentSession, Content, Message, SessionContext
+from chrys.foundation.tool_kinds import set_tool_kind
+from chrys.kernel import AgentSession, Content, FunctionTool, Message, SessionContext
 from chrys.kernel.compaction import _token_count
 from chrys.kernel.middleware import ChatMiddleware
 from chrys.orchestration.engine.build import builder
@@ -124,6 +125,9 @@ async def test_main_conversations_exclude_context_management_from_shared_runtime
     )
     assert len(captured) == 1
     shared, recipe = captured[0]
+    extension = FunctionTool(name="example_extension", func=lambda: "done")
+    set_tool_kind(extension, "extension.example")
+    shared = replace(shared, tools=[*shared.tools, extension])
 
     async def open_main(owner: Conversation) -> KernelRuntime:
         return create_runtime(owner, shared, replace(recipe, validation=create_validation))
@@ -131,6 +135,10 @@ async def test_main_conversations_exclude_context_management_from_shared_runtime
     try:
         first = await engine.current.loaded.prepared.open(open_main)
         second = await engine.current.loaded.prepared.open(open_main)
+        for runtime in (first, second):
+            names = [tool.name for tool in runtime.agent.default_options["tools"]]
+            assert names[-1] == "example_extension"
+            assert names.count("recall_memory") == 1
         assert first.injection is not second.injection
         assert first.validation is not second.validation
         assert first.context is not second.context

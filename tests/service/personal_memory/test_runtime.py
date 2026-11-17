@@ -12,7 +12,10 @@ import pytest
 from chrys.foundation.events.bus import EventBus
 from chrys.foundation.events.personal_memory import PersonalMemoryChanged
 from chrys.foundation.models.personal_memory import MemoryDraft, MemorySource
-from chrys.kernel import Message
+from chrys.foundation.tool_kinds import KIND_CONTEXT, KIND_FILESYSTEM_READ, TOOL_CALL_KIND_METADATA_KEY
+from chrys.foundation.tool_result_metadata import TOOL_FAILED_METADATA_KEY, TOOL_RESULT_METADATA_KEY
+from chrys.kernel import Content, Message
+from chrys.kernel.compaction import EXCLUDED_KEY
 from chrys.service.personal_memory.runtime import PersonalMemoryRuntime
 from chrys.service.personal_memory.store import PersonalMemoryStore
 
@@ -117,6 +120,125 @@ async def test_declined_message_cannot_be_reused_as_a_candidate_in_a_later_turn(
         kind="preference",
     )
     assert result.startswith("Error:")
+    assert store.load().entries == ()
+
+
+async def test_request_to_distill_profiles_is_not_evidence_for_the_resulting_lesson(tmp_path: Path) -> None:
+    runtime, store = _runtime(tmp_path)
+    request = "以 iCode 四个默认 Agent 的配置为范例，总结设计方法，并将其记住，用于后续构建专业 Agent。"  # noqa: RUF001
+    runtime.observe([Message("user", [request])])
+    result = await runtime.propose_memory(
+        title="Agent Profile 设计骨架",
+        content="身份句 → 约束前置 → 原则带反例 → 工具矩阵 → 按读者定输出 → 权限落配置",
+        when_to_use="构建专业 Agent",
+        source_quote=request,
+        intent_quote="并将其记住",
+        save_now=True,
+    )
+    assert result.startswith("Error:") and "evidence" in result
+    assert store.load().entries == ()
+
+
+@pytest.mark.parametrize(
+    ("prompt", "save_now", "application", "expected"),
+    [
+        ("Please remember that lesson.", True, "", None),
+        ("Please remember that lesson.", True, "Verify that read-only roles lack file writing tools.", "active"),
+        ("Compare the profiles.", True, "Verify that read-only roles lack file writing tools.", None),
+        ("Compare the profiles.", False, "Verify that read-only roles lack file writing tools.", "candidate"),
+    ],
+)
+async def test_analysis_lesson_needs_an_application_and_explicit_adoption_to_activate(
+    tmp_path: Path, prompt: str, save_now: bool, application: str, expected: str | None
+) -> None:
+    runtime, store = _runtime(tmp_path)
+    store.configure("auto", True)
+    quote = "The QA profile omits filesystem.write."
+    runtime.observe(
+        [Message("user", ["Read the QA profile."]), Message("assistant", [quote]), Message("user", [prompt])]
+    )
+    result = await runtime.propose_memory(
+        title="Read-only tools",
+        content="Omit filesystem.write for read-only roles.",
+        when_to_use="Configuring read-only agents",
+        source_quote=quote,
+        intent_quote=prompt,
+        save_now=save_now,
+        application=application,
+    )
+    if expected is None:
+        assert result.startswith("Error:") and store.load().entries == ()
+    else:
+        assert json.loads(result)["state"] == expected
+        (entry,) = store.load().entries
+        assert entry.source.role == "assistant" and entry.source.quote == quote
+        assert application in entry.draft.content
+
+
+async def test_lesson_that_exceeds_the_rendered_recall_budget_is_not_saved(tmp_path: Path) -> None:
+    runtime, store = _runtime(tmp_path)
+    escaped = '"\\'
+    quote = escaped * 600
+    runtime.observe([Message("assistant", [quote]), Message("user", ["Please remember that lesson."])])
+    result = await runtime.propose_memory(
+        title="Quoted configuration paths",
+        content="Preserve the original escaping in configuration paths.\n" + escaped * 650,
+        when_to_use="When comparing configuration paths.\n" + escaped * 280,
+        source_quote=quote,
+        save_now=True,
+        application="Check that the parser returns the same path.",
+    )
+    assert result.startswith("Error:") and "cannot fit in a recall" in result
+    assert store.load().entries == ()
+
+
+@pytest.mark.parametrize("case", ["memory_receipt", "failed_read", "hidden_read"])
+async def test_only_currently_visible_successful_read_results_ground_a_lesson(tmp_path: Path, case: str) -> None:
+    runtime, store = _runtime(tmp_path)
+    quote = "sub_agent_only: true"
+    kind = KIND_CONTEXT if case == "memory_receipt" else KIND_FILESYSTEM_READ
+    result = Content.from_function_result(
+        "reused-id",
+        result=quote,
+        additional_properties={TOOL_RESULT_METADATA_KEY: {TOOL_FAILED_METADATA_KEY: case == "failed_read"}},
+    )
+    runtime.observe(
+        [
+            Message("user", ["Look at an earlier profile."]),
+            Message(
+                "assistant",
+                [
+                    Content.from_function_call(
+                        "reused-id",
+                        "read_file",
+                        additional_properties={TOOL_CALL_KIND_METADATA_KEY: KIND_FILESYSTEM_READ},
+                    )
+                ],
+            ),
+            Message("tool", [Content.from_function_result("reused-id", result="name: Earlier")]),
+            Message("user", ["Compare the profiles and remember it."]),
+            Message(
+                "assistant",
+                [
+                    Content.from_function_call(
+                        "reused-id",
+                        "read_file" if kind == KIND_FILESYSTEM_READ else "recall_memory",
+                        additional_properties={TOOL_CALL_KIND_METADATA_KEY: kind},
+                    )
+                ],
+            ),
+            Message("tool", [result], additional_properties={EXCLUDED_KEY: case == "hidden_read"}),
+        ]
+    )
+    response = await runtime.propose_memory(
+        title="Sub-agent role",
+        content="Declare the investigation profile as a sub-agent.",
+        when_to_use="Configuring a delegated role",
+        source_quote=quote,
+        save_now=True,
+        application="Check that the loaded profile is limited to delegated invocations.",
+    )
+    assert response.startswith("Error:") and "quote" in response.lower()
     assert store.load().entries == ()
 
 

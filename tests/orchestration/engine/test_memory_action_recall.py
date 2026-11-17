@@ -36,6 +36,9 @@ async def test_first_write_recovers_memory_missing_from_the_opening_query(
     client = MockChatClient(
         [
             MockResponse(tool_calls=[("write_file", "write", {"path": str(target), "content": "# technical slides"})]),
+            MockResponse(
+                tool_calls=[("write_file", "reviewed", {"path": str(target), "content": "# technical slides"})]
+            ),
             MockResponse(text="Done."),
         ]
     )
@@ -53,7 +56,7 @@ async def test_first_write_recovers_memory_missing_from_the_opening_query(
     )
     await bus.publish(UserMessage(text="Fix the failure, please."))
     await await_run_task_chain(engine, turn_state=engine.turns.turn_state)
-    assert len(client.call_history) == 2
+    assert len(client.call_history) == 3
     before = json.dumps([message.to_dict() for message in client.call_history[0][0]])
     after = json.dumps([message.to_dict() for message in client.call_history[1][0]])
     assert target.read_text(encoding="utf-8").strip() == "# technical slides"
@@ -80,7 +83,16 @@ async def test_all_four_layers_reach_the_model_and_share_one_versioned_receipt(
     client = MockChatClient(
         [
             MockResponse(tool_calls=[("write_file", "write", {"path": str(target), "content": "# slides"})]),
-            MockResponse(tool_calls=[("recall_memory", "lookup", {"query": explicit.id})]),
+            MockResponse(
+                tool_calls=[
+                    (
+                        "recall_memory",
+                        "lookup",
+                        {"query": "What to do before sending artifacts?", "alternatives": ["Release checklist"]},
+                    )
+                ]
+            ),
+            MockResponse(tool_calls=[("write_file", "reviewed", {"path": str(target), "content": "# slides"})]),
             MockResponse(text="Done."),
         ]
     )
@@ -99,12 +111,21 @@ async def test_all_four_layers_reach_the_model_and_share_one_versioned_receipt(
     await bus.publish(UserMessage(text="Fix the cache failure."))
     await await_run_task_chain(engine, turn_state=engine.turns.turn_state)
 
-    assert len(client.call_history) == 3
+    assert len(client.call_history) == 4
     requests = [json.dumps([m.to_dict() for m in call[0]]) for call in client.call_history]
     assert all(e.id in requests[0] for e in (standing, opening))
+    assert all(e.draft.content in requests[0] for e in (standing, opening))
     assert all(e.id not in requests[0] for e in (action, explicit))
     assert action.id in requests[1] and explicit.id not in requests[1]
+    assert action.draft.content in requests[1] and explicit.draft.content not in requests[1]
     assert all(e.id in requests[2] for e in (standing, opening, action, explicit))
+    results = [
+        str(content.result)
+        for message in client.call_history[2][0]
+        for content in message.contents
+        if content.type == "function_result"
+    ]
+    assert any(explicit.draft.content in result for result in results)
     state = await asyncio.to_thread(store.load)
     assert len(state.recalls) == 1
     receipt = state.recalls[0]

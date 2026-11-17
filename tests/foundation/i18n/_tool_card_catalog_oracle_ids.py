@@ -6,6 +6,8 @@ from __future__ import annotations
 
 TOOL_CARD_MESSAGE_IDS: frozenset[str | tuple[str, str]] = frozenset(
     {
+        "tui.tool_card.status.memory_review",
+        ("tui.tool_card.group.summary.deferred", "tui.tool_card.group.summary.deferred#plural"),
         "tui.tool_card.group.single.follow_up_updated",
         "tui.tool_card.group.single.memory_applied",
         "tui.tool_card.group.single.memory_feedback",

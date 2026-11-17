@@ -83,6 +83,7 @@ class MemoryMatch:
     terms: tuple[str, ...]
     routes: tuple[str, ...] = ()
     layer: Literal["L0", "L1", "L2", "L3"] = "L1"
+    context_key: str = ""
 
 
 @dataclass(frozen=True, slots=True)
@@ -119,6 +120,7 @@ class MemoryExposure:
     session_id: str
     turn_id: str
     occurred_at: str
+    context_key: str = ""
 
 
 @dataclass(frozen=True, slots=True)
@@ -129,6 +131,7 @@ class MemoryUse:
     skips: tuple[MemoryExposure, ...] = ()
     helpful_at: str = ""
     correction_sessions: tuple[str, ...] = ()
+    excluded_contexts: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)

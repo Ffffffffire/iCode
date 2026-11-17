@@ -9,13 +9,17 @@ one BM25F score: recognizing the same evidence twice must not promote it twice.
 
 from __future__ import annotations
 
+import hashlib
 import math
 import re
 import unicodedata
 from collections import Counter, OrderedDict
+from collections.abc import Iterator
 from dataclasses import dataclass, replace
 from difflib import SequenceMatcher
+from functools import lru_cache
 from heapq import nsmallest
+from itertools import zip_longest
 from threading import RLock
 
 from chrys.foundation.models.personal_memory import MemoryDraft, MemoryMatch, PersonalMemory
@@ -181,6 +185,26 @@ _CONTINUATION = re.compile(
     r"continue(?: with the next (?:section|chapter|step))?|go on|keep going|more detail)[。.!\uFF01\s]*",
     re.IGNORECASE,
 )
+_DECISION_BOUNDARY = re.compile(
+    r"\s+\b(?:and|then)\s+(?=(?:check|verify|confirm|review|compare|validate|prepare|create|update|test)\b)"
+    r"|[\uff0c、\s]*(?:再|并且|同时)(?=\s*(?:核对|检查|验证|确认|审查|对比|制作|生成|修改))",
+    re.IGNORECASE,
+)
+_SENTENCE_BOUNDARY = re.compile(
+    r"[。\uff01\uff1f\uff1b;]+|(?<=[.!?])\s+"
+    r"|[,\uff0c]\s*(?=(?:(?:先|再|只|仅)\s*)?(?:核对|检查|验证|统计|计数|制作|生成|修改))"
+)
+_REFERENCED_TEXT = re.compile(r"(?ms:^[ \t]*(\x60{3,}|~{3,})[^\n]*\n.*?(?:^[ \t]*\1[ \t]*$|\Z))|(?m:^[ \t]*>[^\n]*)")
+_NON_CREATION = re.compile(
+    r"^\s*(?:请\s*)?(?:(?:不要|无需|不必|别)\s*(?:做|制作|生成|创建|编写)"
+    r"|(?:只|仅)(?:需|需要)?\s*(?:统计|计数|转述|引用)"
+    r"|(?:please\s+)?(?:(?:do not|don't|no need to)\s+(?:make|create|prepare|write|generate)"
+    r"|(?:only|just)\s+(?:count|quote|cite|transcribe))\b)",
+    re.IGNORECASE,
+)
+_ARTIFACT_FORMATS = frozenset({"@slides", "@web"})
+MAX_RECALL_ALTERNATIVES = 2
+MAX_ALTERNATIVE_CHARS = 320
 _FIELD_WEIGHTS = (4.0, 3.0, 1.0)
 # Admission policy, not a confidence estimate. Automatic injection drops weak
 # lexical tails; an explicit tool search retains them for deliberate inspection.
@@ -201,7 +225,7 @@ def continues_previous_task(query: str) -> bool:
 
 
 def _literal_tokens(text: str) -> list[str]:
-    words = [word for word in _WORDS.findall(text) if len(word) > 1 and word not in _STOP]
+    words = [word for raw in _WORDS.findall(text) if len(word := raw.rstrip(".")) > 1 and word not in _STOP]
     if text.isascii():
         return words
     # Remove whole stop phrases before bigrams, so 制作技术 cannot leave 作技.
@@ -230,6 +254,64 @@ def _tokens(text: str) -> Counter[str]:
     return result
 
 
+def _task_decisions(query: str) -> tuple[str, ...]:
+    """Split explicit coordinated requests while keeping ordinary prose together."""
+    query = _REFERENCED_TEXT.sub(" ", query)
+    clauses = _SENTENCE_BOUNDARY.split(query)
+    if any(_NON_CREATION.match(clause) for clause in clauses):
+        query = " ".join(clause for clause in clauses if not _NON_CREATION.match(clause))
+    return tuple(part.strip() for part in _DECISION_BOUNDARY.split(query, maxsplit=2) if part.strip())
+
+
+def linked_to_decision(draft: MemoryDraft, terms: frozenset[str], *, needs_corroboration: bool) -> bool:
+    """Respect specific formats even when an explicit forward link supplies the relationship."""
+    condition = _tokens(draft.when_to_use).keys()
+    formats = condition & _ARTIFACT_FORMATS
+    if formats and not formats & terms:
+        return False
+    return not needs_corroboration or bool(terms & (condition | _tokens(draft.title).keys()))
+
+
+def _query_window(query: str) -> str:
+    # Pasted task input can end with the actual request.
+    return query if len(query) <= 4000 else query[:2000] + "\n" + query[-1999:]
+
+
+def decision_terms(query: str, *, automatic: bool) -> frozenset[str]:
+    query = _query_window(query)
+    decisions = _task_decisions(query) if automatic else (query,)
+    return frozenset(term for decision in decisions for term in _tokens(decision)) - _BACKGROUND_TERMS
+
+
+def _round_robin(lists: tuple[tuple[MemoryMatch, ...], ...]) -> Iterator[MemoryMatch]:
+    for row in zip_longest(*lists):
+        yield from (item for item in row if item is not None)
+
+
+def _fuse_reformulations(lists: tuple[tuple[MemoryMatch, ...], ...]) -> tuple[MemoryMatch, ...]:
+    """Fuse multiple descriptions of one decision. Exact lookups keep priority."""
+    matches: dict[str, MemoryMatch] = {}
+    scores: dict[str, float] = {}
+    for ranked in lists:
+        for rank, match in enumerate(ranked, 1):
+            scores[match.memory_id] = scores.get(match.memory_id, 0.0) + 1 / (60 + rank)
+            old = matches.get(match.memory_id)
+            if old is None:
+                matches[match.memory_id] = match
+            else:
+                matches[match.memory_id] = replace(
+                    old,
+                    terms=tuple(dict.fromkeys((*old.terms, *match.terms)))[:8],
+                    routes=tuple(dict.fromkeys((*old.routes, *match.routes))),
+                )
+    return tuple(
+        sorted(
+            matches.values(),
+            key=lambda match: ("identity" not in match.routes, "title" not in match.routes, -scores[match.memory_id]),
+        )
+    )
+
+
 def _identifier_terms(text: str) -> str:
     """Extract code word boundaries before normalization, preserving protected names."""
     text = unicodedata.normalize("NFKC", text)
@@ -256,6 +338,25 @@ def _identifier_terms(text: str) -> str:
         if filename or split != word:
             parts.append(split)
     return _normalize(" ".join(parts))
+
+
+def decision_key(query: str, workspace: str = "") -> str:
+    """Identify canonical cues without storing the query or tool arguments."""
+    # Long prompts still need faithful identity, but must not occupy cache
+    # slots with unbounded text. Only the digest is persisted.
+    return _hash_decision(query, workspace) if len(query) > 4000 else _decision_key(query, workspace)
+
+
+@lru_cache(maxsize=256)
+def _decision_key(query: str, workspace: str) -> str:
+    return _hash_decision(query, workspace)
+
+
+def _hash_decision(query: str, workspace: str) -> str:
+    # Retrieval can ignore stop words; durable context equality cannot ignore
+    # negation or word order. Only typography and whitespace are normalized.
+    cues = " ".join(unicodedata.normalize("NFKC", query).casefold().split())
+    return hashlib.sha256((workspace + "\n" + cues).encode()).hexdigest()[:24] if cues else ""
 
 
 def _one_edit(left: str, right: str) -> bool:
@@ -319,7 +420,7 @@ class _Document:
 class _View:
     ids: frozenset[str]
     averages: tuple[float, ...]
-    cache: OrderedDict[tuple[str, str, bool, bool], tuple[MemoryMatch, ...]]
+    cache: OrderedDict[tuple[str, str, bool, bool, frozenset[str] | None], tuple[MemoryMatch, ...]]
 
 
 class _Index:
@@ -331,6 +432,8 @@ class _Index:
         self.titles: dict[str, set[str]] = {}
         self.spellings: dict[str, set[str]] = {}
         self.views: OrderedDict[tuple[str | None, frozenset[str] | None], _View] = OrderedDict()
+        self._indexed: tuple[PersonalMemory, ...] | None = None
+        self._include_inactive = False
 
     def _terms_changed(self, memory_id: str, doc: _Document, *, add: bool) -> None:
         for term in set().union(*doc.fields):
@@ -346,6 +449,8 @@ class _Index:
             _posting(self.identities, memory_id[:length], memory_id, add=add)
 
     def synchronize(self, entries: tuple[PersonalMemory, ...], *, include_inactive: bool = False) -> None:
+        if self._indexed is entries and self._include_inactive == include_inactive:
+            return
         active = {entry.id: entry for entry in entries if include_inactive or entry.state == "active"}
         changed = False
         for memory_id in self.documents.keys() - active.keys():
@@ -366,6 +471,8 @@ class _Index:
             changed = True
         if changed:
             self.views.clear()
+        self._indexed = entries
+        self._include_inactive = include_inactive
 
     def view(self, workspace: str | None, eligible_ids: frozenset[str] | None) -> _View:
         key = (workspace, eligible_ids)
@@ -397,16 +504,19 @@ class _Index:
         continued: bool,
         limit: int = _MAX_CANDIDATES,
         eligible_ids: frozenset[str] | None = None,
+        exact_action_terms: frozenset[str] | None = None,
     ) -> tuple[MemoryMatch, ...]:
         view = self.view(workspace, eligible_ids)
         identifiers = _identifier_terms(query)
-        key = (_normalize(query), identifiers, automatic, continued)
+        key = (_normalize(query), identifiers, automatic, continued, exact_action_terms)
         if limit == _MAX_CANDIDATES and key in view.cache:
             view.cache.move_to_end(key)
             return view.cache[key]
         tokens = set(_tokens(query))
         query = key[0]
         lexical_query = query + " " + identifiers
+        identifier_parts = set(_tokens(identifiers)) if identifiers and _WORDS.fullmatch(query) else set()
+        literal_identifier = tokens - identifier_parts
         aliases = {_ALIAS_TERMS[match[0]]: match[0] for match in _ALIAS_PATTERN.finditer(lexical_query)}
         direct: set[str] = set()
         for identity in re.findall(r"(?<![a-z0-9])[a-f0-9]{8,16}(?![a-z0-9])", query):
@@ -441,16 +551,32 @@ class _Index:
         postings = {term: self.postings.get(term, set()) & view.ids for term in searched}
         candidates = direct | phrases | set().union(*postings.values())
         idf = {term: math.log1p((len(view.ids) - len(ids) + 0.5) / (len(ids) + 0.5)) for term, ids in postings.items()}
-        ranked: list[tuple[tuple[bool, bool, float, bool, str], MemoryMatch]] = []
+        requested_formats = searched & _ARTIFACT_FORMATS
+        ranked: list[tuple[bool, bool, float, bool, str]] = []
         for mid in candidates:
             doc = self.documents[mid]
             anchored = searched & doc.anchors
             body = searched & doc.fields[2].keys()
-            formats = doc.fields[1].keys() & {"@slides", "@web"}
-            requested_formats = searched & {"@slides", "@web"}
+            # Finding "policy" alone is insufficient when the whole lookup is RetryPolicy.
+            if (
+                len(identifier_parts) > 1
+                and mid not in direct
+                and mid not in phrases
+                and not literal_identifier & anchored
+                and len(identifier_parts & (anchored | body)) < 2
+            ):
+                continue
+            formats = doc.fields[1].keys() & _ARTIFACT_FORMATS
             if automatic and mid not in direct and formats and requested_formats and not formats & requested_formats:
                 continue
             relevant_anchors = anchored - _BACKGROUND_TERMS if automatic else anchored
+            if exact_action_terms is not None:
+                # An action needs literal support from its target.
+                action_anchors = relevant_anchors & tokens
+                if (formats and not formats & exact_action_terms) or (
+                    len(action_anchors) < 2 and not action_anchors & exact_action_terms
+                ):
+                    continue
             if mid not in direct and mid not in phrases and not relevant_anchors and (automatic or len(body) < 2):
                 continue
             matched = anchored | body
@@ -461,6 +587,15 @@ class _Index:
                     for i, (field, weight) in enumerate(zip(doc.fields, _FIELD_WEIGHTS, strict=True))
                 )
                 score += idf[term] * 2.2 * frequency / (1.2 + frequency)
+            ranked.append((mid not in direct, mid not in phrases, -score, not bool(doc.draft.workspace), mid))
+        floor = max((-rank[2] for rank in ranked), default=0.0) * _AUTOMATIC_SCORE_FRACTION
+        admitted = (rank for rank in ranked if not automatic or not rank[0] or not rank[1] or -rank[2] >= floor)
+        matches: list[MemoryMatch] = []
+        # Many broad queries rank thousands of candidates. Only the shortlist
+        # needs display terms and explanations.
+        for _, _, _, _, mid in nsmallest(limit, admitted):
+            doc = self.documents[mid]
+            matched = searched & (doc.anchors | doc.fields[2].keys())
             routes = []
             if mid in direct:
                 routes.append("identity")
@@ -480,17 +615,8 @@ class _Index:
                 f"{corrected[term]} → {term.lstrip('@')}" if term in corrected else aliases.get(term, term)
                 for term in sorted(matched, key=lambda term: (-idf[term], term))
             )[:8]
-            ranked.append(
-                (
-                    (mid not in direct, mid not in phrases, -score, not bool(doc.draft.workspace), mid),
-                    MemoryMatch(mid, doc.revision, terms, tuple(routes)),
-                )
-            )
-        floor = max((-rank[2] for rank, _ in ranked), default=0.0) * _AUTOMATIC_SCORE_FRACTION
-        admitted = (
-            (rank, match) for rank, match in ranked if not automatic or not rank[0] or not rank[1] or -rank[2] >= floor
-        )
-        result = tuple(match for _, match in nsmallest(limit, admitted, key=lambda pair: pair[0]))
+            matches.append(MemoryMatch(mid, doc.revision, terms, tuple(routes)))
+        result = tuple(matches)
         if limit != _MAX_CANDIDATES:
             return result
         view.cache[key] = result
@@ -515,17 +641,52 @@ class MemoryRetriever:
         automatic: bool,
         context: str = "",
         eligible_ids: frozenset[str] | None = None,
+        alternatives: tuple[str, ...] = (),
+        action_targets: tuple[str, ...] | None = None,
     ) -> tuple[MemoryMatch, ...]:
         continued = bool(context and continues_previous_task(query))
         query = context if continued else query
-        # Long pasted task input often ends with the actual request. Keep both
-        # ends within the same bounded tokenizer budget instead of losing it.
-        query = query if len(query) <= 4000 else query[:2000] + "\n" + query[-1999:]
+        query = _query_window(query)
+        exact_action_terms = None
+        if action_targets is not None:
+            exact_action_terms = frozenset(
+                term
+                for target in action_targets
+                if len(terms := _tokens(target)) == 1
+                for term in terms
+                if not term.startswith("@") or (target.startswith("@") and term in _ARTIFACT_FORMATS)
+            )
         with self._lock:
             self._index.synchronize(entries)
-            return self._index.search(
-                query, workspace, automatic=automatic, continued=continued, eligible_ids=eligible_ids
+            queries = _task_decisions(query) if automatic and action_targets is None else (query,)
+            # Alternate wording belongs to one deliberate lookup. Equivalent
+            # term sets contribute a single ranking to the fusion.
+            if alternatives and not automatic:
+                by_terms = {frozenset(_tokens(query)): query}
+                for alternative in alternatives[:MAX_RECALL_ALTERNATIVES]:
+                    alternate = alternative.strip()[:MAX_ALTERNATIVE_CHARS]
+                    if alternate:
+                        by_terms.setdefault(frozenset(_tokens(alternate)), alternate)
+                queries = tuple(by_terms.values())
+            lists = tuple(
+                self._index.search(
+                    decision,
+                    workspace,
+                    automatic=automatic,
+                    continued=continued,
+                    eligible_ids=eligible_ids,
+                    exact_action_terms=exact_action_terms,
+                )
+                for decision in queries
             )
+            if len(lists) <= 1:
+                return lists[0] if lists else ()
+            if alternatives and not automatic:
+                return _fuse_reformulations(lists)[:_MAX_CANDIDATES]
+            unique: dict[str, MemoryMatch] = {}
+            for match in _round_robin(lists):
+                unique.setdefault(match.memory_id, match)
+            return tuple(unique.values())[:_MAX_CANDIDATES]
 
     def browse(self, entries: tuple[PersonalMemory, ...], query: str) -> tuple[MemoryMatch, ...]:
         """Library-only search: all supplied states/scopes, without recall limits or side effects."""

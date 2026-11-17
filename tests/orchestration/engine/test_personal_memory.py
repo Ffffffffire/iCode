@@ -5,6 +5,9 @@
 from __future__ import annotations
 
 import asyncio
+import json
+from dataclasses import replace
+from pathlib import Path
 from unittest.mock import create_autospec
 
 import pytest
@@ -12,7 +15,7 @@ import pytest
 from chrys.foundation.config.settings import Settings
 from chrys.foundation.events.bus import EventBus
 from chrys.foundation.events.personal_memory import PersonalMemoryChanged, PersonalMemoryCommand
-from chrys.foundation.events.types import UserMessage
+from chrys.foundation.events.types import SessionNew, UserMessage
 from chrys.foundation.models.personal_memory import MemoryDraft, MemoryFollowUp, MemorySource
 from chrys.orchestration.engine.build import builder
 from chrys.service.approval.policy import ApprovalMode
@@ -318,6 +321,86 @@ async def test_explicit_user_request_saves_without_suggestion_review(
     await await_run_task_chain(engine, turn_state=engine.turns.turn_state)
     latest = "\n".join(message.text or "" for message in client.call_history[-1][0])
     assert "报告缓存排查" in latest
+
+
+async def test_profile_lesson_keeps_the_rule_and_check_in_a_new_session(
+    agent_engine, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    profile = tmp_path / "Explore.yaml"
+    profile.write_text(
+        "sub_agent_only: true\n"
+        "instructions: |\n"
+        "  Return a read-only investigation with path:line references to the caller.\n"
+        "tools:\n"
+        "  builtins: [filesystem.read, search, shell]\n",
+        encoding="utf-8",
+    )
+    request = "以 iCode 默认 Agent 的配置为范例，总结专业 Agent 的设计方法，并将其记住。"  # noqa: RUF001
+    lesson = (
+        "Design a specialist by choosing its caller and permissions before writing its instructions. "
+        "For an investigation child, set sub_agent_only: true and expose filesystem.read and search, "
+        "without filesystem.write. If shell is needed, name the allowed read operations and require approval "
+        "in modes that enforce it. Omit shell when the child must be unable to change files. "
+        "Tell the child its result goes to the calling agent. Lead with findings, provide path:line references "
+        "and exact definitions, and list the locations searched when evidence is missing. "
+        "Keep zero-hit queries, remaining leads, and the investigation boundary in compaction.last_words_template. "
+        "Use Explore.yaml as the reference when changing the profile or checking which responsibilities it delegates."
+    )
+    application = (
+        "Check the loaded tool list for the absence of write tools. Give the child a read-only configuration "
+        "investigation and verify that the caller receives a finding with a navigable path:line and no file changes."
+    )
+    source_quote = "sub_agent_only: true"
+    client = MockChatClient(
+        [
+            MockResponse(tool_calls=[("read_file", "profile-source", {"path": str(profile)})]),
+            MockResponse(
+                tool_calls=[
+                    (
+                        "propose_memory",
+                        "save-lesson",
+                        {
+                            "title": "只读调查子代理的权限和交付",
+                            "content": lesson,
+                            "application": application,
+                            "when_to_use": "设计给调用方返回证据的只读调查子代理",
+                            "reconsider_when": "Agent 需要写入或工具与审批机制发生变化",
+                            "source_quote": source_quote,
+                            "kind": "lesson",
+                            "save_now": True,
+                            "aliases": ["只读审查 Agent"],
+                        },
+                    )
+                ]
+            ),
+            MockResponse(text="已保存调查子代理的设计经验。"),
+            MockResponse(text="检查加载的工具和调用方收到的路径与行号。"),
+        ]
+    )
+    monkeypatch.setattr(builder, "create_client", create_autospec(builder.create_client, return_value=client))
+    bus = EventBus()
+    engine = agent_engine(bus, settings=Settings(), initial_approval_mode=ApprovalMode.BYPASS)
+    await engine.start(replace(_profile(), tools=ToolsConfig(builtins=["filesystem.read"])))
+    original_session = engine.session_id
+    await bus.publish(UserMessage(text=request))
+    await await_run_task_chain(engine, turn_state=engine.turns.turn_state)
+
+    (entry,) = (await asyncio.to_thread(PersonalMemoryStore().load)).entries
+    assert entry.state == "active"
+    assert entry.source.role == "tool" and entry.source.quote == source_quote
+    assert entry.source.session_id == original_session
+    assert entry.draft.content == f"{lesson}\n\n{application}"
+
+    await bus.publish(SessionNew())
+    assert engine.session_id != original_session
+    await bus.publish(UserMessage(text="我要加一个只读审查 Agent，给主 Agent 交回配置调查结果，怎样验收？"))  # noqa: RUF001
+    await await_run_task_chain(engine, turn_state=engine.turns.turn_state)
+
+    latest = "\n".join(message.text or "" for message in client.call_history[-1][0])
+    (delivered,) = [json.loads(line) for line in latest.splitlines() if line.startswith(f'{{"id": "{entry.id}"')]
+    assert delivered["memory"] == entry.draft.content
+    assert delivered["source"]["quote"] == source_quote
+    assert request not in latest
 
 
 @pytest.mark.parametrize("prompt", ["请比较报告缓存的排查方案。", "我在设计记住用户偏好的按钮, 请比较文案。"])

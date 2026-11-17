@@ -24,6 +24,13 @@ _FIXED_CHRYS_TOOL_NAMES = frozenset(
         "compress_context",
         "list_compressed_contexts",
         "recall_context",
+        # Personalized memory tools contributed by the main conversation.
+        "recall_memory",
+        "propose_memory",
+        "pause_memory",
+        "review_memory",
+        "update_follow_up",
+        "organize_memory",
         # Skill tools contributed at run time.
         "load_skill",
         "read_skill_resource",

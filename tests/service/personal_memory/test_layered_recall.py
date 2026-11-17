@@ -53,11 +53,12 @@ async def test_action_file_identifier_recalls_the_natural_language_decision(tmp_
             MockResponse(text="Done"),
         ]
     )
-    async with Agent(client=client, tools=[edit_file], middleware=[runtime]) as agent:
+    async with Agent(client=client, tools=[edit_file], middleware=runtime.middleware()) as agent:
         await agent.run([message])
 
     wire = json.dumps([m.to_dict() for m in client.call_history[-1][0]])
     assert entry.id in wire
+    assert entry.draft.content in wire
     state = await asyncio.to_thread(store.load)
     assert [(m.memory_id, m.layer) for m in state.recalls[0].matches] == [(entry.id, "L2")]
     assert len(client.call_history) == 2

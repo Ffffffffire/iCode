@@ -110,6 +110,11 @@ _MEMORY_PAUSES = msg(
 _OTHER_CALLS = msg(
     "tui.tool_card.group.summary.other_calls", fallback="{count} other call", plural_fallback="{count} other calls"
 )
+_DEFERRED = msg(
+    "tui.tool_card.group.summary.deferred",
+    fallback="{count} deferred action",
+    plural_fallback="{count} deferred actions",
+)
 
 _CATEGORIES: Final[tuple[tuple[str, MessageDef], ...]] = (
     ("read", _READS),
@@ -127,6 +132,7 @@ _CATEGORIES: Final[tuple[tuple[str, MessageDef], ...]] = (
     ("memory_lookup", _MEMORY_LOOKUPS),
     ("memory_write", _MEMORY_WRITES),
     ("memory_pause", _MEMORY_PAUSES),
+    ("deferred", _DEFERRED),
     ("other", _OTHER_CALLS),
 )
 """Every category a folded row counts, in the order it lists them, with the words for its count."""
@@ -233,6 +239,7 @@ _ACTIONS: Final[tuple[MessageDef, ...]] = (
     _LOOKED_UP_MEMORIES,
     _REQUESTED_MEMORY_WRITES,
     _REQUESTED_MEMORY_PAUSES,
+    _DEFERRED,
     _MADE_OTHER_CALLS,
 )
 """What a tool group's calls of each category did, in :data:`_CATEGORIES` order: the clauses of its folded row."""

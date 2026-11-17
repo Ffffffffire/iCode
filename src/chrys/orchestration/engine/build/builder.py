@@ -707,6 +707,16 @@ async def build_agent(
             tools.extend(mcp_tools)
             warn_if_tool_loading_unbinds_thinking(profile, active_profile, chat_options, mcp_tools_by_server)
 
+        # Personal experiences belong to the interactive user's main agent.
+        # Keep them out of Prepared's shared tools, but reserve their names
+        # before loading extensions like every other native capability.
+        from chrys.service.personal_memory.runtime import PersonalMemoryRuntime
+
+        shared_tools = list(tools)
+        personal_memory = PersonalMemoryRuntime(bus=bus, session_id=session_id or "", workspace=runtime.cwd)
+        personal_memory_tools = personal_memory.tools()
+        tools.extend(personal_memory_tools)
+
         # Extensions come last: their tools yield every name the agent's other tools take.
         extensions = await tool_packs.assemble_extensions(
             tool_build,
@@ -720,6 +730,7 @@ async def build_agent(
         for warning in extensions.warnings:
             await bus.publish(warning)
         tools.extend(extensions.tools)
+        shared_tools.extend(extensions.tools)
 
         # Build skills provider (if configured)
         await _progress(AGENT_LOAD_PHASE_SKILLS, "Loading skills", status=AGENT_LOAD_STATUS_RUNNING)
@@ -754,16 +765,6 @@ async def build_agent(
 
         if memory_content.truncated:
             await bus.publish(memory_truncated_warning(memory_content, session_id=session_id))
-
-        # Personal experiences belong to the interactive user's main agent.
-        # Child and workflow builds deliberately receive no private catalog
-        # or memory-writing tools; their task context is supplied by the caller.
-        from chrys.service.personal_memory.runtime import PersonalMemoryRuntime
-
-        shared_tools = list(tools)
-        personal_memory = PersonalMemoryRuntime(bus=bus, session_id=session_id or "", workspace=runtime.cwd)
-        personal_memory_tools = personal_memory.tools()
-        tools.extend(personal_memory_tools)
 
         # Capture tool/skill names
         await _progress(AGENT_LOAD_PHASE_AGENT, "Finalizing agent", status=AGENT_LOAD_STATUS_RUNNING)

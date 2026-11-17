@@ -10143,6 +10143,12 @@ msgstr ""
 msgid "tui.personal_memory.completed"
 msgstr ""
 
+#. English: Keep conditions
+#. chrys-meta={"fingerprint":"8b0f833c36dab7c2d31fde1e0ae85c76cef6ea0151d34aa75f92584880682e47","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.confirm_conditions"
+msgstr ""
+
 #. English: What should be remembered?
 #. chrys-meta={"fingerprint":"ba4e008187f39b879a1c90154ba0bc751d5c6ed7d257b3289ac54378a7f29fb4","multiline":false,"placeholders":[]}
 #: src/chrys/app/tui/screens/personal_memory/messages.py
@@ -10204,6 +10210,12 @@ msgstr ""
 msgid "tui.personal_memory.edit"
 msgstr ""
 
+#. English: Effect unknown
+#. chrys-meta={"fingerprint":"d1e8a53ff2ff24e7bc4092ad13757b89f445b2d17824a0e3c3e471c500f39ee4","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.effect_unknown"
+msgstr ""
+
 #. English: No memories in this view.
 #. chrys-meta={"fingerprint":"45605d89a3b42c021ce10f603ef1f798919ab72541e74bc55463439802fc797a","multiline":false,"placeholders":[]}
 #: src/chrys/app/tui/screens/personal_memory/messages.py
@@ -10239,6 +10251,13 @@ msgstr ""
 #. chrys-meta={"fingerprint":"e94ee4abc5c3b600a960132f23c5408486cafed17c3d661be73638a65ad6559b","multiline":false,"placeholders":[]}
 #: src/chrys/app/tui/screens/personal_memory/messages.py
 msgid "tui.personal_memory.fail_disabled"
+msgstr ""
+
+#. English: Check the rule, its future use and length. A lesson from research
+#. also needs an application.
+#. chrys-meta={"fingerprint":"0c62756a0e4a1edaa2d97dfe2865bb14a78dd701f6af48c85cfee052247ef5a0","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.fail_distilled"
 msgstr ""
 
 #. English: A related memory already exists. Edit that entry instead.
@@ -10407,8 +10426,8 @@ msgstr ""
 msgid "tui.personal_memory.latest_activity"
 msgstr ""
 
-#. English: After an action
-#. chrys-meta={"fingerprint":"84687e6c327a9a3e225608057651ffaff3cfb7fe2b507d76823cac0222e18c3d","multiline":false,"placeholders":[]}
+#. English: Before an action
+#. chrys-meta={"fingerprint":"5dbde8e3fea3c46fb1c0a5efd93435c2edb6dedd8cc7617401fd2054e4842c5f","multiline":false,"placeholders":[]}
 #: src/chrys/app/tui/screens/personal_memory/messages.py
 msgid "tui.personal_memory.layer_action"
 msgstr ""
@@ -10576,6 +10595,24 @@ msgstr ""
 msgid "tui.personal_memory.organize"
 msgstr ""
 
+#. English: No memories need organizing.
+#. chrys-meta={"fingerprint":"cc7b1834e4eeaa4fc8626ff6807644dfbecda0ef2263b158b634614a3137a182","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.organize_empty"
+msgstr ""
+
+#. English: No memories need organizing with the current filters.
+#. chrys-meta={"fingerprint":"c3950d441751134b2bc2e22e1c52347f4ebb75f23c9933bf4a3fbcf2e7dfa991","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.organize_empty_filtered"
+msgstr ""
+
+#. English: Same content (same type and scope): {partners}
+#. chrys-meta={"fingerprint":"684dff3a895ce5538a6765b08a7616d3b900f902746833dfb67c694969ddb757","multiline":false,"placeholders":["partners"]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.organize_partners"
+msgstr ""
+
 #. English: Review my habits and conditional experience about {topic}. Inspect
 #. these memories: {references}. Propose a concise synthesis or merge, explain
 #. what each source contributes and which exceptions remain. Wait for my
@@ -10583,6 +10620,62 @@ msgstr ""
 #. chrys-meta={"fingerprint":"6b32307907387c831630316ad200ce271caba8cf843f1dd682aba0a9040920c9","multiline":false,"placeholders":["references","topic"]}
 #: src/chrys/app/tui/screens/personal_memory/messages.py
 msgid "tui.personal_memory.organize_prompt"
+msgstr ""
+
+#. English: Review my habits and conditional experience about {topic}. Propose
+#. a concise synthesis or merge and explain which exceptions remain. Wait for
+#. my confirmation before retiring sources.
+#. chrys-meta={"fingerprint":"a43e26324d9617f5206a34b00750e973e60d1574fa673cebc869ecf8d2c7fbac","multiline":false,"placeholders":["topic"]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.organize_prompt_topic"
+msgstr ""
+
+#. English: Similar content
+#. chrys-meta={"fingerprint":"0137ce6b7b3b6bc2bc4f69efdde63525128f86f150d9c3393317364f5f65cdc5","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.organize_reason_duplicate"
+msgstr ""
+
+#. English: Marked for review
+#. chrys-meta={"fingerprint":"d69dabd3aaa2e8d127853d3db2baec71da523e632e7984a5ff4f0f63084e1767","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.organize_reason_review"
+msgstr ""
+
+#. English: Repeatedly not applicable
+#. chrys-meta={"fingerprint":"33ae4a4089d0df717f74346ea6069635f99ae6e04c8e6e9ddc3f20e805f24059","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.organize_reason_skips"
+msgstr ""
+
+#. English: Source changed
+#. chrys-meta={"fingerprint":"353fa26d9684328dcfd0fc7a520f7ec9419924d13bedd567889c1195bddb5715","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.organize_reason_source"
+msgstr ""
+
+#. English: Marked for review. Check whether it still applies.
+#. chrys-meta={"fingerprint":"583f218ce0fba5dae0da39bea1cd5b90ae6b38d36094dfe322f39377ed1a7489","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.organize_review_generic"
+msgstr ""
+
+#. English: Select a memory, or choose a topic or search first.
+#. chrys-meta={"fingerprint":"5389b6e161c1555483a577110c04fc2e11c1cf985f4a964053845d0ed51a586c","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.organize_select_hint"
+msgstr ""
+
+#. English: To organize
+#. chrys-meta={"fingerprint":"f22e674877c3802fa4e127264b1fc4c2c825a19cd697950043ededeff8965f36","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.organize_view"
+msgstr ""
+
+#. English: Why it needs organizing
+#. chrys-meta={"fingerprint":"ffc459be8110c488da282bf3d4027f8fbf5037bf4d139edf599e14e779273c3c","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.organize_why"
 msgstr ""
 
 #. English: To do
@@ -10732,9 +10825,8 @@ msgstr ""
 msgid "tui.personal_memory.review_expired"
 msgstr ""
 
-#. English: Provided at least five times in six months without helpful
-#. feedback. Check its usefulness; this does not prove it is wrong.
-#. chrys-meta={"fingerprint":"416b4714a977f84ce25a2575c13ef9a5b6cb690e96b87d8e6d421e6816f85a6d","multiline":false,"placeholders":[]}
+#. English: No helpful feedback was recorded. Its effect is unknown.
+#. chrys-meta={"fingerprint":"f822de1289f1590a98872ded3a2e9eed3310fd9ac7040b36a8850276ed5dc6f9","multiline":false,"placeholders":[]}
 #: src/chrys/app/tui/screens/personal_memory/messages.py
 msgid "tui.personal_memory.review_no_feedback"
 msgstr ""
@@ -10745,9 +10837,8 @@ msgstr ""
 msgid "tui.personal_memory.review_required"
 msgstr ""
 
-#. English: Skipped in three different turns. Check the conditions, then
-#. confirm or edit.
-#. chrys-meta={"fingerprint":"1db857ad9ffe96e0da94eeac3efa3786be44ba06b5a6fffc8dd97dd80e3f1c32","multiline":false,"placeholders":[]}
+#. English: Applicability was questioned in three turns. Review the conditions.
+#. chrys-meta={"fingerprint":"6e9b959fbb0f943355b96cdfd15b861a22c9e10359408ea321974321c3889227","multiline":false,"placeholders":[]}
 #: src/chrys/app/tui/screens/personal_memory/messages.py
 msgid "tui.personal_memory.review_skipped"
 msgstr ""
@@ -10898,6 +10989,12 @@ msgstr ""
 #. chrys-meta={"fingerprint":"d1e2d57c3574c521aa66938b1cb35ac2c411fcb77bead601ed15fcd69d544ace","multiline":false,"placeholders":[]}
 #: src/chrys/app/tui/screens/personal_memory/messages.py
 msgid "tui.personal_memory.title"
+msgstr ""
+
+#. English: Tool result
+#. chrys-meta={"fingerprint":"62e277ca4a9a10b3e28c7246f2f8ad1e602c6fe61d4464531f45681b0c27728c","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.tool_source"
 msgstr ""
 
 #. English: Topics
@@ -14935,6 +15032,15 @@ msgid_plural "tui.tool_card.group.summary.commands#plural"
 msgstr[0] ""
 msgstr[1] ""
 
+#. English: {count} deferred action
+#. English-plural: {count} deferred actions
+#. chrys-meta={"fingerprint":"288650d7cffd7231571dd77e3579912dc9e4d3814e9b22614c99a75186e03612","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/widgets/chat/fold_rows.py
+msgid "tui.tool_card.group.summary.deferred"
+msgid_plural "tui.tool_card.group.summary.deferred#plural"
+msgstr[0] ""
+msgstr[1] ""
+
 #. English: {count} edit
 #. English-plural: {count} edits
 #. chrys-meta={"fingerprint":"1cca3f5d5c57157519e612f71c933e4e9ede531c844366ddf5af873c1cd207bd","multiline":false,"placeholders":[]}
@@ -15332,6 +15438,12 @@ msgstr ""
 #. chrys-meta={"fingerprint":"a36b77fe0cac89a83f2662942ca0ed1b884c22e9856969f805a67576f67b4238","multiline":false,"placeholders":[]}
 #: src/chrys/app/tui/widgets/chat/tool_call.py
 msgid "tui.tool_card.status.interrupted"
+msgstr ""
+
+#. English: Deferred to review memories
+#. chrys-meta={"fingerprint":"45770c89824dbcf6b1823ddfcf001e87461fad2e859a39194400b5307871e094","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/widgets/chat/tool_call.py
+msgid "tui.tool_card.status.memory_review"
 msgstr ""
 
 #. English: Rejected

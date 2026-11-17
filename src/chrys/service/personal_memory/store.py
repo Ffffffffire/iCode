@@ -13,10 +13,11 @@ import errno
 import json
 import logging
 import os
+import re
 from collections.abc import Callable
 from dataclasses import asdict, replace
 from datetime import UTC, datetime
-from itertools import pairwise
+from itertools import islice, pairwise
 from pathlib import Path
 from threading import RLock
 from typing import Any, Literal
@@ -42,7 +43,7 @@ from chrys.foundation.platform.files import atomic_write_owner_only_text, secure
 from chrys.foundation.util.lock import FileLock
 
 from . import activity, lifecycle
-from .retrieval import MemoryRetriever
+from .retrieval import MemoryRetriever, continues_previous_task, decision_key, decision_terms, linked_to_decision
 
 _log = logging.getLogger(__name__)
 
@@ -78,6 +79,12 @@ def _now() -> str:
 
 def workspace_key(workspace: str) -> str:
     return os.path.normcase(str(Path(workspace).resolve())) if workspace else ""
+
+
+def _recall_context_key(query: str, context: str, workspace: str, layer: str | None) -> str:
+    if context and layer == "L2":
+        return decision_key(query + "\n" + context, workspace)
+    return decision_key(context if context and continues_previous_task(query) else query, workspace)
 
 
 def review_key(state: MemorySnapshot, workspace: str) -> tuple[tuple[str, int], ...]:
@@ -309,7 +316,12 @@ def _recall(item: dict) -> MemoryRecall:
         item["query"],
         tuple(
             MemoryMatch(
-                m["memory_id"], m["revision"], tuple(m["terms"]), tuple(m.get("routes", ())), m.get("layer", "L1")
+                m["memory_id"],
+                m["revision"],
+                tuple(m["terms"]),
+                tuple(m.get("routes", ())),
+                m.get("layer", "L1"),
+                m.get("context_key", ""),
             )
             for m in item["matches"]
         ),
@@ -320,7 +332,12 @@ def _recall(item: dict) -> MemoryRecall:
         item.get("context_chars", 0),
     )
     if any(type(v) is not int or v < 0 for v in (result.searches, result.context_chars)) or any(
-        m.layer not in ("L0", "L1", "L2", "L3") or type(m.revision) is not int or m.revision < 1 for m in result.matches
+        m.layer not in ("L0", "L1", "L2", "L3")
+        or type(m.revision) is not int
+        or m.revision < 1
+        or not isinstance(m.context_key, str)
+        or (m.context_key and not re.fullmatch(r"[a-f0-9]{24}", m.context_key))
+        for m in result.matches
     ):
         raise MemoryStoreError("Invalid memory recall budget or provenance.")
     return result
@@ -592,11 +609,13 @@ class PersonalMemoryStore:
                 else None,
             )
             if after.review_notice is not None:
+                condition_ids = lifecycle.condition_review_ids(after)
                 eligible = {
                     e.id
                     for e in after.entries
                     if e.state
                     in (("active", "candidate", "stale") if after.review_notice.topic else ("candidate", "stale"))
+                    or e.id in condition_ids
                 }
                 ids = tuple(mid for mid in after.review_notice.memory_ids if mid in eligible)
                 after = replace(
@@ -870,7 +889,12 @@ class PersonalMemoryStore:
                 state = replace(state, recalls=tuple(revised if r is receipt else r for r in state.recalls))
             if outcome == "incorrect" and entry.state == "active":
                 paused = replace(
-                    entry, state="archived", revision=entry.revision + 1, updated_at=_now(), retired_by=source
+                    entry,
+                    state="archived",
+                    revision=entry.revision + 1,
+                    updated_at=_now(),
+                    retired_by=source,
+                    review_reason="incorrect",
                 )
                 state = replace(state, entries=tuple(paused if e.id == entry.id else e for e in state.entries))
             if any(
@@ -885,7 +909,18 @@ class PersonalMemoryStore:
             ):
                 return state
             state = lifecycle.record_use(
-                state, memory_id, revision, outcome, session_id, actual_turn, user=actor == "user"
+                state,
+                memory_id,
+                revision,
+                outcome,
+                session_id,
+                actual_turn,
+                user=actor == "user",
+                context_key=next(
+                    (m.context_key for m in receipt.matches if m.memory_id == memory_id and m.revision == revision), ""
+                )
+                if receipt and receipt.turn_id == actual_turn
+                else "",
             )
             return activity.record(
                 state,
@@ -1204,6 +1239,15 @@ class PersonalMemoryStore:
                 if old and not (old.state == "stale" and authorization == "request")
                 else "",
             )
+            if (
+                draft.kind == "lesson"
+                and authorization in ("request", "capture")
+                and len(render_memory(saved)) > MAX_CONTEXT_CHARS
+            ):
+                raise MemoryStoreError(
+                    "This lesson cannot fit in a recall. Shorten the evidence or separate independent decisions.",
+                    code="memory_not_distilled",
+                )
             return replace(state, entries=(*(item for item in state.entries if item.id != saved.id), saved))
 
         self._update(
@@ -1243,6 +1287,18 @@ class PersonalMemoryStore:
         def change(state: MemorySnapshot, memory_id: str, revision: int) -> MemorySnapshot:
             old = self._find(state, memory_id, revision)
             if old.state == status:
+                if status == "active" and old.id in lifecycle.condition_review_ids(state):
+                    state = replace(state, uses=tuple(u for u in state.uses if u.memory_id != old.id))
+                    return activity.record(
+                        state,
+                        "conditions_confirmed",
+                        memory_id=old.id,
+                        revision=old.revision,
+                        session_id=session_id,
+                        turn_id=turn_id,
+                        actor="user",
+                        source=confirmation,
+                    )
                 return state
             source_ids = {r.memory_id for r in old.draft.relations if r.kind == "merged_from"}
             if (
@@ -1555,6 +1611,8 @@ class PersonalMemoryStore:
         turn_id: str = "",
         exclude_versions: set[tuple[str, int]] | None = None,
         layer: Literal["L1", "L2", "L3"] | None = None,
+        alternatives: tuple[str, ...] = (),
+        action_targets: tuple[str, ...] | None = None,
     ) -> tuple[tuple[PersonalMemory, MemoryMatch], ...]:
         if state.mode == "off" or (automatic and state.mode != "auto"):
             return ()
@@ -1566,6 +1624,8 @@ class PersonalMemoryStore:
         entries = {entry.id: entry for entry in state.entries}
         receipt = next((r for r in state.recalls if r.session_id == session_id and r.turn_id == turn_id), None)
         excluded = set(receipt.excluded_ids) if receipt else set()
+        query_context = _recall_context_key(query, context, workspace, layer)
+        uses = {use.memory_id: use for use in state.uses}
         now = datetime.now(UTC)
 
         def available(entry: PersonalMemory) -> bool:
@@ -1574,7 +1634,12 @@ class PersonalMemoryStore:
                 (entry.state == "active" or (not automatic and entry.state == "stale"))
                 and entry.draft.workspace in ("", workspace)
                 and entry.id not in excluded
-                and (entry.id, entry.revision) not in (exclude_versions or ())
+                and not (
+                    automatic
+                    and entry.id in uses
+                    and uses[entry.id].revision == entry.revision
+                    and query_context in uses[entry.id].excluded_contexts
+                )
                 and self.evidence_current(entry, entries)
                 and (
                     follow is None
@@ -1588,15 +1653,36 @@ class PersonalMemoryStore:
         # Hard eligibility precedes statistics, score admission and shortlist truncation.
         # Keep the shared index intact; query-specific views isolate the allowed set.
         eligible_ids = frozenset(entry.id for entry in state.entries if available(entry))
-        ranked = self._retriever.search(
-            searchable, query, workspace, automatic=automatic, context=context, eligible_ids=eligible_ids
+        ranked = tuple(
+            match
+            for match in self._retriever.search(
+                searchable,
+                query,
+                workspace,
+                automatic=automatic,
+                context=context,
+                eligible_ids=eligible_ids,
+                alternatives=alternatives,
+                action_targets=action_targets,
+            )
+            if not exclude_versions or (match.memory_id, match.revision) not in exclude_versions
         )
-        if automatic:
+        # A delivered version may still explain why a weak match was rejected.
+        # Suppress delivery after admission, without changing its statistics.
+        anchors = tuple(
+            match for match in ranked if match.terms or "identity" in match.routes or "title" in match.routes
+        )
+        if automatic and layer != "L2":
             defaults = tuple(
-                MemoryMatch(e.id, e.revision, (), ("standing",))
-                for e in state.entries
-                if e.draft.use == "always" and e.id in eligible_ids
-            )[:2]
+                islice(
+                    (
+                        MemoryMatch(e.id, e.revision, (), ("standing",))
+                        for e in state.entries
+                        if e.draft.use == "always" and e.id in eligible_ids
+                    ),
+                    2,
+                )
+            )
             due = tuple(
                 MemoryMatch(e.id, e.revision, (), ("follow_up",))
                 for e in sorted(state.entries, key=lambda e: e.draft.follow_up.remind_at if e.draft.follow_up else "")
@@ -1607,32 +1693,47 @@ class PersonalMemoryStore:
             )[:1]
             direct = tuple(m for m in ranked if "identity" in m.routes or "title" in m.routes)
             ranked = (*direct, *defaults, *due, *ranked)
-        # One-hop expansion stays within the same overall count/character budget.
-        related = tuple(
-            MemoryMatch(r.memory_id, r.revision, (), ("association",))
-            for match in ranked[:3]
-            for r in entries[match.memory_id].draft.relations
-            if r.memory_id in eligible_ids and entries[r.memory_id].revision == r.revision
-        )
-        anchors = {match.memory_id for match in ranked[:3]}
-        methods = tuple(
-            MemoryMatch(e.id, e.revision, (), ("association",))
-            for e in state.entries
-            if e.id in eligible_ids
-            and any(
-                r.memory_id in anchors
-                and r.kind in ("derived_from", "supports", "exception")
+        # Expand from a contextual match only. Supporting material can fill
+        # unused room after direct advice and cannot initiate an action hold.
+        if anchors and layer != "L2":
+            anchor_ids = {match.memory_id for match in anchors[:3]}
+            linked = {
+                r.memory_id: r.kind == "exception"
+                for match in anchors[:3]
+                for r in entries[match.memory_id].draft.relations
+                if r.memory_id in eligible_ids
                 and entries[r.memory_id].revision == r.revision
-                for r in e.draft.relations
-            )
-        )
-        ranked = (*ranked[:3], *methods, *related, *ranked[3:])
+                and r.kind in ("supports", "exception", "derived_from")
+            }
+            for entry in state.entries:
+                if entry.id not in eligible_ids or entry.id in linked:
+                    continue
+                links = tuple(
+                    r
+                    for r in entry.draft.relations
+                    if r.memory_id in anchor_ids
+                    and r.kind in ("derived_from", "supports", "exception")
+                    and entries[r.memory_id].revision == r.revision
+                )
+                if links:
+                    linked[entry.id] = any(r.kind == "exception" for r in links)
+            if linked:
+                decision = context if context and continues_previous_task(query) else query
+                terms = decision_terms("\n".join((decision, *alternatives)), automatic=automatic)
+                ranked = (
+                    *ranked,
+                    *(
+                        MemoryMatch(mid, entries[mid].revision, (), ("association",))
+                        for mid, exception in linked.items()
+                        if linked_to_decision(entries[mid].draft, terms, needs_corroboration=exception)
+                    ),
+                )
         selected: list[tuple[PersonalMemory, MemoryMatch]] = []
         seen: set[str] = set()
         size = 0
         for match in ranked:
             entry = entries[match.memory_id]
-            if entry.id in seen or entry.id not in eligible_ids:
+            if entry.id in seen or (exclude_versions and (entry.id, entry.revision) in exclude_versions):
                 continue
             text_size = len(render_memory(entry, match.terms))
             if size + text_size > MAX_CONTEXT_CHARS:
@@ -1642,6 +1743,7 @@ class PersonalMemoryStore:
                     entry,
                     replace(
                         match,
+                        context_key=query_context,
                         layer="L0"
                         if any(r in match.routes for r in ("standing", "follow_up"))
                         else (layer or ("L1" if automatic else "L3")),
@@ -1669,9 +1771,25 @@ class PersonalMemoryStore:
         layer: Literal["L1", "L2", "L3"] | None = None,
         novel_only: bool = False,
         receipt_query: str | None = None,
+        delivered_versions: set[tuple[str, int]] | None = None,
+        alternatives: tuple[str, ...] = (),
+        action_targets: tuple[str, ...] | None = None,
     ) -> tuple[tuple[PersonalMemory, MemoryMatch], ...]:
         workspace = workspace_key(workspace)
         state = self.load()
+
+        def known_versions(snapshot: MemorySnapshot) -> set[tuple[str, int]] | None:
+            previous = next((r for r in snapshot.recalls if r.session_id == session_id and r.turn_id == turn_id), None)
+            return (
+                {
+                    (m.memory_id, m.revision)
+                    for m in previous.matches
+                    if m.layer != "L2" or delivered_versions is None or (m.memory_id, m.revision) in delivered_versions
+                }
+                if novel_only and previous
+                else None
+            )
+
         if not record or not session_id:
             return self._select(
                 state,
@@ -1682,8 +1800,32 @@ class PersonalMemoryStore:
                 session_id=session_id,
                 turn_id=turn_id,
                 layer=layer,
+                exclude_versions=known_versions(state),
+                alternatives=alternatives,
+                action_targets=action_targets,
             )
         if not state.entries and not any(item.session_id == session_id for item in state.recalls):
+            return ()
+        if (
+            automatic
+            and layer == "L2"
+            and novel_only
+            and not self._select(
+                state,
+                query,
+                workspace,
+                automatic=True,
+                context=context,
+                session_id=session_id,
+                turn_id=turn_id,
+                exclude_versions=known_versions(state),
+                layer=layer,
+                action_targets=action_targets,
+            )
+        ):
+            # Most actions add no decision evidence. The common index answers
+            # this read-only admission check; misses never rewrite the receipt
+            # or consume the budget needed by a later relevant action.
             return ()
         selected: tuple[tuple[PersonalMemory, MemoryMatch], ...] = ()
 
@@ -1702,10 +1844,23 @@ class PersonalMemoryStore:
                         recalls=(*[r for r in current.recalls if r.session_id != session_id], empty)[-MAX_RECALLS:],
                     )
                 return current
-            if enabled and not automatic and (searches >= MAX_TURN_SEARCHES or consumed >= MAX_TURN_CONTEXT_CHARS):
-                raise MemoryRecallBudgetExceeded(
-                    "Memory recall budget reached for this turn; use the supplied memories. Inspection for a write remains available."
+            # A cancelled preflight may have recorded evidence without ever
+            # delivering a tool result. Replay that decision without charging
+            # another search or suppressing its unseen memories on retry.
+            replay = (
+                layer == "L2"
+                and same_turn
+                and previous is not None
+                and any(
+                    m.layer == "L2"
+                    and m.context_key == _recall_context_key(query, context, workspace, layer)
+                    and delivered_versions is not None
+                    and (m.memory_id, m.revision) not in delivered_versions
+                    for m in previous.matches
                 )
+            )
+            charged_search = (not automatic or layer == "L2") and not replay
+            search_limit = MAX_TURN_SEARCHES - 1 if layer == "L2" else MAX_TURN_SEARCHES
             # Select and record under the same file lock. A concurrent correction,
             # removal or mode switch cannot leave a stale selection in the receipt.
             selected = self._select(
@@ -1716,10 +1871,10 @@ class PersonalMemoryStore:
                 context=context,
                 session_id=session_id,
                 turn_id=turn_id,
-                exclude_versions={(m.memory_id, m.revision) for m in previous.matches}
-                if novel_only and same_turn and previous
-                else None,
+                exclude_versions=known_versions(current),
                 layer=layer,
+                alternatives=alternatives,
+                action_targets=action_targets,
             )
             if not selected and fallback_query and fallback_query != query:
                 selected = self._select(
@@ -1731,6 +1886,12 @@ class PersonalMemoryStore:
                     session_id=session_id,
                     turn_id=turn_id,
                     layer=layer,
+                )
+            if automatic and layer == "L2" and novel_only and not selected:
+                return current  # A concurrent correction invalidated admission.
+            if enabled and charged_search and (searches >= search_limit or consumed >= MAX_TURN_CONTEXT_CHARS):
+                raise MemoryRecallBudgetExceeded(
+                    "Memory recall budget reached for this turn; use the supplied memories. Inspection for a write remains available."
                 )
             supplied_ids = {m.memory_id for m in previous.matches} if same_turn and previous else set()
             supplied_versions = (
@@ -1748,7 +1909,7 @@ class PersonalMemoryStore:
                 bounded.append((entry, match))
                 supplied_ids.add(entry.id)
                 size += charge
-            if selected and not bounded and not automatic:
+            if selected and not bounded and (not automatic or layer == "L2"):
                 raise MemoryRecallBudgetExceeded(
                     "Memory recall budget cannot fit these results; use the supplied memories or inspect an ID for a write."
                 )
@@ -1767,7 +1928,7 @@ class PersonalMemoryStore:
                 _now(),
                 turn_id,
                 excluded,
-                searches + int(enabled and not automatic),
+                searches + int(enabled and charged_search),
                 consumed + size,
             )
             result = replace(
@@ -1793,7 +1954,9 @@ class PersonalMemoryStore:
                         actor="system",
                         detail=match.layer + ": " + ", ".join(match.routes),
                     )
-                result = lifecycle.record_use(result, entry.id, entry.revision, "provided", session_id, turn_id)
+                result = lifecycle.record_use(
+                    result, entry.id, entry.revision, "provided", session_id, turn_id, context_key=match.context_key
+                )
             if not selected and enabled:
                 result = activity.record(result, "no_match", session_id=session_id, turn_id=turn_id, actor="system")
             return result

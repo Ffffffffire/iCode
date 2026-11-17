@@ -15,6 +15,7 @@ from chrys.app.tui.widgets.chat.single_call_row import single_call_row
 from chrys.app.tui.widgets.chat.tool_call import ToolGroup, ToolGroupTitle
 from chrys.foundation.i18n import Localizer
 from chrys.foundation.tool_kinds import KIND_CONTEXT, KIND_MCP, TOOL_CALL_KIND_METADATA_KEY
+from chrys.foundation.tool_result_metadata import TOOL_RESULT_METADATA_KEY
 from tests.support.tui_helpers import ChatPanelApp, resize_when_settled
 from tests.support.waiting import wait_for
 
@@ -147,3 +148,46 @@ async def test_memory_failures_stay_visible_in_narrow_folded_group() -> None:
         await resize_when_settled(pilot, 40, 24)
         assert title.render().plain.endswith("1 failed")
         assert title.render().cell_len <= title.content_size.width
+
+
+@pytest.mark.parametrize("count", [1, 2])
+async def test_replayed_memory_deferral_never_claims_a_file_was_written(count: int) -> None:
+    metadata = {"memory_review": True, "executed": False}
+    calls = [
+        {
+            "type": "function_call",
+            "name": "write_file",
+            "call_id": str(i),
+            "arguments": {"path": "not-written.txt", "content": "Unsafe"},
+            "additional_properties": {TOOL_CALL_KIND_METADATA_KEY: "filesystem.write"},
+        }
+        for i in range(count)
+    ]
+    results = [
+        {
+            "type": "function_result",
+            "call_id": str(i),
+            "result": "Action NOT EXECUTED. Review memories first.",
+            "additional_properties": {TOOL_RESULT_METADATA_KEY: metadata},
+        }
+        for i in range(count)
+    ]
+    async with ChatPanelApp(fold_finished_turns=lambda: True).run_test(size=(100, 24)) as pilot:
+        panel = pilot.app.query_one(ChatPanel)
+        await panel.replay_history(
+            [
+                {"role": "user", "contents": [{"type": "text", "text": "Fix the failure"}]},
+                {"role": "assistant", "contents": calls},
+                {"role": "tool", "contents": results},
+                {"role": "assistant", "contents": [{"type": "text", "text": "I reconsidered the action."}]},
+            ]
+        )
+        await panel.wait_replay_complete()
+        group = panel.query_one(ToolGroup)
+        title = group.query_one(ToolGroupTitle)
+        assert "deferred" in title.render().plain.lower()
+        assert "Wrote" not in title.render().plain
+        assert "edited" not in " ".join(group.tool_tally.action_words(Localizer("en")))
+        group.collapsed = False
+        await wait_for(lambda: bool(group.query("#tc-body")), pilot=pilot)
+        assert not group.query("#ft-panel")

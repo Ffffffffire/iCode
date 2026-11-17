@@ -330,6 +330,14 @@ async def test_build_rejects_mcp_chrys_name_collision_and_rolls_back() -> None:
 
     reserved_names = dependencies["mcp_cls"].call_args.kwargs["reserved_tool_names"]
     assert "read_file" in reserved_names
+    assert {
+        "recall_memory",
+        "propose_memory",
+        "pause_memory",
+        "review_memory",
+        "update_follow_up",
+        "organize_memory",
+    } <= reserved_names
     mcp_mock.disconnect_all.assert_awaited_once()
 
 
@@ -662,8 +670,9 @@ async def test_build_agent_loads_sleep_though_the_profile_omits_it() -> None:
         ("todo_write", ["todo"], None, frozenset()),
         ("web_search", [], {"tools": [{"type": "web_search"}]}, frozenset()),
         ("lookup", [], None, frozenset({"lookup", "load_srv_tools"})),
+        ("recall_memory", [], None, frozenset()),
     ],
-    ids=["no-clash", "local-tool", "hosted", "mcp-tool-not-yet-loaded"],
+    ids=["no-clash", "local-tool", "hosted", "mcp-tool-not-yet-loaded", "personal-memory-tool"],
 )
 async def test_build_agent_loads_extensions_last_so_their_tools_yield_every_name_its_other_tools_take(
     monkeypatch: pytest.MonkeyPatch,

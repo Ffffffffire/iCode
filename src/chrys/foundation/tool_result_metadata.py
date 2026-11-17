@@ -197,6 +197,11 @@ REJECTION_ERROR_KINDS = frozenset({"approval_rejected", "hook_denied"})
 """Structured failure kinds that represent rejected tool execution."""
 
 
+def memory_review_deferred(metadata: Mapping[str, Any] | None) -> bool:
+    """A local call returned memory evidence without executing the requested action."""
+    return bool(metadata and metadata.get("memory_review") is True and metadata.get("executed") is False)
+
+
 def legacy_error_text_applies(tool_kind: str = "", tool_name: str = "") -> bool:
     """Return true when consumers may use legacy ``Error:`` text as a failure signal."""
     return tool_kind in ERROR_TEXT_TOOL_KINDS or (not tool_kind and tool_name in LEGACY_ERROR_TEXT_TOOL_NAMES)

@@ -31,6 +31,8 @@ A JSON array (no code fence), at most two objects with exactly these fields:
 scope (must be "personal"), kind (preference/decision/lesson/intention), title (max 100 characters),
 content (concise, max 600 characters), when_to_use, reconsider_when, source_quote (verbatim user words).
 Condense only claims supported by the quotation, retaining its reasons, conditions and exceptions.
+For a reusable lesson, retain a concrete action and the detail that makes it usable, such as a setting,
+threshold, example or expected result. Omit a lesson if the summary can only preserve headings or general advice.
 Keep the original subject, scope and strength: a preference for one output format is not a rule for other formats.
 Do not add implementation advice, examples or stronger prescriptions, even if sensible.
 Use an empty reconsider_when when the user gave no exception or invalidating condition.

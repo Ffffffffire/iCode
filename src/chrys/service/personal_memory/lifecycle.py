@@ -1,9 +1,10 @@
 # Copyright (c) Huawei Technologies Co., Ltd. 2026. All rights reserved.
 
-"""Explicit review signals; absence of feedback requests review, never proves error."""
+"""User feedback refines retrieval conditions; silence never establishes an error."""
 
 from __future__ import annotations
 
+import re
 import unicodedata
 from collections import defaultdict
 from dataclasses import dataclass, replace
@@ -25,10 +26,11 @@ class MemoryHealth:
     pending: int
     stale: int
     duplicates: int
+    conditions: int = 0
 
     @property
     def needs_review(self) -> bool:
-        return bool(self.stale or self.duplicates)
+        return bool(self.stale or self.duplicates or self.conditions)
 
 
 def health(state: MemorySnapshot) -> MemoryHealth:
@@ -42,6 +44,20 @@ def health(state: MemorySnapshot) -> MemoryHealth:
         sum(e.state == "candidate" for e in state.entries),
         sum(e.state == "stale" for e in state.entries),
         sum(count - 1 for count in groups.values() if count > 1),
+        len(condition_review_ids(state)),
+    )
+
+
+def condition_review_ids(state: MemorySnapshot) -> frozenset[str]:
+    """Active versions with repeated, explicit user reports about applicability."""
+    uses = {use.memory_id: use for use in state.uses}
+    return frozenset(
+        e.id
+        for e in state.entries
+        if e.state == "active"
+        and e.id in uses
+        and uses[e.id].revision == e.revision
+        and (len(uses[e.id].skips) >= 3 or uses[e.id].excluded_contexts)
     )
 
 
@@ -54,6 +70,7 @@ def record_use(
     turn_id: str,
     *,
     user: bool = False,
+    context_key: str = "",
 ) -> MemorySnapshot:
     if not session_id or not turn_id:
         return state
@@ -64,32 +81,28 @@ def record_use(
         if old and old.revision == revision
         else MemoryUse(memory_id, revision, correction_sessions=old.correction_sessions if old else ())
     )
-    item = MemoryExposure(session_id, turn_id, now)
+    item = MemoryExposure(session_id, turn_id, now, context_key)
     if action == "provided" and not any((e.session_id, e.turn_id) == (session_id, turn_id) for e in use.exposures):
         use = replace(use, exposures=(*use.exposures, item)[-5:])
-    elif action == "not_applicable" and not any((e.session_id, e.turn_id) == (session_id, turn_id) for e in use.skips):
+    elif (
+        action == "not_applicable"
+        and user
+        and context_key
+        and not any((e.session_id, e.turn_id) == (session_id, turn_id) for e in use.skips)
+    ):
         use = replace(use, skips=(*use.skips, item)[-3:])
+        if context_key and sum(e.context_key == context_key for e in use.skips) >= 3:
+            use = replace(use, excluded_contexts=tuple(dict.fromkeys((*use.excluded_contexts, context_key)))[-8:])
     elif action == "helpful" and user:
-        use = replace(use, helpful_at=now, skips=())
+        use = replace(
+            use,
+            helpful_at=now,
+            skips=tuple(e for e in use.skips if not context_key or e.context_key != context_key),
+            excluded_contexts=tuple(key for key in use.excluded_contexts if key != context_key),
+        )
     elif action == "corrected" and user:
         use = replace(use, correction_sessions=tuple(dict.fromkeys((*use.correction_sessions, session_id)))[-3:])
     return replace(state, uses=(*[u for u in state.uses if u.memory_id != memory_id], use))
-
-
-def review_reason(use: MemoryUse, *, now: datetime) -> str:
-    if len(use.skips) >= 3:
-        return "repeated_mismatch"
-    # Calendar six months, not a fixed number of seconds or a confidence score.
-    month = (now.year * 12 + now.month - 1) - 6
-    import calendar
-
-    cutoff = now.replace(
-        year=month // 12, month=month % 12 + 1, day=min(now.day, calendar.monthrange(month // 12, month % 12 + 1)[1])
-    )
-    exposures = [e for e in use.exposures if datetime.fromisoformat(e.occurred_at) >= cutoff]
-    if len(exposures) >= 5 and (not use.helpful_at or datetime.fromisoformat(use.helpful_at) < cutoff):
-        return "no_helpful_feedback"
-    return ""
 
 
 def restore(state: MemorySnapshot, data: dict) -> MemorySnapshot:
@@ -101,6 +114,7 @@ def restore(state: MemorySnapshot, data: dict) -> MemorySnapshot:
             tuple(MemoryExposure(**e) for e in u.get("skips", ())),
             u.get("helpful_at", ""),
             tuple(u.get("correction_sessions", ())),
+            tuple(u.get("excluded_contexts", ())),
         )
         for u in data.get("uses", ())
     )
@@ -121,12 +135,26 @@ def restore(state: MemorySnapshot, data: dict) -> MemorySnapshot:
     )
     if (
         any(datetime.fromisoformat(t).tzinfo is None for t in timestamps if t)
+        or any(len(set(u.excluded_contexts)) != len(u.excluded_contexts) or "" in u.excluded_contexts for u in uses)
         or any(
-            len(u.exposures) > 5 or len(u.skips) > 3 or len(u.correction_sessions) > 3 or u.revision < 1 for u in uses
+            len(u.exposures) > 5
+            or len(u.skips) > 3
+            or len(u.correction_sessions) > 3
+            or len(u.excluded_contexts) > 8
+            or u.revision < 1
+            for u in uses
         )
         or len({u.memory_id for u in uses}) != len(uses)
+        or any(
+            not isinstance(key, str) or (key and not re.fullmatch(r"[a-f0-9]{24}", key))
+            for u in uses
+            for key in (*u.excluded_contexts, *(e.context_key for e in (*u.exposures, *u.skips)))
+        )
     ):
         raise ValueError("Invalid memory review evidence.")
+    # Old skips did not identify the feedback actor. Retain their audit
+    # events, but do not treat unscoped legacy observations as user evidence.
+    uses = tuple(replace(use, skips=tuple(e for e in use.skips if e.context_key)) for use in uses)
     return replace(state, uses=uses, review_notice=notice, last_review_at=data.get("last_review_at", ""))
 
 
@@ -138,20 +166,26 @@ def maintain(
     expired = 0
     changed = 0
     for entry in state.entries:
-        reason = (
-            review_reason(uses[entry.id], now=now)
-            if entry.state == "active" and entry.id in uses and uses[entry.id].revision == entry.revision
-            else ""
+        # Old policy quarantined facts on silence or contextual mismatches.
+        # Restore only those automatic quarantines; explicit pauses remain paused.
+        restore_legacy = (
+            entry.state == "stale"
+            and entry.retired_by is None
+            and entry.review_reason
+            in {
+                "no_helpful_feedback",
+                "repeated_mismatch",
+            }
         )
         expire = entry.state == "candidate" and datetime.fromisoformat(entry.created_at) <= now - timedelta(days=30)
-        if (reason or expire) and changed < activity.RECENT_ACTIVITY - 1:
+        if (restore_legacy or expire) and changed < activity.RECENT_ACTIVITY - 1:
             # Leave one outbox slot for a digest; the store drains further batches.
             changed += 1
             expired += int(expire)
             entry = replace(
                 entry,
-                state="archived" if expire else "stale",
-                review_reason="candidate_expired" if expire else reason,
+                state="archived" if expire else "active",
+                review_reason="candidate_expired" if expire else "",
                 revision=entry.revision + 1,
                 updated_at=now.isoformat(timespec="seconds"),
                 previous=(MemoryRevision(entry.revision, entry.draft, entry.source, entry.updated_at),),
@@ -183,7 +217,12 @@ def maintain(
             if e.id in uses:
                 corrections[key].update(uses[e.id].correction_sessions)
     group = next((key for key, ids in groups.items() if len(ids) >= 3 or len(corrections[key]) >= 3), None)
-    ids = tuple(groups[group][:6]) if group else tuple(e.id for e in eligible if e.state in ("candidate", "stale"))[:6]
+    condition_ids = condition_review_ids(result)
+    ids = (
+        tuple(groups[group][:6])
+        if group
+        else tuple(e.id for e in eligible if e.state in ("candidate", "stale") or e.id in condition_ids)[:6]
+    )
     if not ids and not expired:
         return result
     stamp = now.isoformat(timespec="seconds")

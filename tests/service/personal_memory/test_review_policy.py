@@ -108,7 +108,7 @@ def test_lexically_near_write_names_existing_entry_but_new_conditions_are_allowe
     )
 
 
-def test_explicit_correction_can_reactivate_a_stale_fact(tmp_path: Path) -> None:
+def test_explicit_correction_preserves_an_active_fact_after_context_misses(tmp_path: Path) -> None:
     store = PersonalMemoryStore(tmp_path / "memory.json")
     entry = store.save(MemoryDraft("Slides", "Use diagrams", "technical slides"), MemorySource())
     for i in range(3):
@@ -135,19 +135,20 @@ def test_three_distinct_skipped_turns_request_review_without_deleting(tmp_path: 
         )
     state = store.maintain()
     item = state.entries[0]
-    assert item.state == "stale" and item.review_reason == "repeated_mismatch"
+    assert item.state == "active" and not item.review_reason
     assert store.recall("technical slides", "") == ()
     assert store.recall("technical slides", "", automatic=False)[0][0].id == entry.id
     store.set_state(item.id, item.revision, "active")
     assert store.maintain().entries[0].state == "active"
+    assert store.recall("technical slides", "", record=False)
 
 
-def test_five_provided_turns_without_feedback_request_review_but_helpful_prevents_it(tmp_path: Path) -> None:
+def test_five_provided_turns_without_feedback_leave_effect_unknown(tmp_path: Path) -> None:
     store = PersonalMemoryStore(tmp_path / "memory.json")
     store.save(MemoryDraft("Slides", "Use dense diagrams", "technical slides"), MemorySource())
     for index in range(5):
         store.recall("technical slides", "", session_id="one", turn_id=str(index))
-    assert store.maintain().entries[0].review_reason == "no_helpful_feedback"
+    assert not store.maintain().entries[0].review_reason
     item = store.load().entries[0]
     store.set_state(item.id, item.revision, "active")
     for index in range(5, 10):

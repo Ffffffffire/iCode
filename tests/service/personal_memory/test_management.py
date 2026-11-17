@@ -103,6 +103,7 @@ async def test_derived_method_is_reviewed_and_loses_eligibility_with_source_chan
             title="Consumer first",
             content="Identify a consumer before adding IR fields.",
             when_to_use="Design a new intermediate representation",
+            application="Trace each proposed field to a consuming step and verify its output changes.",
             source_quote="Organize these experiences into a reusable method.",
         )
     )
@@ -120,6 +121,7 @@ async def test_derived_method_is_reviewed_and_loses_eligibility_with_source_chan
             title="Consumer first",
             content="Verify two consumers before adding IR fields.",
             when_to_use="Design a new intermediate representation",
+            application="Demonstrate the output change for each of the two consumers.",
             source_quote="Organize these experiences into a reusable method.",
             replaces_id=result["id"],
             replaces_revision=2,

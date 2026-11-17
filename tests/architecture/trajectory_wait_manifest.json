@@ -22,6 +22,13 @@
       "reason": "Delegates the actual tool and remaining middleware, which can await provider or process work; direct function-middleware harnesses have no enclosing trajectory interval proven on every path.",
       "when": "all_paths"
     },
+    "personal-memory-model-delegation": {
+      "classification": "B",
+      "container_rule": "unresolved_outer_container",
+      "degradation_rule": "Mark the containing residual Unresolved; never report it as exact.",
+      "reason": "Delegates the model request and response pipeline; middleware callbacks and direct harnesses have no enclosing trajectory interval proven on every path.",
+      "when": "all_paths"
+    },
     "personal-memory-processing": {
       "classification": "B",
       "container_rule": "unresolved_outer_container",
@@ -5028,6 +5035,14 @@
         ["thread_pool", "await asyncio.to_thread(self._store.load)", "personal-memory-processing"],
         ["awaitable", "await self._bus.publish(PersonalMemoryChanged(snapshot=snapshot, session_id=self._session_id, saved_memory_id=saved_memory_id, saved_changed=saved_changed, used_bytes=self._store.used_bytes))", "personal-memory-processing"]
       ],
+      "PersonalMemoryRuntime._check_decision": [
+        ["thread_pool", "await asyncio.to_thread(self._store.recall, query, self._workspace, session_id=self._session_id, turn_id=turn_id, extend_record=True, context=self._current_user[0] if self._current_user else '', layer='L2', novel_only=True, receipt_query=function.name + ' \u00b7 L2', delivered_versions=self._delivered_versions, action_targets=targets)", "personal-memory-processing"],
+        ["wrapper", "await self._changed()", "personal-memory-processing", "chrys.service.personal_memory.runtime.PersonalMemoryRuntime._changed"],
+        ["awaitable", "await self._bus.publish(PersonalMemoryChanged(session_id=self._session_id, error_code='memory_unavailable', error='Personal memory is unavailable; normal tool execution remains available.'))", "personal-memory-processing"]
+      ],
+      "PersonalMemoryRuntime._preflight": [
+        ["wrapper", "await self._check_decision(function, arguments)", "personal-memory-processing", "chrys.service.personal_memory.runtime.PersonalMemoryRuntime._check_decision"]
+      ],
       "PersonalMemoryRuntime._reject_save": [
         ["awaitable", "await self._bus.publish(PersonalMemoryChanged(session_id=self._session_id, attempted_title=key[0], error_code=code, error=detail))", "personal-memory-processing"]
       ],
@@ -5051,21 +5066,22 @@
       ],
       "PersonalMemoryRuntime.process": [
         ["awaitable", "await call_next()", "personal-memory-action-delegation"],
-        ["thread_pool", "await asyncio.to_thread(self._store.recall, query, self._workspace, session_id=self._session_id, turn_id=turn_id, extend_record=True, layer='L2', novel_only=True, receipt_query=context.function.name + ' \u00b7 L2')", "personal-memory-processing"],
-        ["wrapper", "await self._changed()", "personal-memory-processing", "chrys.service.personal_memory.runtime.PersonalMemoryRuntime._changed"],
-        ["awaitable", "await self._bus.publish(PersonalMemoryChanged(session_id=self._session_id, error_code='memory_unavailable', error='Personal memory is unavailable; the completed tool result was preserved.'))", "personal-memory-processing"]
+        ["sync_primitive", "async with self._decision_lock", "personal-memory-processing"],
+        ["wrapper", "await self._check_decision(context.function, context.arguments)", "personal-memory-processing", "chrys.service.personal_memory.runtime.PersonalMemoryRuntime._check_decision"],
+        ["awaitable", "await call_next()", "personal-memory-action-delegation"]
       ],
       "PersonalMemoryRuntime.propose_memory": [
         ["wrapper", "await self._reject_save(title, 'memory_declined', 'No current user evidence, or the user declined memory.')", "personal-memory-processing", "chrys.service.personal_memory.runtime.PersonalMemoryRuntime._reject_save"],
-        ["wrapper", "await self._reject_save(title, 'memory_not_distilled', 'Use at most 600 characters for one memory and specify its future use.')", "personal-memory-processing", "chrys.service.personal_memory.runtime.PersonalMemoryRuntime._reject_save"],
         ["wrapper", "await self._reject_save(title, 'memory_request_missing', 'Quote the latest user request in intent_quote; do not infer permission from task instructions or quoted examples.')", "personal-memory-processing", "chrys.service.personal_memory.runtime.PersonalMemoryRuntime._reject_save"],
         ["wrapper", "await self._reject_save(title, 'memory_target_missing', 'Use recall_memory to find the memory being corrected and supply its ID and revision. If the target is ambiguous, ask which memory or open /memory; do not append a new conclusion.')", "personal-memory-processing", "chrys.service.personal_memory.runtime.PersonalMemoryRuntime._reject_save"],
-        ["wrapper", "await self._reject_save(title, 'memory_source_missing', \"The source quote must occur verbatim in the visible conversation. Preferences, decisions and intentions need the user's own words; assistant text can only suggest a lesson.\")", "personal-memory-processing", "chrys.service.personal_memory.runtime.PersonalMemoryRuntime._reject_save"],
-        ["wrapper", "await self._reject_save(title, 'memory_source_missing', \"Active memories need the user's own evidence; propose assistant ideas for review.\")", "personal-memory-processing", "chrys.service.personal_memory.runtime.PersonalMemoryRuntime._reject_save"],
+        ["wrapper", "await self._reject_save(title, 'memory_source_missing', \"The source quote must occur verbatim in the visible conversation. Quote the user's evidence, or the supporting analysis or read result for a lesson.\")", "personal-memory-processing", "chrys.service.personal_memory.runtime.PersonalMemoryRuntime._reject_save"],
+        ["wrapper", "await self._reject_save(title, 'memory_source_missing', 'The request gives permission to save. Quote separate evidence for the lesson, such as a finding in the analysis or the material you read.')", "personal-memory-processing", "chrys.service.personal_memory.runtime.PersonalMemoryRuntime._reject_save"],
+        ["wrapper", "await self._reject_save(title, 'memory_request_missing', \"Saving a lesson from analysis or tool output needs the user's explicit request to remember it.\")", "personal-memory-processing", "chrys.service.personal_memory.runtime.PersonalMemoryRuntime._reject_save"],
+        ["wrapper", "await self._reject_save(title, error.code, str(error))", "personal-memory-processing", "chrys.service.personal_memory.runtime.PersonalMemoryRuntime._reject_save"],
         ["thread_pool", "await asyncio.to_thread(self._store.load)", "personal-memory-processing"],
         ["wrapper", "await self._reject_save(title, 'memory_disabled', 'Saving is disabled or requires an explicit user request.')", "personal-memory-processing", "chrys.service.personal_memory.runtime.PersonalMemoryRuntime._reject_save"],
         ["wrapper", "await self._reject_save(title, 'memory_review_required', 'Inspect related memories with recall_memory(query, for_update=true) before writing. The catalog is new or changed.')", "personal-memory-processing", "chrys.service.personal_memory.runtime.PersonalMemoryRuntime._reject_save"],
-        ["thread_pool", "await asyncio.to_thread(self._store.save, MemoryDraft(title, content, when_to_use, reconsider_when, kind, self._workspace if project_only else '', topics=prior.topics if topics is None else tuple(topics), use=use or prior.use, follow_up=follow, relations=prior.relations, aliases=prior.aliases if aliases is None else tuple(aliases)), MemorySource(source.session_id, source.item_id, source.role, quote), memory_id=replaces_id if active else '', revision=replaces_revision if active else 0, candidate=not active, replaces_id='' if active else replaces_id, replaces_revision=0 if active else replaces_revision, request_workspace=self._workspace, authorization='request' if save_now else 'capture', reviewed_catalog=key, turn_id=self._turn_id)", "personal-memory-processing"],
+        ["thread_pool", "await asyncio.to_thread(self._store.save, MemoryDraft(title, content, when_to_use, reconsider_when, kind, self._workspace if project_only else '', topics=prior.topics if topics is None else tuple(topics), use=use or prior.use, follow_up=follow, relations=prior.relations, aliases=prior.aliases if aliases is None else tuple(aliases)), source, memory_id=replaces_id if active else '', revision=replaces_revision if active else 0, candidate=not active, replaces_id='' if active else replaces_id, replaces_revision=0 if active else replaces_revision, request_workspace=self._workspace, authorization='request' if save_now else 'capture', reviewed_catalog=key, turn_id=self._turn_id)", "personal-memory-processing"],
         ["wrapper", "await self._changed(saved_memory_id=entry.id, saved_changed=changed)", "personal-memory-processing", "chrys.service.personal_memory.runtime.PersonalMemoryRuntime._changed"],
         ["wrapper", "await self._reject_save(title, error.code, str(error))", "personal-memory-processing", "chrys.service.personal_memory.runtime.PersonalMemoryRuntime._reject_save"],
         ["wrapper", "await self._reject_save(title, 'memory_unavailable', 'The memory suggestion could not be saved.')", "personal-memory-processing", "chrys.service.personal_memory.runtime.PersonalMemoryRuntime._reject_save"]
@@ -5074,7 +5090,7 @@
         ["thread_pool", "await asyncio.to_thread(self._store.load)", "personal-memory-processing"],
         ["thread_pool", "await asyncio.to_thread(self._store.inspect, query, self._workspace)", "personal-memory-processing"],
         ["thread_pool", "await asyncio.to_thread(self._store.revisions, related[0][0].id, limit=5)", "personal-memory-processing"],
-        ["thread_pool", "await asyncio.to_thread(self._store.recall, query, self._workspace, session_id=self._session_id, turn_id=self._turn_id, automatic=False, extend_record=True, fallback_query=self._current_user[0] if state.mode == 'manual' and self._current_user else '')", "personal-memory-processing"],
+        ["thread_pool", "await asyncio.to_thread(self._store.recall, query, self._workspace, session_id=self._session_id, turn_id=self._turn_id, automatic=False, extend_record=True, fallback_query=self._current_user[0] if state.mode == 'manual' and self._current_user else '', alternatives=alternate)", "personal-memory-processing"],
         ["wrapper", "await self._changed()", "personal-memory-processing", "chrys.service.personal_memory.runtime.PersonalMemoryRuntime._changed"]
       ],
       "PersonalMemoryRuntime.review_memory": [
@@ -5085,6 +5101,13 @@
         ["thread_pool", "await asyncio.to_thread(self._store.load)", "personal-memory-processing"],
         ["thread_pool", "await asyncio.to_thread(self._store.update_follow_up, memory_id, revision, MemoryFollowUp(status, old.next_step if next_step is None else next_step, old.remind_at if remind_at is None else remind_at), source, workspace=self._workspace, turn_id=self._turn_id, reopen=reopen)", "personal-memory-processing"],
         ["wrapper", "await self._changed(saved_memory_id=updated.id)", "personal-memory-processing", "chrys.service.personal_memory.runtime.PersonalMemoryRuntime._changed"]
+      ],
+      "_DecisionMiddleware.process": [
+        ["awaitable", "await call_next()", "personal-memory-model-delegation"],
+        ["awaitable", "await preflight(context.result)", "personal-memory-processing"]
+      ],
+      "_DecisionMiddleware.process.preflight": [
+        ["awaitable", "await self._runtime._preflight(response, tools)", "personal-memory-processing"]
       ]
     },
     "chrys.service.personal_memory.summary": {

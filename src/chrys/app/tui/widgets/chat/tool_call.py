@@ -87,6 +87,7 @@ from chrys.foundation.tool_kinds import (
 )
 from chrys.foundation.tool_result_metadata import (
     legacy_error_text_applies,
+    memory_review_deferred,
     result_text_exit_code,
     shell_exit_code_from_metadata,
     shell_timed_out_from_metadata,
@@ -136,6 +137,7 @@ TOOL_CARD_ERRORED_WITH_CODE = msg(
 TOOL_CARD_COMPLETED = msg("tui.tool_card.status.completed", fallback="Completed")
 TOOL_CARD_INTERRUPTED = msg("tui.tool_card.status.interrupted", fallback="Interrupted")
 TOOL_CARD_SKIPPED = msg("tui.tool_card.status.skipped", fallback="Skipped")
+TOOL_CARD_MEMORY_REVIEW = msg("tui.tool_card.status.memory_review", fallback="Deferred to review memories")
 _TOOL_CARD_IMAGE_RESOLUTION = msg(
     "tui.tool_card.image.resolution",
     fallback="Resolution: {width}x{height}",
@@ -1519,7 +1521,11 @@ class ToolCall(BaseToolCard):
             self.add_class("-success")
         image_contents = kwargs.get("image_contents")
         self.image_contents = list(image_contents or [])
-        display = _image_result_display(result, image_contents)
+        display = (
+            render_str(widget_localizer(self), TOOL_CARD_MEMORY_REVIEW.bind())
+            if memory_review_deferred(self.metadata)
+            else _image_result_display(result, image_contents)
+        )
         display = self._truncate_result(display) if display else ""
         with suppress(Exception):
             self.query_one("#tc-body", Static).update(Text(sanitize_legacy_block(display)))
@@ -2231,7 +2237,9 @@ class ToolGroup(ToolCopyExcludedMixin, FoldGap, ProcessMember):
         return ToolTally.of(
             (
                 (
-                    tool_category(record.tool_kind, record.hosted_family, tool_name=record.tool_name),
+                    "deferred"
+                    if memory_review_deferred(record.metadata)
+                    else tool_category(record.tool_kind, record.hosted_family, tool_name=record.tool_name),
                     _record_outcome(record),
                 )
                 for record in records
@@ -2289,6 +2297,8 @@ class ToolGroup(ToolCopyExcludedMixin, FoldGap, ProcessMember):
         (record,) = records
         if record.status == "running" or _record_outcome(record):
             return None
+        if memory_review_deferred(record.metadata):
+            return SingleCallRow(render_str(localizer, TOOL_CARD_MEMORY_REVIEW.bind()))
         return single_call_row(
             localizer,
             record.tool_name,
@@ -2454,7 +2464,10 @@ class ToolGroup(ToolCopyExcludedMixin, FoldGap, ProcessMember):
             self._note_content_build_epoch()
         widgets: list[Widget] = []
         for record in records:
-            if record.provider_hosted:
+            if not record.provider_hosted and memory_review_deferred(record.metadata):
+                tc = ToolCall(record.call_id, record.tool_name, record.args_summary, args=record.args)
+                tc.tool_kind = record.tool_kind
+            elif record.provider_hosted:
                 tc = create_tool_widget(
                     record.call_id,
                     record.tool_name,

@@ -15,6 +15,7 @@ import os
 from dataclasses import asdict, dataclass, replace
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Literal
 from uuid import uuid4
 
 from chrys.foundation.models.personal_memory import MemoryActivity, MemoryDraft, MemorySnapshot, MemorySource
@@ -40,6 +41,7 @@ class MemoryUsage:
     applied: int = 0
     last_provided: str = ""
     skipped_turns: int = 0
+    effect: Literal["unknown", "helpful", "not_applicable", "incorrect"] = "unknown"
 
 
 def recent_usage(state: MemorySnapshot, memory_id: str, revision: int) -> MemoryUsage:
@@ -57,6 +59,14 @@ def recent_usage(state: MemorySnapshot, memory_id: str, revision: int) -> Memory
             }
         )
 
+    latest_turn = next(reversed(provided)) if provided else None
+    effect: Literal["unknown", "helpful", "not_applicable", "incorrect"] = "unknown"
+    for event in reversed(events):
+        if event.actor != "user" or ((event.session_id, event.turn_id) != latest_turn and event.action != "incorrect"):
+            continue
+        if event.action in ("helpful", "not_applicable", "incorrect"):
+            effect = event.action
+            break
     return MemoryUsage(
         len(turns),
         count("not_applicable", "user"),
@@ -68,9 +78,10 @@ def recent_usage(state: MemorySnapshot, memory_id: str, revision: int) -> Memory
             {
                 (e.session_id, e.turn_id)
                 for e in events
-                if e.action == "not_applicable" and (e.session_id, e.turn_id) in turns
+                if e.action == "not_applicable" and e.actor == "user" and (e.session_id, e.turn_id) in turns
             }
         ),
+        effect,
     )
 
 

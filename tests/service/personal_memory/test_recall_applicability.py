@@ -144,6 +144,7 @@ def test_recall_adds_linked_evidence_and_only_applicable_format_exceptions(tmp_p
     [
         "Supported file extension: PowerPoint (read only).",
         "# Supported formats\nReading PowerPoint is supported.",
+        "# PowerPoint slides are a supported input format\n\nThe importer reads PPTX files.",
     ],
 )
 async def test_reference_in_a_write_payload_does_not_defer_the_write(tmp_path: Path, content: str) -> None:

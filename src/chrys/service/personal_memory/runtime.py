@@ -192,9 +192,8 @@ _OUTPUT_FORMATS = {".pptx": "slides", ".ppt": "slides", ".html": "html", ".htm":
 _SHELL_OUTPUT_ARGS = frozenset({"--output", "-outfile", ">", ">>"})
 _SHELL_INLINE_ARGS = frozenset({"-c", "/c", "-command", "--command", "-encodedcommand"})
 _SLIDES_DECLARATION = re.compile(
-    r"^#{1,2}\s+(?:(?:(?:technical\s+)?(?:PowerPoint|PPT)\s+(?:slides|presentation)|slide deck)\b"
-    r"|(?:technical\s+)?slides(?=[ \t]*(?:\r?\n|$))"
-    r"|(?:技术\s*)?(?:演示文稿|幻灯片)(?:\s|$))",
+    r"#{1,2}[ \t]+(?:(?:technical[ \t]+)?(?:(?:PowerPoint|PPT)[ \t]+(?:slides|presentation)|slides|slide deck)"
+    r"|(?:技术[ \t]*)?(?:演示文稿|幻灯片))(?:[ \t]+for[ \t]+\S.*)?",
     re.IGNORECASE,
 )
 
@@ -275,7 +274,7 @@ def _action_query(function: FunctionTool, arguments: object) -> tuple[str, tuple
         body = arguments.get("content", arguments.get("new_string"))
         if isinstance(body, str):
             prefix = body[:512].lstrip()
-            if _SLIDES_DECLARATION.match(prefix):
+            if _SLIDES_DECLARATION.fullmatch(prefix.partition("\n")[0].rstrip()):
                 declared.add("slides")
             if prefix.casefold().startswith(("<!doctype html", "<html>", "<html ")):
                 declared.add("html")

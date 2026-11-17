@@ -225,7 +225,9 @@ class Trial:
             bar.query_one("#chat-input", TextArea).load_text("/memory")
             await click_when_settled(pilot, bar.query_one("#send-btn", Button))
             await wait_for(
-                lambda: isinstance(app.screen, PersonalMemoryScreen), pilot=pilot, description="slash memory"
+                lambda: isinstance(app.screen, PersonalMemoryScreen) and app.screen.is_mounted,
+                pilot=pilot,
+                description="slash memory",
             )
             screen = app.screen
             assert isinstance(screen, PersonalMemoryScreen)

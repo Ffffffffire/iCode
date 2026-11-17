@@ -89,7 +89,10 @@ async def test_memory_rows_keep_selection_alignment_and_hide_empty_details(
     async with app.run_test(size=(width, height)) as pilot:
         app.theme = theme
         app._main_screen.action_personal_memory("all")
-        await wait_for(lambda: isinstance(app.screen, PersonalMemoryScreen) and app.screen._loaded, pilot=pilot)
+        await wait_for(
+            lambda: isinstance(app.screen, PersonalMemoryScreen) and app.screen.is_mounted and app.screen._loaded,
+            pilot=pilot,
+        )
         screen = app.screen
         assert isinstance(screen, PersonalMemoryScreen)
         options = screen.query_one("#memory-list", OptionList)
@@ -181,7 +184,10 @@ async def test_full_library_can_be_filtered_and_opened_without_losing_the_select
     app = make_chrys_app(tmp_path / "sessions", engine=SessionGenerationEngine(), event_bus=bus)
     async with app.run_test(size=(120, 40)) as pilot:
         app._main_screen.action_personal_memory("all")
-        await wait_for(lambda: isinstance(app.screen, PersonalMemoryScreen) and app.screen._loaded, pilot=pilot)
+        await wait_for(
+            lambda: isinstance(app.screen, PersonalMemoryScreen) and app.screen.is_mounted and app.screen._loaded,
+            pilot=pilot,
+        )
         screen = app.screen
         assert isinstance(screen, PersonalMemoryScreen)
         options = screen.query_one("#memory-list", OptionList)

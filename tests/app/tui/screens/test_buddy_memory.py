@@ -85,7 +85,11 @@ async def test_buddy_shows_recall_and_review_and_opens_the_selected_memory(
         await wait_for(lambda: rich_plain(item.label).startswith(selected.draft.title), pilot=pilot)
         await click_when_settled(pilot, item)
         await wait_for(
-            lambda: isinstance(app.screen, PersonalMemoryScreen) and bool(app.screen.snapshot.entries),
+            lambda: (
+                isinstance(app.screen, PersonalMemoryScreen)
+                and app.screen.is_mounted
+                and bool(app.screen.snapshot.entries)
+            ),
             pilot=pilot,
             description="memory title opens its detail",
         )
@@ -105,7 +109,12 @@ async def test_buddy_shows_recall_and_review_and_opens_the_selected_memory(
         await wait_for(lambda: card.query_one("#buddy-memory-review", Button).visible, pilot=pilot)
         await click_when_settled(pilot, card.query_one("#buddy-memory-review", Button))
         await wait_for(
-            lambda: isinstance(app.screen, PersonalMemoryScreen) and bool(app.screen.snapshot.entries), pilot=pilot
+            lambda: (
+                isinstance(app.screen, PersonalMemoryScreen)
+                and app.screen.is_mounted
+                and bool(app.screen.snapshot.entries)
+            ),
+            pilot=pilot,
         )
         screen = app.screen
         assert isinstance(screen, PersonalMemoryScreen)
@@ -126,7 +135,7 @@ async def test_buddy_shows_recall_and_review_and_opens_the_selected_memory(
         assert counts.has_focus, repr(app.focused)
         assert counts.styles.text_style.underline
         await pilot.press("enter")
-        await wait_for(lambda: isinstance(app.screen, PersonalMemoryScreen), pilot=pilot)
+        await wait_for(lambda: isinstance(app.screen, PersonalMemoryScreen) and app.screen.is_mounted, pilot=pilot)
         assert app.screen.current_view == "recalled"
 
 

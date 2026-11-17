@@ -49,7 +49,10 @@ async def test_search_batch_review_and_cross_session_feedback(tmp_path: Path, wi
         bar.focus_input()
         bar.query_one("#chat-input", TextArea).load_text("/memory")
         await pilot.press("enter")
-        await wait_for(lambda: isinstance(app.screen, PersonalMemoryScreen) and app.screen._loaded, pilot=pilot)
+        await wait_for(
+            lambda: isinstance(app.screen, PersonalMemoryScreen) and app.screen.is_mounted and app.screen._loaded,
+            pilot=pilot,
+        )
         screen = app.screen
         assert isinstance(screen, PersonalMemoryScreen)
         screen.query_one("#memory-search", EnhancedInput).value = "幻灯片"
@@ -145,7 +148,10 @@ async def test_activity_ui_can_read_records_older_than_the_snapshot_tail(
         main = app._main_screen
         assert main is not None
         main.action_personal_memory("activity")
-        await wait_for(lambda: isinstance(app.screen, PersonalMemoryScreen) and app.screen._loaded, pilot=pilot)
+        await wait_for(
+            lambda: isinstance(app.screen, PersonalMemoryScreen) and app.screen.is_mounted and app.screen._loaded,
+            pilot=pilot,
+        )
         screen = app.screen
         assert isinstance(screen, PersonalMemoryScreen)
         await click_when_settled(pilot, screen.query_one("#memory-older", Button))

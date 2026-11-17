@@ -56,7 +56,10 @@ async def test_older_revisions_are_loaded_when_requested(tmp_path: Path) -> None
     app = make_chrys_app(tmp_path / "sessions", engine=SessionGenerationEngine(), event_bus=bus)
     async with app.run_test(size=(100, 40)) as pilot:
         app._main_screen.action_personal_memory()
-        await wait_for(lambda: isinstance(app.screen, PersonalMemoryScreen) and app.screen._loaded, pilot=pilot)
+        await wait_for(
+            lambda: isinstance(app.screen, PersonalMemoryScreen) and app.screen.is_mounted and app.screen._loaded,
+            pilot=pilot,
+        )
         panel = app.screen
         panel.query_one("#memory-history", Collapsible).scroll_visible(animate=False)
         await click_when_settled(pilot, "#memory-history CollapsibleTitle")
@@ -91,7 +94,10 @@ async def test_review_queue_checks_conditions_without_globally_pausing_the_memor
     app = make_chrys_app(tmp_path / "sessions", engine=SessionGenerationEngine(), event_bus=bus)
     async with app.run_test(size=(100, 40)) as pilot:
         app._main_screen.action_personal_memory("stale")
-        await wait_for(lambda: isinstance(app.screen, PersonalMemoryScreen) and app.screen._loaded, pilot=pilot)
+        await wait_for(
+            lambda: isinstance(app.screen, PersonalMemoryScreen) and app.screen.is_mounted and app.screen._loaded,
+            pilot=pilot,
+        )
         panel = app.screen
         assert "three" in rich_plain(panel.query_one("#memory-replacement", Static).content).lower()
         assert panel.snapshot.entries[0].state == "active"
@@ -111,7 +117,10 @@ async def test_panel_distinguishes_unknown_effect_from_confirmed_helpfulness(tmp
     app = make_chrys_app(tmp_path / "sessions", engine=SessionGenerationEngine(), event_bus=bus)
     async with app.run_test(size=(100, 40)) as pilot:
         app._main_screen.action_personal_memory()
-        await wait_for(lambda: isinstance(app.screen, PersonalMemoryScreen) and app.screen._loaded, pilot=pilot)
+        await wait_for(
+            lambda: isinstance(app.screen, PersonalMemoryScreen) and app.screen.is_mounted and app.screen._loaded,
+            pilot=pilot,
+        )
         panel = app.screen
         assert "Effect unknown" in rich_plain(panel.query_one("#memory-usage", Static).content)
         assert not panel.query_one("#memory-replacement", Static).display
@@ -156,5 +165,5 @@ async def test_pending_memory_is_quiet_until_weekly_review_and_opening_dismisses
         await bus.publish(PersonalMemoryChanged(snapshot=state))
         await wait_for(lambda: card.query_one("#buddy-memory-review", Button).visible, pilot=pilot)
         await click_when_settled(pilot, "#buddy-memory-review")
-        await wait_for(lambda: isinstance(app.screen, PersonalMemoryScreen), pilot=pilot)
+        await wait_for(lambda: isinstance(app.screen, PersonalMemoryScreen) and app.screen.is_mounted, pilot=pilot)
         assert (await asyncio.to_thread(store.load)).review_notice is None

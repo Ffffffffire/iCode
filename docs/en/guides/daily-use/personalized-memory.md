@@ -2,6 +2,8 @@
 
 User-level Personalized Memory, shortened to **Personalized Memory**, retains preferences, reasons for choices, conditional lessons and unfinished intentions that you want to carry into later tasks. It helps the agent avoid repeated questions, reuse relevant experience and correct earlier content when your needs change. Open it with `/memory` or the memory entry in the conversation footer.
 
+Try saving, recalling in a new chat, and correcting an example memory. [Personalized Memory walkthrough](../configuration/memory-demo.md)
+
 ## What to retain
 
 Keep information that can change a future judgment or action in a recognizable situation, together with its conditions.

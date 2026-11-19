@@ -31,6 +31,8 @@ topics:
           zh-Hans: 个性化记忆
           en: Personalized Memory
         path: guides/daily-use/personalized-memory.md
+      - id: memory_demo
+        path: guides/configuration/memory-demo.md
   - id: running
     labels:
       zh-Hans: 运行 iCode
@@ -67,8 +69,6 @@ topics:
         path: guides/configuration/approval.md
       - id: memory
         path: guides/configuration/memory.md
-      - id: memory_demo
-        path: guides/configuration/memory-demo.md
       - id: compaction
         path: guides/configuration/compaction.md
       - id: settings

@@ -1,4 +1,4 @@
-# Personal memory demo
+# Personalized Memory walkthrough
 
 Use the fictional Orange Bridge check and Cedar project to observe a saved lesson changing a later answer, then correct it and stop using it. Wording can vary; inspect the saved content, conditions, source, and subsequent behavior.
 
@@ -66,4 +66,4 @@ Recall modes govern reading and suggestions. An explicit user save or a manual e
 
 Find and **Forget** the fictional entries, confirming each deletion. Check Saved, Review, and Paused, then restore your preferred mode. Prior chats remain; forgotten entries must no longer be retrieved from the library in fresh conversations.
 
-See [Configure memory](memory.md) for limits, revision history, and reference-file behavior.
+Read about recall modes, limits, and revision history. [Personalized Memory guide](../daily-use/personalized-memory.md)

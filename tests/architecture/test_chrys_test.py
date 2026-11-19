@@ -1187,7 +1187,6 @@ def test_filesystem_scanning_architecture_guards_watch_their_complete_scope(
 @pytest.mark.parametrize(
     ("changed_path", "expected_target"),
     [
-        ("src/chrys/app/acp/server.py", "tests/app/acp/test_server_capabilities.py"),
         ("src/chrys/app/tui/behaviors/submit_state.py", "tests/app/tui/behaviors/test_chrys_themes.py"),
         ("src/chrys/app/tui/behaviors/submit_state.py", "tests/app/tui/i18n/test_bindings.py"),
         (

@@ -275,10 +275,7 @@ async def test_prepared_close_drains_registered_operation_in_all_three_windows(
         assert "terminal-writer" in order
         assert "end-hook-drained" in order
         assert not pause_callback_release.is_set()
-        audits = [
-            json.loads(path.read_text(encoding="utf-8"))
-            for path in (tmp_path / "sub_agents" / "sessions").glob("*.json")
-        ]
+        audits = [json.loads(path.read_text()) for path in (tmp_path / "sub_agents" / "sessions").glob("*.json")]
         assert len(audits) == 1
         assert audits[0]["meta"]["status"] in {"completed", "cancelled", "cascade_aborted"}
         assert len(finishes) == 1

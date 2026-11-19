@@ -86,6 +86,8 @@ async def test_explicit_request_can_save_quoted_content_without_enabling_suggest
     [
         "不要记住\uff1a这次报告只是临时采用蓝色。",
         "请不要保存到记忆\uff1a这次报告只是临时采用蓝色。",
+        "请把报告写成文档\uff0c这次不要写入个性化记忆。",
+        "请把报告写成文档\uff0c这次不写入个人记忆。",
         "Please do not remember: this report uses blue just this once.",
     ],
 )
@@ -123,16 +125,27 @@ async def test_declined_message_cannot_be_reused_as_a_candidate_in_a_later_turn(
     assert store.load().entries == ()
 
 
-async def test_request_to_distill_profiles_is_not_evidence_for_the_resulting_lesson(tmp_path: Path) -> None:
+@pytest.mark.parametrize(
+    ("prompt", "intent"),
+    [
+        ("以默认 Agent 的配置为范例\uff0c总结设计方法\uff0c并将其记住。", "并将其记住"),
+        (
+            "请学习这些资料\uff0c整理成文档\uff0c再把总结出的做法写入个人记忆。",
+            "把总结出的做法写入个人记忆",
+        ),
+    ],
+)
+async def test_request_to_distill_profiles_is_not_evidence_for_the_resulting_lesson(
+    tmp_path: Path, prompt: str, intent: str
+) -> None:
     runtime, store = _runtime(tmp_path)
-    request = "以 iCode 四个默认 Agent 的配置为范例，总结设计方法，并将其记住，用于后续构建专业 Agent。"  # noqa: RUF001
-    runtime.observe([Message("user", [request])])
+    runtime.observe([Message("user", [prompt])])
     result = await runtime.propose_memory(
         title="Agent Profile 设计骨架",
         content="身份句 → 约束前置 → 原则带反例 → 工具矩阵 → 按读者定输出 → 权限落配置",
         when_to_use="构建专业 Agent",
-        source_quote=request,
-        intent_quote="并将其记住",
+        source_quote=prompt,
+        intent_quote=intent,
         save_now=True,
     )
     assert result.startswith("Error:") and "evidence" in result
@@ -140,20 +153,26 @@ async def test_request_to_distill_profiles_is_not_evidence_for_the_resulting_les
 
 
 @pytest.mark.parametrize(
-    ("prompt", "save_now", "application", "expected"),
+    ("prompt", "save_now", "with_application", "expected"),
     [
-        ("Please remember that lesson.", True, "", None),
-        ("Please remember that lesson.", True, "Verify that read-only roles lack file writing tools.", "active"),
-        ("Compare the profiles.", True, "Verify that read-only roles lack file writing tools.", None),
-        ("Compare the profiles.", False, "Verify that read-only roles lack file writing tools.", "candidate"),
+        ("Please remember that lesson.", True, False, None),
+        ("Please remember that lesson.", True, True, "active"),
+        ("先学习资料\uff0c整理成文档后\uff0c把可复用的结论写入我的个性化记忆。", True, True, "active"),
+        ("不要逐字照抄\uff0c提炼并存入个人记忆备用。", True, True, "active"),
+        ("把提炼出的知识写入 `memory` 里。", True, True, "active"),
+        ("Summarize the sources, then add the method to my personal memory.", True, True, "active"),
+        ("下次做同类任务时\uff0c请继续按这个方法来。", True, True, "active"),
+        ("Compare the profiles.", True, True, None),
+        ("Compare the profiles.", False, True, "candidate"),
     ],
 )
 async def test_analysis_lesson_needs_an_application_and_explicit_adoption_to_activate(
-    tmp_path: Path, prompt: str, save_now: bool, application: str, expected: str | None
+    tmp_path: Path, prompt: str, save_now: bool, with_application: bool, expected: str | None
 ) -> None:
     runtime, store = _runtime(tmp_path)
-    store.configure("auto", True)
+    store.configure("auto", not save_now)
     quote = "The QA profile omits filesystem.write."
+    application = "Verify that read-only roles lack file writing tools." if with_application else ""
     runtime.observe(
         [Message("user", ["Read the QA profile."]), Message("assistant", [quote]), Message("user", [prompt])]
     )
@@ -169,10 +188,39 @@ async def test_analysis_lesson_needs_an_application_and_explicit_adoption_to_act
     if expected is None:
         assert result.startswith("Error:") and store.load().entries == ()
     else:
+        assert not result.startswith("Error:"), result
         assert json.loads(result)["state"] == expected
         (entry,) = store.load().entries
         assert entry.source.role == "assistant" and entry.source.quote == quote
         assert application in entry.draft.content
+
+
+@pytest.mark.parametrize(
+    "prompt",
+    [
+        "请学习资料\uff0c总结成文档后写入 README.md。",
+        "总结成文档\uff0c然后写入 memory 配置文件。",
+        "请总结成文档\uff0c然后写入。",
+        "Save the memory settings file after reviewing the profiles.",
+        "请评审这个例子\uff1a“先学习资料\uff0c再写入个人记忆。”",
+        "例如\uff0c整理好可以写入个人记忆。",
+        "整理成文档\uff0c但不要写入个性化记忆。",
+    ],
+)
+async def test_verbatim_task_quote_alone_does_not_authorize_a_memory_write(tmp_path: Path, prompt: str) -> None:
+    runtime, store = _runtime(tmp_path)
+    evidence = "Review agents should have filesystem.read and never filesystem.write."
+    runtime.observe([Message("user", [evidence]), Message("user", [prompt])])
+    result = await runtime.propose_memory(
+        title="Read-only tools",
+        content="Omit filesystem.write for read-only roles.",
+        when_to_use="Configuring read-only agents",
+        source_quote=evidence,
+        intent_quote=prompt,
+        save_now=True,
+        application="Check that the tool list contains filesystem.read and omits filesystem.write.",
+    )
+    assert result.startswith("Error:") and store.load().entries == ()
 
 
 async def test_lesson_that_exceeds_the_rendered_recall_budget_is_not_saved(tmp_path: Path) -> None:
@@ -192,14 +240,18 @@ async def test_lesson_that_exceeds_the_rendered_recall_budget_is_not_saved(tmp_p
     assert store.load().entries == ()
 
 
-@pytest.mark.parametrize("case", ["memory_receipt", "failed_read", "hidden_read"])
+@pytest.mark.parametrize("case", ["memory_receipt", "failed_read", "hidden_read", "skipped_line"])
 async def test_only_currently_visible_successful_read_results_ground_a_lesson(tmp_path: Path, case: str) -> None:
     runtime, store = _runtime(tmp_path)
     quote = "sub_agent_only: true"
     kind = KIND_CONTEXT if case == "memory_receipt" else KIND_FILESYSTEM_READ
+    result_text = quote
+    if case == "skipped_line":
+        result_text = "File: Profile.yaml (3 lines, 84 chars)\n1|sub_agent_only: true\n2|tools:\n3|  builtins: [filesystem.read]\n"
+        quote += " builtins: [filesystem.read]"
     result = Content.from_function_result(
         "reused-id",
-        result=quote,
+        result=result_text,
         additional_properties={TOOL_RESULT_METADATA_KEY: {TOOL_FAILED_METADATA_KEY: case == "failed_read"}},
     )
     runtime.observe(
@@ -422,6 +474,7 @@ async def test_manual_lookup_keeps_the_users_task_when_model_keywords_lose_the_d
     [
         "润色后帮我记住这条偏好",
         "帮我润色并记住这条偏好",
+        "这条偏好请帮我记住",
         "请先整理，然后记住这条偏好",  # noqa: RUF001 -- Natural Chinese user input.
         "Polish this and please remember this preference.",
     ],

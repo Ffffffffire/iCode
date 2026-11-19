@@ -598,8 +598,8 @@ class PersonalMemoryStore:
             for entry in after.entries:
                 old = original.get(entry.id)
                 if old and old.draft != entry.draft and entry.source.role == "user" and turn_id:
-                    after = lifecycle.record_use(
-                        after, entry.id, entry.revision, "corrected", entry.source.session_id, turn_id, user=True
+                    after = lifecycle.record_feedback(
+                        after, entry.id, entry.revision, "corrected", entry.source.session_id, turn_id
                     )
             after = replace(
                 after,
@@ -908,20 +908,24 @@ class PersonalMemoryStore:
                 for a in state.activity
             ):
                 return state
-            state = lifecycle.record_use(
-                state,
-                memory_id,
-                revision,
-                outcome,
-                session_id,
-                actual_turn,
-                user=actor == "user",
-                context_key=next(
-                    (m.context_key for m in receipt.matches if m.memory_id == memory_id and m.revision == revision), ""
+            if (
+                actor == "user"
+                and outcome in ("not_applicable", "helpful")
+                and receipt
+                and receipt.turn_id == actual_turn
+            ):
+                state = lifecycle.record_feedback(
+                    state,
+                    memory_id,
+                    revision,
+                    outcome,
+                    session_id,
+                    actual_turn,
+                    context_key=next(
+                        (m.context_key for m in receipt.matches if m.memory_id == memory_id and m.revision == revision),
+                        "",
+                    ),
                 )
-                if receipt and receipt.turn_id == actual_turn
-                else "",
-            )
             return activity.record(
                 state,
                 outcome,
@@ -1094,7 +1098,7 @@ class PersonalMemoryStore:
                     saved = existing_source
                     return state
             if authorization == "capture" and not state.capture:
-                raise MemoryStoreError("Automatic memory extraction is disabled.")
+                raise MemoryStoreError("Memory suggestions are disabled.")
             if (
                 authorization == "capture"
                 and not candidate
@@ -1954,9 +1958,6 @@ class PersonalMemoryStore:
                         actor="system",
                         detail=match.layer + ": " + ", ".join(match.routes),
                     )
-                result = lifecycle.record_use(
-                    result, entry.id, entry.revision, "provided", session_id, turn_id, context_key=match.context_key
-                )
             if not selected and enabled:
                 result = activity.record(result, "no_match", session_id=session_id, turn_id=turn_id, actor="system")
             return result

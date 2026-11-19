@@ -71,7 +71,7 @@ from .store import (
     review_key,
     workspace_key,
 )
-from .summary import _user_quote_occurs
+from .write_intent import declines_memory, save_request, unquoted_text, user_quote_occurs
 
 _NOTE_CHARS = 600
 _LESSON_CHARS = 1600
@@ -90,10 +90,13 @@ _GUIDANCE = (
     "conditions, examples and exceptions, correct existing IDs, and avoid duplicates. Distill a lesson around one "
     "specific future choice with the reason, exact settings and observable outcome needed to apply it in a new session. "
     "Tie each observed setting to the example that declares it. Make recommendations conditional on that evidence. "
-    "For a lesson from research, cite a line that supports the central rule and show one concrete use or check. "
+    "When asked for a document and a memory, finish the document before saving its reusable lesson. "
+    "Quote a short excerpt in the source's original language from a successful read result or visible analysis. "
+    "Include one concrete application or check. "
     "Project facts stay project-scoped. "
-    "Never save credentials or transient progress. Explicit save_now needs the latest user's intent_quote; stated means a "
-    "durable preference, not a one-time request. Inferred knowledge stays pending. Follow-ups need an accepted "
+    "Never save credentials or transient progress. Use save_now=true when the latest user directs writing the result "
+    "to memory or using the method in future tasks. Quote that directive in intent_quote; put the supporting finding "
+    "in source_quote. Use stated for a durable preference. Unrequested inferred knowledge stays pending. Follow-ups need an accepted "
     "cross-session commitment; agent suggestions await review. Silence never proves approval or completion. "
     "Report meaningful use or feedback with review_memory; applied is an agent report, not proven benefit. "
     "Skip this turn for temporary exceptions; pause only on the user's lasting correction. Use organize_memory "
@@ -116,46 +119,19 @@ class MemoryReference(BaseModel):
     revision: int = Field(ge=1)
 
 
-_REQUEST_PREFIX = (
-    r"(?:^|(?<=[。\uFF01\uFF1F\uFF1B.!?;\n，,])|(?<=[后并再])|(?<=and )|(?<=then ))\s*"  # noqa: RUF001 -- Chinese clause boundary.
-    r"(?:(?:请|麻烦你?|帮我|你要|你可以|希望你|我希望你|然后|接着)\s*|"
-    r"please\s+|can you\s+|could you\s+|i want you to\s+){0,3}"
-)
-_SAVE_REQUEST = re.compile(
-    _REQUEST_PREFIX + r"(?P<referent_zh>(?:把|将)\s*(?:其|它|(?:上述|以上|上面|这些|这[套条个份])"
-    r"(?:的)?(?:结论|方法|经验|知识|要点|结果|分析|总结|做法)?))?\s*"
-    r"(?P<action>记住|记下来|记到记忆|保存到记忆|更新.{0,8}记忆|修改.{0,8}记忆|"
-    r"remember\b|save.{0,12}memory\b|update.{0,12}memory\b)"
-    r"(?P<referent_en>\s+(?:it|this|that)(?:\s+(?:lesson|method|analysis|conclusion))?(?=\s*(?:$|[.!?;,\n])))?",
-    re.IGNORECASE,
-)
-_NEGATED_SAVE_REQUEST = re.compile(
-    r"(?:不要|不必|不用|不需要|无需|别|勿|没有要求|没有让|没让|don't\b|do not\b|never\b)[^。.!?;\n]*"
-    r"(?:记住|记下来|保存到记忆|更新.{0,8}记忆|修改.{0,8}记忆|remember|save.{0,12}memory|update.{0,12}memory)",
-    re.IGNORECASE,
-)
-_INDIRECT_REQUEST = re.compile(
-    r"^\s*(?:如果|假如|假设|例如|比如|举例|示例|例子|[他她它]们?(?:说|让|要求)|"
-    r"if\b|suppose\b|for example\b|(?:he|she|they)\s+(?:said|asked)\b)",
-    re.IGNORECASE,
-)
-_QUOTED_TEXT = re.compile(
-    r"(?ms:^[ \t]*```.*?(?:^[ \t]*```[ \t]*$|\Z)|^[ \t]*~~~.*?(?:^[ \t]*~~~[ \t]*$|\Z))|"
-    r"(?m:^[ \t]*>[^\n]*)|`[^`\n]*`|\"[^\"\n]*\"|(?<!\w)'[^'\n]*'(?!\w)|“[^”]*”|\u2018[^\u2019]*\u2019|「[^」]*」|『[^』]*』"
-)
-
-
-def _explicit_save_request(text: str) -> re.Match[str] | None:
-    # Authorization comes from the latest user message, independently of which
-    # earlier message supplies the memory's evidence. Quoted commands stay inert.
-    visible = _QUOTED_TEXT.sub(lambda match: " " * len(match.group()), text)
-    if _NEGATED_SAVE_REQUEST.search(visible):
-        return None
-    for request in _SAVE_REQUEST.finditer(visible):
-        prefix = re.split(r"[。\uFF01\uFF1F\uFF1B.!?;\n]", visible[: request.start()])[-1]
-        if not _INDIRECT_REQUEST.match(prefix):
-            return request
-    return None
+def _read_file_quote_occurs(quote: str, result: str) -> bool:
+    """Match the words of a contiguous excerpt from a numbered file preview."""
+    if not result.startswith("File: "):
+        return False
+    body = result.partition("\n")[2]
+    lines: list[str] = []
+    for row in body.split("\n"):
+        number, separator, line = row.partition("|")
+        if not separator or not number.isdecimal():
+            break
+        lines.append(line)
+    excerpt = " ".join(quote.split())
+    return excerpt in " ".join(" ".join(lines).split())
 
 
 def _memory_content(
@@ -182,10 +158,6 @@ def _memory_content(
             code="memory_not_distilled",
         )
     return body
-
-
-def _declines_memory(text: str) -> bool:
-    return _NEGATED_SAVE_REQUEST.search(_QUOTED_TEXT.sub(lambda match: " " * len(match.group()), text)) is not None
 
 
 _OUTPUT_FORMATS = {".pptx": "slides", ".ppt": "slides", ".html": "html", ".htm": "html"}
@@ -324,13 +296,13 @@ class PersonalMemoryRuntime(FunctionMiddleware):
     def _source(self, quote: str, kind: MemoryKind) -> MemorySource | None:
         if not quote:
             return None
-        if self._current_user and quote in self._current_user[0] and not _declines_memory(self._current_user[0]):
+        if self._current_user and quote in self._current_user[0] and not declines_memory(self._current_user[0]):
             return replace(self._current_user[1], quote=quote)
         for message in reversed(self._evidence):
             if message.role != "user" and (message.role != "assistant" or kind != "lesson"):
                 continue
             text = message.text or ""
-            if quote in text and not _declines_memory(text):
+            if quote in text and not declines_memory(text):
                 return MemorySource(
                     self._session_id,
                     read_analytics_item_id(message.additional_properties) or "",
@@ -362,7 +334,10 @@ class PersonalMemoryRuntime(FunctionMiddleware):
                         result.exception is not None
                         or (isinstance(metadata, Mapping) and tool_result_metadata_failure_state(metadata) is True)
                         or not isinstance(result.result, str)
-                        or quote not in result.result
+                    ):
+                        continue
+                    if quote not in result.result and not (
+                        call.name == "read_file" and _read_file_quote_occurs(quote, result.result)
                     ):
                         continue
                     return MemorySource(
@@ -478,7 +453,7 @@ class PersonalMemoryRuntime(FunctionMiddleware):
                 else "Unrequested memories require review."
             )
             if state.capture
-            else "Only an explicit user request permits saving; do not suggest memories otherwise."
+            else "Save on a current user direction to retain a memory or reuse a method in future tasks."
         )
         usage = (
             "Recall advice only when asked; a pending memory write may inspect related entries with for_update=true."
@@ -693,7 +668,7 @@ class PersonalMemoryRuntime(FunctionMiddleware):
         ] = False,
         alternatives: Annotated[
             list[str] | None,
-            "Up to two short reformulations of the same decision, using alternate terminology. "
+            "For recall, up to two short reformulations of the same decision. Write inspection uses only query. "
             "For example, search downstream consumption when deciding which fields to add to an intermediate artifact.",
         ] = None,
     ) -> str:
@@ -702,11 +677,9 @@ class PersonalMemoryRuntime(FunctionMiddleware):
         Query before an action when a preference could change it. Automatic decision checks may defer an action for review.
         Inspect related memories before writing with for_update=true.
         """
-        alternate = tuple(text.strip() for text in alternatives or ())
-        if alternate and (
-            for_update
-            or len(alternate) > MAX_RECALL_ALTERNATIVES
-            or any(not text or len(text) > MAX_ALTERNATIVE_CHARS for text in alternate)
+        alternate = () if for_update else tuple(text.strip() for text in alternatives or ())
+        if len(alternate) > MAX_RECALL_ALTERNATIVES or any(
+            not text or len(text) > MAX_ALTERNATIVE_CHARS for text in alternate
         ):
             return tool_error(
                 "memory_rejected", "Use at most two alternate search phrases of up to 320 characters for recall."
@@ -775,8 +748,8 @@ class PersonalMemoryRuntime(FunctionMiddleware):
         ],
         source_quote: Annotated[
             str,
-            "One exact excerpt supporting the rule. A lesson can cite a verbatim line from a visible read/search result "
-            "or assistant analysis. Quote the finding itself, separate from permission to save.",
+            "One short excerpt supporting the rule, in the source's original words and language. For a lesson, quote "
+            "a visible read result or analysis. You can omit read_file line numbers. Put the summary in content.",
         ],
         kind: Annotated[MemoryKind, "decision, preference, lesson or intention."] = "lesson",
         reconsider_when: Annotated[str, "Conditions that would invalidate or reopen this judgment."] = "",
@@ -785,14 +758,18 @@ class PersonalMemoryRuntime(FunctionMiddleware):
         ] = True,
         replaces_id: Annotated[str, "Existing memory ID to update or propose correcting; empty for a new memory."] = "",
         replaces_revision: Annotated[int, "The revision being corrected; required with replaces_id."] = 0,
-        save_now: Annotated[bool, "True only when the latest user explicitly asks to remember or update."] = False,
+        save_now: Annotated[
+            bool,
+            "True for a current user direction to retain or correct memory, or to reuse the method in future tasks.",
+        ] = False,
         basis: Annotated[
             Literal["stated", "inferred"],
             "stated: a direct durable preference in the latest user message; inferred: needs review.",
         ] = "inferred",
         intent_quote: Annotated[
             str,
-            "For save_now: verbatim latest-user words asking to retain or correct; ordinary natural language is accepted.",
+            "For save_now: quote the latest user's exact direction to retain, correct or reuse. "
+            "Example: 'add the reusable method to my personal memory'. Quote the finding separately in source_quote.",
         ] = "",
         topics: Annotated[list[str] | None, "Up to six short topics that help find this memory."] = None,
         aliases: Annotated[
@@ -813,36 +790,32 @@ class PersonalMemoryRuntime(FunctionMiddleware):
     ) -> str:
         """Write only useful new personal evidence, never routine tasks. Polish before calling; no second model runs.
 
-        Inspect related memories with recall_memory(for_update=true), unless the catalog is empty. Skip duplicates; use replaces_id/revision
-        for a supported merge or correction, retaining valid conditions. save_now needs a user request;
-        basis=stated can activate a direct durable preference if enabled. Inferred knowledge awaits review.
-        Keep lessons self-contained: include a decision rule and a way to apply or verify it, with the supporting quote.
+        Inspect with recall_memory(query, for_update=true) before writing to a nonempty catalog. Skip duplicates and
+        resolve a correction to an ID and version. Save a requested lesson with save_now=true and the user's direction
+        in intent_quote. Supply a supporting finding in source_quote and a concrete use or check in application.
+        Report the tool receipt. When a write is rejected, use its specific reason to correct the next call.
         """
         quote = source_quote.strip()
         current = self._current_user
-        if current is None or _declines_memory(current[0]):
+        if current is None or declines_memory(current[0]):
             return await self._reject_save(
                 title, "memory_declined", "No current user evidence, or the user declined memory."
             )
-        request = None
-        if save_now:
-            request = _explicit_save_request(current[0])
-            visible_intent = _QUOTED_TEXT.sub(lambda match: " " * len(match.group()), current[0])
-            # The main agent judges intent; a conditional clause can be a real request.
-            grounded_intent = bool(intent_quote.strip() and intent_quote.strip() in visible_intent)
-            if request is None and not grounded_intent:
-                return await self._reject_save(
-                    title,
-                    "memory_request_missing",
-                    "Quote the latest user request in intent_quote; do not infer permission from task instructions or quoted examples.",
-                )
-            if request and re.match(r"更新|修改|update", request.group("action"), re.IGNORECASE) and not replaces_id:
-                return await self._reject_save(
-                    title,
-                    "memory_target_missing",
-                    "Use recall_memory to find the memory being corrected and supply its ID and revision. "
-                    "If the target is ambiguous, ask which memory or open /memory; do not append a new conclusion.",
-                )
+        request = save_request(current[0], intent_quote) if save_now else None
+        if save_now and request is None:
+            return await self._reject_save(
+                title,
+                "memory_request_missing",
+                "Quote a direction from the latest user to write to personal memory or reuse the method in a future task. "
+                "A request to write a document authorizes the document. If the memory destination is unclear, clarify it.",
+            )
+        if request and request.correction and not replaces_id:
+            return await self._reject_save(
+                title,
+                "memory_target_missing",
+                "Use recall_memory to find the memory being corrected and supply its ID and revision. "
+                "If the target is ambiguous, ask which memory or open /memory.",
+            )
         source = self._source(quote, "lesson" if kind == "intention" and follow_up and not save_now else kind)
         if source is None and kind == "lesson":
             source = self._lesson_tool_source(quote)
@@ -850,29 +823,22 @@ class PersonalMemoryRuntime(FunctionMiddleware):
             return await self._reject_save(
                 title,
                 "memory_source_missing",
-                "The source quote must occur verbatim in the visible conversation. "
-                "Quote the user's evidence, or the supporting analysis or read result for a lesson.",
+                "Use a short verbatim source quote. Quote the user's evidence, or for a lesson, "
+                "visible analysis or a successful read result. Put any translation or summary in content.",
             )
-        refers_to_material = request is not None and bool(request.group("referent_zh") or request.group("referent_en"))
+        refers_to_material = request is not None and request.refers_to_material
         from_current_user = source.role == "user" and quote in current[0]
         if (
             kind == "lesson"
             and request is not None
-            and refers_to_material
             and from_current_user
-            and current[0][request.start() : request.end()].strip() in quote
+            and (quote == request.quote or (refers_to_material and request.quote in quote))
         ):
             return await self._reject_save(
                 title,
                 "memory_source_missing",
                 "The request gives permission to save. Quote separate evidence for the lesson, such as a finding "
                 "in the analysis or the material you read.",
-            )
-        if save_now and source.role != "user" and (kind != "lesson" or request is None):
-            return await self._reject_save(
-                title,
-                "memory_request_missing",
-                "Saving a lesson from analysis or tool output needs the user's explicit request to remember it.",
             )
         try:
             content = _memory_content(
@@ -905,9 +871,7 @@ class PersonalMemoryRuntime(FunctionMiddleware):
                 and kind == "preference"
                 and source.role == "user"
                 and quote in current[0]
-                and _user_quote_occurs(
-                    current[0], _QUOTED_TEXT.sub(lambda match: " " * len(match.group()), current[0]), quote
-                )
+                and user_quote_occurs(current[0], unquoted_text(current[0]), quote)
             )
             old = next((e for e in state.entries if e.id == replaces_id), None)
             prior = old.draft if old else MemoryDraft(title, content, when_to_use)
@@ -968,7 +932,7 @@ class PersonalMemoryRuntime(FunctionMiddleware):
 
     def _latest_source(self, quote: str) -> MemorySource | None:
         current = self._current_user
-        if current and quote.strip() and quote.strip() in _QUOTED_TEXT.sub(lambda m: " " * len(m.group()), current[0]):
+        if current and quote.strip() and quote.strip() in unquoted_text(current[0]):
             return replace(current[1], quote=quote.strip())
         return None
 
@@ -1237,7 +1201,7 @@ class PersonalMemoryRuntime(FunctionMiddleware):
         """
         current = self._current_user
         quote = source_quote.strip()
-        if current is None or not quote or quote not in _QUOTED_TEXT.sub(lambda m: " " * len(m.group()), current[0]):
+        if current is None or not quote or quote not in unquoted_text(current[0]):
             return tool_error(
                 "memory_source_missing", "Quote the latest user's own invalidation, not assistant text or an example."
             )

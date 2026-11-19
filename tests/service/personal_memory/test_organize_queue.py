@@ -2,9 +2,8 @@
 #
 """The organize queue derives the four review reasons from one loaded snapshot.
 
-Thresholds stay in their existing homes (``health`` grouping,
-``condition_review_ids``, ``evidence_current``); these tests pin what the queue
-does with them and that deriving it reads only the snapshot.
+These tests pin duplicate grouping, condition review, source revisions and
+the warning counts derived from the same snapshot.
 """
 
 from __future__ import annotations
@@ -17,10 +16,10 @@ from pathlib import Path
 
 from chrys.foundation.models.personal_memory import MemoryDraft, MemoryRelation, MemorySource
 from chrys.foundation.platform.files import atomic_write_owner_only_text
-from chrys.service.personal_memory.lifecycle import condition_review_ids, health
+from chrys.service.personal_memory.lifecycle import condition_review_ids
 from chrys.service.personal_memory.organize import (
+    OrganizeQueue,
     OrganizeReason,
-    duplicate_partners,
     normalize_content,
     organize_ids,
     organize_items,
@@ -308,7 +307,7 @@ def test_several_reasons_stay_one_row_in_a_fixed_order(tmp_path: Path) -> None:
     assert len(rows) == 1
     assert rows[0].reasons == (_DUPLICATE, _SOURCE_CHANGED, _REPEATED_SKIPS)
     assert rows[0].revision == many.revision
-    assert [entry.id for entry in duplicate_partners(state, many)] == [partner.id]
+    assert [entry.id for entry in OrganizeQueue(state).duplicate_partners(many.id)] == [partner.id]
     assert _reasons(state, partner.id) == (_DUPLICATE,)
 
 
@@ -344,12 +343,13 @@ def test_duplicate_partners_name_hidden_members_and_never_cross_workspaces(tmp_p
     alone = store.save(_draft("Lonely", "Run the tests twice"), MemorySource())
 
     state = store.load()
-    partners = duplicate_partners(state, slides)
+    queue = OrganizeQueue(state)
+    partners = queue.duplicate_partners(slides.id)
 
     assert [entry.id for entry in partners] == [hidden.id, third.id]
     assert {entry.draft.title for entry in partners} == {"Release notes", "Charts"}
     assert elsewhere.id not in {entry.id for entry in partners}
-    assert duplicate_partners(state, alone) == ()
+    assert queue.duplicate_partners(alone.id) == ()
     assert normalize_content("  UsE\u3000a single chart ") == normalize_content("use a single chart")
 
 
@@ -375,9 +375,11 @@ def test_duplicate_grouping_agrees_with_the_footer_health_count(tmp_path: Path) 
     counts = Counter(key(entry) for entry in state.entries if entry.state in grouped_states)
     expected_duplicates = sum(count - 1 for count in counts.values() if count > 1)
     duplicated = {entry.id for entry in state.entries if entry.state in grouped_states and counts[key(entry)] > 1}
-    rows = [item for item in organize_items(state) if _DUPLICATE in item.reasons]
+    queue = OrganizeQueue(state)
+    rows = [item for item in queue.items() if _DUPLICATE in item.reasons]
 
-    assert health(state).duplicates == expected_duplicates == 3
+    assert queue.duplicate_count == expected_duplicates == 3
+    assert queue.needs_review and queue.review_count == 0
     assert {item.memory_id for item in rows} == duplicated == {pair_a.id, pair_b.id, trio_a.id, trio_b.id, trio_c.id}
     assert paused.id not in duplicated
 

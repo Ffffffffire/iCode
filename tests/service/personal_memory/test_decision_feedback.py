@@ -27,6 +27,9 @@ def test_silence_after_repeated_provision_keeps_the_memory_available(tmp_path: P
 
     assert state.entries[0].state == "active"
     assert state.entries[0].revision == entry.revision
+    assert state.uses == ()
+    assert recent_usage(state, entry.id, entry.revision).provided == 5
+    assert state.recalls[0].matches[0].memory_id == entry.id
     assert [e.id for e, _ in store.recall("technical slides", "", record=False)] == [entry.id]
 
 
@@ -48,7 +51,16 @@ def test_repeated_user_mismatch_suppresses_only_that_context(tmp_path: Path) -> 
     assert state.entries[0].state == "active" and state.entries[0].revision == 1
     assert store.recall("technical slides for distant projection", "", record=False) == ()
     assert [e.id for e, _ in store.recall("technical slides for architecture review", "", record=False)] == [entry.id]
-    assert store.recall("technical slides for distant projection", "", automatic=False, record=False)
+    assert store.recall(
+        "technical slides for distant projection", "", automatic=False, session_id="one", turn_id="deliberate"
+    )
+    store.feedback(
+        entry.id, entry.revision, "helpful", session_id="one", turn_id="deliberate", source=MemorySource(role="user")
+    )
+    reopened = PersonalMemoryStore(store.path)
+    assert reopened.recall("technical slides for distant projection", "", record=False)
+    assert reopened.load().uses == ()
+    assert recent_usage(reopened.load(), entry.id, entry.revision).effect == "helpful"
 
 
 def test_agent_mismatch_does_not_train_a_user_preference_or_retire_a_fact(tmp_path: Path) -> None:
@@ -57,7 +69,10 @@ def test_agent_mismatch_does_not_train_a_user_preference_or_retire_a_fact(tmp_pa
     for number in range(3):
         store.recall("technical slides", "", session_id="one", turn_id=str(number))
         store.feedback(entry.id, 1, "not_applicable", session_id="one", turn_id=str(number))
-    assert store.maintain().entries[0].state == "active"
+    state = store.maintain()
+    assert state.entries[0].state == "active"
+    assert state.uses == ()
+    assert recent_usage(state, entry.id, entry.revision).agent_skipped == 3
     assert store.recall("technical slides", "", record=False)
 
 
@@ -156,17 +171,36 @@ def test_legacy_automatic_quarantines_restore_but_explicit_pauses_remain(tmp_pat
     assert entries[paused.id].state == "archived"
 
 
-def test_old_receipts_without_context_keys_remain_readable(tmp_path: Path) -> None:
+@pytest.mark.parametrize("has_sidecar", [True, False])
+def test_old_recall_accounting_remains_readable_without_reviving_it(tmp_path: Path, has_sidecar: bool) -> None:
     store = PersonalMemoryStore(tmp_path / "memory.json")
-    store.save(MemoryDraft("Slides", "Use diagrams", "technical slides"), MemorySource())
+    entry = store.save(MemoryDraft("Slides", "Use diagrams", "technical slides"), MemorySource())
     store.recall("technical slides", "", session_id="one", turn_id="1")
-    payload = json.loads(store.receipts_path.read_text(encoding="utf-8"))
+    if not has_sidecar:
+        # A catalog commit carries the recall recovery state if its sidecar is missing.
+        store.configure("manual", False)
+        store.receipts_path.unlink()
+    path = store.receipts_path if has_sidecar else store.path
+    payload = json.loads(path.read_text(encoding="utf-8"))
     for receipt in payload["recalls"]:
         for match in receipt["matches"]:
             match.pop("context_key", None)
-    for use in payload["uses"]:
-        use.pop("excluded_contexts", None)
-        for exposure in (*use["exposures"], *use["skips"]):
-            exposure.pop("context_key", None)
-    atomic_write_owner_only_text(store.receipts_path, json.dumps(payload))
-    assert PersonalMemoryStore(store.path).load().recalls[0].matches[0].context_key == ""
+    observation = {"session_id": "one", "turn_id": "1", "occurred_at": entry.created_at}
+    payload["uses"] = [
+        {
+            "memory_id": entry.id,
+            "revision": entry.revision,
+            "exposures": [observation],
+            "helpful_at": entry.created_at,
+            "skips": [observation],
+        }
+    ]
+    atomic_write_owner_only_text(path, json.dumps(payload))
+
+    reopened = PersonalMemoryStore(store.path)
+    state = reopened.load()
+    assert state.recalls[0].matches[0].context_key == ""
+    assert state.uses == ()
+    assert recent_usage(state, entry.id, entry.revision).provided == 1
+    reopened.set_buddy_notifications(True)
+    assert json.loads(path.read_text(encoding="utf-8"))["uses"] == []

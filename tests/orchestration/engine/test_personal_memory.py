@@ -327,6 +327,7 @@ async def test_profile_lesson_keeps_the_rule_and_check_in_a_new_session(
     agent_engine, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     profile = tmp_path / "Explore.yaml"
+    document = tmp_path / "review-agent-guide.md"
     profile.write_text(
         "sub_agent_only: true\n"
         "instructions: |\n"
@@ -335,7 +336,14 @@ async def test_profile_lesson_keeps_the_rule_and_check_in_a_new_session(
         "  builtins: [filesystem.read, search, shell]\n",
         encoding="utf-8",
     )
-    request = "以 iCode 默认 Agent 的配置为范例，总结专业 Agent 的设计方法，并将其记住。"  # noqa: RUF001
+    intent = "把可复用的做法写入我的个人记忆"
+    request = f"学习这份调查 Agent 配置\uff0c整理成文档\uff0c然后{intent}。"
+    store = PersonalMemoryStore()
+    existing = await asyncio.to_thread(
+        store.save,
+        MemoryDraft("Visit checklist", "Confirm transport before a trip.", "Planning a visit"),
+        MemorySource(),
+    )
     lesson = (
         "Design a specialist by choosing its caller and permissions before writing its instructions. "
         "For an investigation child, set sub_agent_only: true and expose filesystem.read and search, "
@@ -350,10 +358,22 @@ async def test_profile_lesson_keeps_the_rule_and_check_in_a_new_session(
         "Check the loaded tool list for the absence of write tools. Give the child a read-only configuration "
         "investigation and verify that the caller receives a finding with a navigable path:line and no file changes."
     )
-    source_quote = "sub_agent_only: true"
+    source_quote = (
+        "sub_agent_only: true instructions: | Return a read-only investigation with path:line references to the caller."
+    )
     client = MockChatClient(
         [
             MockResponse(tool_calls=[("read_file", "profile-source", {"path": str(profile)})]),
+            MockResponse(tool_calls=[("write_file", "guide", {"path": str(document), "content": lesson})]),
+            MockResponse(
+                tool_calls=[
+                    (
+                        "recall_memory",
+                        "inspect-lessons",
+                        {"query": "只读调查子代理", "for_update": True, "alternatives": ["只读审查 Agent"]},
+                    )
+                ]
+            ),
             MockResponse(
                 tool_calls=[
                     (
@@ -368,6 +388,7 @@ async def test_profile_lesson_keeps_the_rule_and_check_in_a_new_session(
                             "source_quote": source_quote,
                             "kind": "lesson",
                             "save_now": True,
+                            "intent_quote": intent,
                             "aliases": ["只读审查 Agent"],
                         },
                     )
@@ -380,12 +401,13 @@ async def test_profile_lesson_keeps_the_rule_and_check_in_a_new_session(
     monkeypatch.setattr(builder, "create_client", create_autospec(builder.create_client, return_value=client))
     bus = EventBus()
     engine = agent_engine(bus, settings=Settings(), initial_approval_mode=ApprovalMode.BYPASS)
-    await engine.start(replace(_profile(), tools=ToolsConfig(builtins=["filesystem.read"])))
+    await engine.start(replace(_profile(), tools=ToolsConfig(builtins=["filesystem.read", "filesystem.write"])))
     original_session = engine.session_id
     await bus.publish(UserMessage(text=request))
     await await_run_task_chain(engine, turn_state=engine.turns.turn_state)
 
-    (entry,) = (await asyncio.to_thread(PersonalMemoryStore().load)).entries
+    assert document.read_text(encoding="utf-8").strip() == lesson
+    (entry,) = [item for item in (await asyncio.to_thread(store.load)).entries if item.id != existing.id]
     assert entry.state == "active"
     assert entry.source.role == "tool" and entry.source.quote == source_quote
     assert entry.source.session_id == original_session

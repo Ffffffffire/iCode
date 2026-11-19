@@ -5,13 +5,13 @@
 from __future__ import annotations
 
 import re
-import unicodedata
 from collections import defaultdict
-from dataclasses import dataclass, replace
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
+from typing import Literal
 
 from chrys.foundation.models.personal_memory import (
-    MemoryExposure,
+    MemoryContextSkip,
     MemoryReviewNotice,
     MemoryRevision,
     MemorySnapshot,
@@ -19,33 +19,6 @@ from chrys.foundation.models.personal_memory import (
 )
 
 from . import activity
-
-
-@dataclass(frozen=True, slots=True)
-class MemoryHealth:
-    pending: int
-    stale: int
-    duplicates: int
-    conditions: int = 0
-
-    @property
-    def needs_review(self) -> bool:
-        return bool(self.stale or self.duplicates or self.conditions)
-
-
-def health(state: MemorySnapshot) -> MemoryHealth:
-    groups: dict[tuple[str, str, str], int] = defaultdict(int)
-    for entry in state.entries:
-        if entry.state not in ("active", "candidate", "stale"):
-            continue
-        content = "".join(unicodedata.normalize("NFKC", entry.draft.content).casefold().split())
-        groups[(entry.draft.workspace, entry.draft.kind, content)] += 1
-    return MemoryHealth(
-        sum(e.state == "candidate" for e in state.entries),
-        sum(e.state == "stale" for e in state.entries),
-        sum(count - 1 for count in groups.values() if count > 1),
-        len(condition_review_ids(state)),
-    )
 
 
 def condition_review_ids(state: MemorySnapshot) -> frozenset[str]:
@@ -61,60 +34,58 @@ def condition_review_ids(state: MemorySnapshot) -> frozenset[str]:
     )
 
 
-def record_use(
+def _has_feedback(use: MemoryUse) -> bool:
+    return bool(use.skips or use.correction_sessions or use.excluded_contexts)
+
+
+def record_feedback(
     state: MemorySnapshot,
     memory_id: str,
     revision: int,
-    action: str,
+    action: Literal["not_applicable", "helpful", "corrected"],
     session_id: str,
     turn_id: str,
     *,
-    user: bool = False,
     context_key: str = "",
 ) -> MemorySnapshot:
-    if not session_id or not turn_id:
+    """Record explicit user evidence that changes how a memory can be used or reviewed."""
+    if not session_id or not turn_id or (action != "corrected" and not context_key):
         return state
-    now = datetime.now(UTC).isoformat(timespec="seconds")
     old = next((u for u in state.uses if u.memory_id == memory_id), None)
     use = (
         old
         if old and old.revision == revision
         else MemoryUse(memory_id, revision, correction_sessions=old.correction_sessions if old else ())
     )
-    item = MemoryExposure(session_id, turn_id, now, context_key)
-    if action == "provided" and not any((e.session_id, e.turn_id) == (session_id, turn_id) for e in use.exposures):
-        use = replace(use, exposures=(*use.exposures, item)[-5:])
-    elif (
-        action == "not_applicable"
-        and user
-        and context_key
-        and not any((e.session_id, e.turn_id) == (session_id, turn_id) for e in use.skips)
-    ):
+    if action == "not_applicable":
+        if any((e.session_id, e.turn_id) == (session_id, turn_id) for e in use.skips):
+            return state
+        item = MemoryContextSkip(session_id, turn_id, datetime.now(UTC).isoformat(timespec="seconds"), context_key)
         use = replace(use, skips=(*use.skips, item)[-3:])
-        if context_key and sum(e.context_key == context_key for e in use.skips) >= 3:
+        if sum(e.context_key == context_key for e in use.skips) >= 3:
             use = replace(use, excluded_contexts=tuple(dict.fromkeys((*use.excluded_contexts, context_key)))[-8:])
-    elif action == "helpful" and user:
+    elif action == "helpful":
         use = replace(
             use,
-            helpful_at=now,
-            skips=tuple(e for e in use.skips if not context_key or e.context_key != context_key),
+            skips=tuple(e for e in use.skips if e.context_key != context_key),
             excluded_contexts=tuple(key for key in use.excluded_contexts if key != context_key),
         )
-    elif action == "corrected" and user:
+    else:
         use = replace(use, correction_sessions=tuple(dict.fromkeys((*use.correction_sessions, session_id)))[-3:])
-    return replace(state, uses=(*[u for u in state.uses if u.memory_id != memory_id], use))
+    if use == old:
+        return state
+    others = tuple(u for u in state.uses if u.memory_id != memory_id)
+    return replace(state, uses=(*others, use) if _has_feedback(use) else others)
 
 
 def restore(state: MemorySnapshot, data: dict) -> MemorySnapshot:
     uses = tuple(
         MemoryUse(
-            u["memory_id"],
-            u["revision"],
-            tuple(MemoryExposure(**e) for e in u.get("exposures", ())),
-            tuple(MemoryExposure(**e) for e in u.get("skips", ())),
-            u.get("helpful_at", ""),
-            tuple(u.get("correction_sessions", ())),
-            tuple(u.get("excluded_contexts", ())),
+            memory_id=u["memory_id"],
+            revision=u["revision"],
+            skips=tuple(MemoryContextSkip(**e) for e in u.get("skips", ())),
+            correction_sessions=tuple(u.get("correction_sessions", ())),
+            excluded_contexts=tuple(u.get("excluded_contexts", ())),
         )
         for u in data.get("uses", ())
     )
@@ -129,33 +100,32 @@ def restore(state: MemorySnapshot, data: dict) -> MemorySnapshot:
         if notice_data
         else None
     )
-    timestamps = [e.occurred_at for u in uses for e in (*u.exposures, *u.skips)]
-    timestamps += (
-        [u.helpful_at for u in uses] + [data.get("last_review_at", "")] + ([notice.created_at] if notice else [])
-    )
+    timestamps = [e.occurred_at for u in uses for e in u.skips]
+    timestamps += [data.get("last_review_at", "")] + ([notice.created_at] if notice else [])
     if (
         any(datetime.fromisoformat(t).tzinfo is None for t in timestamps if t)
         or any(len(set(u.excluded_contexts)) != len(u.excluded_contexts) or "" in u.excluded_contexts for u in uses)
         or any(
-            len(u.exposures) > 5
-            or len(u.skips) > 3
-            or len(u.correction_sessions) > 3
-            or len(u.excluded_contexts) > 8
-            or u.revision < 1
+            len(u.skips) > 3 or len(u.correction_sessions) > 3 or len(u.excluded_contexts) > 8 or u.revision < 1
             for u in uses
         )
         or len({u.memory_id for u in uses}) != len(uses)
         or any(
             not isinstance(key, str) or (key and not re.fullmatch(r"[a-f0-9]{24}", key))
             for u in uses
-            for key in (*u.excluded_contexts, *(e.context_key for e in (*u.exposures, *u.skips)))
+            for key in (*u.excluded_contexts, *(e.context_key for e in u.skips))
         )
     ):
         raise ValueError("Invalid memory review evidence.")
     # Old skips did not identify the feedback actor. Retain their audit
     # events, but do not treat unscoped legacy observations as user evidence.
     uses = tuple(replace(use, skips=tuple(e for e in use.skips if e.context_key)) for use in uses)
-    return replace(state, uses=uses, review_notice=notice, last_review_at=data.get("last_review_at", ""))
+    return replace(
+        state,
+        uses=tuple(use for use in uses if _has_feedback(use)),
+        review_notice=notice,
+        last_review_at=data.get("last_review_at", ""),
+    )
 
 
 def maintain(

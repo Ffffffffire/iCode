@@ -1,12 +1,6 @@
 # Copyright (c) Huawei Technologies Co., Ltd. 2026. All rights reserved.
 
-"""Derive the actionable review queue from one loaded memory snapshot.
-
-The queue reuses the existing thresholds instead of defining a second policy:
-duplicates follow health()'s grouping, source changes follow
-``PersonalMemoryStore.evidence_current`` and repeated skips follow
-``condition_review_ids``. Nothing here writes to the library or keeps state.
-"""
+"""Derive review counts, queue rows and duplicate partners from a memory snapshot."""
 
 from __future__ import annotations
 
@@ -19,8 +13,6 @@ from chrys.foundation.models.personal_memory import MemorySnapshot, PersonalMemo
 
 from .lifecycle import condition_review_ids
 from .store import PersonalMemoryStore
-
-_GROUPED_STATES = ("active", "candidate", "stale")
 
 
 class OrganizeReason(StrEnum):
@@ -38,7 +30,7 @@ class OrganizeItem:
 
 
 def normalize_content(content: str) -> str:
-    """The normalization health() groups duplicates with: NFKC, casefold, no whitespace."""
+    """Group equivalent content across case, character width and whitespace."""
     return "".join(unicodedata.normalize("NFKC", content).casefold().split())
 
 
@@ -46,41 +38,53 @@ def _group_key(entry: PersonalMemory) -> tuple[str, str, str]:
     return entry.draft.workspace, entry.draft.kind, normalize_content(entry.draft.content)
 
 
-def duplicate_partners(state: MemorySnapshot, entry: PersonalMemory) -> tuple[PersonalMemory, ...]:
-    """Other members of the entry's duplicate group, in snapshot order; empty for archived entries."""
-    if entry.state not in _GROUPED_STATES:
-        return ()
-    key = _group_key(entry)
-    return tuple(
-        item
-        for item in state.entries
-        if item.id != entry.id and item.state in _GROUPED_STATES and _group_key(item) == key
-    )
+class OrganizeQueue:
+    """One grouping for the library, its warning badge and duplicate details."""
+
+    def __init__(self, state: MemorySnapshot) -> None:
+        self._entries = state.entries
+        groups: dict[tuple[str, str, str], list[PersonalMemory]] = defaultdict(list)
+        for entry in self._entries:
+            if entry.state != "archived":
+                groups[_group_key(entry)].append(entry)
+        duplicates = [tuple(group) for group in groups.values() if len(group) > 1]
+        self._duplicates = {entry.id: group for group in duplicates for entry in group}
+        self.duplicate_count = sum(len(group) - 1 for group in duplicates)
+        self.condition_ids = condition_review_ids(state)
+        self.review_count = len(self.condition_ids) + sum(entry.state == "stale" for entry in self._entries)
+
+    @property
+    def needs_review(self) -> bool:
+        """The badge calls attention to duplicates and memories needing review."""
+        return bool(self.duplicate_count or self.review_count)
+
+    def duplicate_partners(self, memory_id: str) -> tuple[PersonalMemory, ...]:
+        """Other members of this duplicate group in catalog order."""
+        return tuple(entry for entry in self._duplicates.get(memory_id, ()) if entry.id != memory_id)
+
+    def items(self) -> tuple[OrganizeItem, ...]:
+        """One row per non-archived memory that needs organizing, in catalog order."""
+        by_id = {entry.id: entry for entry in self._entries}
+        items = []
+        for entry in self._entries:
+            if entry.state == "archived":
+                continue
+            reasons = []
+            if entry.id in self._duplicates:
+                reasons.append(OrganizeReason.DUPLICATE)
+            if entry.draft.relations and not PersonalMemoryStore.evidence_current(entry, by_id):
+                reasons.append(OrganizeReason.SOURCE_CHANGED)
+            if entry.id in self.condition_ids:
+                reasons.append(OrganizeReason.REPEATED_SKIPS)
+            if entry.state == "stale":
+                reasons.append(OrganizeReason.NEEDS_REVIEW)
+            if reasons:
+                items.append(OrganizeItem(entry.id, entry.revision, tuple(reasons)))
+        return tuple(items)
 
 
 def organize_items(state: MemorySnapshot) -> tuple[OrganizeItem, ...]:
-    """One row per non-archived memory that needs organizing, in snapshot order."""
-    counts: dict[tuple[str, str, str], int] = defaultdict(int)
-    for entry in state.entries:
-        if entry.state in _GROUPED_STATES:
-            counts[_group_key(entry)] += 1
-    conditions = condition_review_ids(state)
-    items = []
-    for entry in state.entries:
-        if entry.state == "archived":
-            continue
-        reasons = []
-        if counts[_group_key(entry)] > 1:
-            reasons.append(OrganizeReason.DUPLICATE)
-        if entry.draft.relations and not PersonalMemoryStore.evidence_current(entry, state.entries):
-            reasons.append(OrganizeReason.SOURCE_CHANGED)
-        if entry.id in conditions:
-            reasons.append(OrganizeReason.REPEATED_SKIPS)
-        if entry.state == "stale":
-            reasons.append(OrganizeReason.NEEDS_REVIEW)
-        if reasons:
-            items.append(OrganizeItem(entry.id, entry.revision, tuple(reasons)))
-    return tuple(items)
+    return OrganizeQueue(state).items()
 
 
 def organize_ids(state: MemorySnapshot) -> frozenset[str]:

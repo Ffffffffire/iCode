@@ -116,7 +116,7 @@ class MemoryActivity:
 
 
 @dataclass(frozen=True, slots=True)
-class MemoryExposure:
+class MemoryContextSkip:
     session_id: str
     turn_id: str
     occurred_at: str
@@ -127,9 +127,7 @@ class MemoryExposure:
 class MemoryUse:
     memory_id: str
     revision: int
-    exposures: tuple[MemoryExposure, ...] = ()
-    skips: tuple[MemoryExposure, ...] = ()
-    helpful_at: str = ""
+    skips: tuple[MemoryContextSkip, ...] = ()
     correction_sessions: tuple[str, ...] = ()
     excluded_contexts: tuple[str, ...] = ()
 

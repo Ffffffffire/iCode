@@ -14,7 +14,9 @@ Keep information that can change a future judgment or action in a recognizable s
 
 Project-scoped entries still belong to your private Personalized Memory library. They do not become shared team or organizational rules automatically. One failure must not become a permanent negative judgment about your abilities, personality or an approach.
 
-When you ask the agent to remember a method from a configuration, document or analysis, ask it to retain the rule, its conditions and a concrete example or check. For example, ask it to study the built-in agents and remember the permissions, expected output and acceptance check for a read-only investigation agent. The example travels with the rule on recall. The details show a quotation from the analysis or material read. When suggestions are enabled, inferred lessons wait for review unless you explicitly ask to save them.
+You can ask the agent to study the built-in agent profiles, document its analysis, and add the reusable method to your personal memory. The document holds the full analysis. A memory keeps a reusable rule, the situation where it applies, and a concrete example or check. The details show a quotation from the analysis or material read so you can verify the evidence.
+
+After discussing a method, you can also say “Use this approach in future tasks.” A document-only request produces the document by default. When suggestions are enabled, the agent can propose reusable lessons for your review.
 
 ## Types, topics and scope
 

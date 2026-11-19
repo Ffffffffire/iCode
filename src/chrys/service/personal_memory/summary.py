@@ -19,6 +19,8 @@ from chrys.kernel import Message
 from chrys.service.context.compaction.summary_extension import PreparedSummary
 from chrys.service.personal_memory.store import MemoryStoreError, PersonalMemoryStore
 
+from .write_intent import declines_memory, unquoted_text, user_quote_occurs
+
 _log = logging.getLogger(__name__)
 _HEADING = "\n## Personal memory suggestions\n"
 _MAX_APPENDIX = 6000
@@ -42,17 +44,6 @@ Do not reproduce existing memory suggestions or treat previous summaries as fres
 Omit this entire section when there is no strong, reusable personal signal or insufficient output space.
 Suggestions are reviewed before activation; this is not permission to change existing memories.
 For compress_context, the optional section belongs inside its summary argument and must cite the folded range."""
-
-
-def _user_quote_occurs(text: str, unquoted: str, quote: str) -> bool:
-    # Match the original words, including quoted terms within the user's own
-    # statement. Evidence wholly inside a quotation or example remains inert.
-    offset = text.find(quote)
-    while offset >= 0:
-        if any(character.isalnum() for character in unquoted[offset : offset + len(quote)]):
-            return True
-        offset = text.find(quote, offset + len(quote))
-    return False
 
 
 class PersonalMemorySummary:
@@ -85,18 +76,14 @@ class PersonalMemorySummary:
             return PreparedSummary(text)
         # Share the chat tool's refusal/example checks, but use only the actual
         # compressed messages, never mutable current-turn evidence or recalled text.
-        from chrys.service.personal_memory.runtime import _QUOTED_TEXT, _declines_memory
-
         evidence: list[tuple[str, str, str]] = []
         for message in messages:
             if not (opens_turn(message) or is_injected_message(message)):
                 continue
             item_id = read_analytics_item_id(message.additional_properties)
             user_text = (message.text or "").split("<system-reminder>", 1)[0]
-            if item_id and not _declines_memory(user_text):
-                evidence.append(
-                    (user_text, _QUOTED_TEXT.sub(lambda match: " " * len(match.group()), user_text), item_id)
-                )
+            if item_id and not declines_memory(user_text):
+                evidence.append((user_text, unquoted_text(user_text), item_id))
         suggestions: list[tuple[MemoryDraft, MemorySource]] = []
         fields = {"scope", "kind", "title", "content", "when_to_use", "reconsider_when", "source_quote"}
         for item in raw:
@@ -114,7 +101,7 @@ class PersonalMemorySummary:
                 (
                     identity
                     for user_text, unquoted, identity in evidence
-                    if _user_quote_occurs(user_text, unquoted, quote)
+                    if user_quote_occurs(user_text, unquoted, quote)
                 ),
                 "",
             )

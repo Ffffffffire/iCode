@@ -20,7 +20,7 @@ from chrys.app.tui.widgets.selection import NonSelectableStatic
 from chrys.foundation.events.personal_memory import PersonalMemoryChanged, PersonalMemoryCommand
 from chrys.foundation.i18n.formatting import format_message, sanitize_legacy_scalar
 from chrys.foundation.models.personal_memory import MemorySnapshot
-from chrys.service.personal_memory.lifecycle import health
+from chrys.service.personal_memory.organize import OrganizeQueue
 
 from . import messages as m
 
@@ -159,7 +159,7 @@ class PersonalMemoryIndicator(NonSelectableStatic):
         pending = sum(entry.state == "candidate" for entry in entries)
         recall = next((item for item in reversed(self._snapshot.recalls) if item.session_id == self.session_id), None)
         recalled = len(recall.matches) if recall else 0
-        status = health(replace(self._snapshot, entries=tuple(entries)))
+        needs_review = OrganizeQueue(replace(self._snapshot, entries=tuple(entries))).needs_review
         weekly = self._snapshot.buddy_notifications and self._snapshot.review_notice is not None
         if self._failed_title:
             label = m.FAIL_BADGE.bind()
@@ -170,7 +170,7 @@ class PersonalMemoryIndicator(NonSelectableStatic):
         elif self._snapshot.mode == "off":
             label = m.OFF_BADGE.bind()
             state = "quiet"
-        elif status.needs_review:
+        elif needs_review:
             label = m.CAPACITY_BADGE.bind()
             state = "capacity"
         elif pending and weekly:
@@ -182,8 +182,6 @@ class PersonalMemoryIndicator(NonSelectableStatic):
         else:
             label = (m.INDICATOR_COMPACT if self._compact else m.INDICATOR).bind()
             state = "quiet"
-        # Only the review badge (health().needs_review) opens the organize queue;
-        # pending, off and failure states keep their existing targets.
         self._view = (
             "organize"
             if state == "capacity"
@@ -210,7 +208,7 @@ class PersonalMemoryIndicator(NonSelectableStatic):
         elif self._failure_code == "memory_unavailable":
             ref = m.FAIL_UNAVAILABLE.bind()
             tooltip = render_str(localizer, ref) if localizer else format_message(ref)
-        elif status.needs_review:
+        elif needs_review:
             ref = m.CAPACITY_WARNING.bind()
             tooltip += "\n" + (render_str(localizer, ref) if localizer else format_message(ref))
         if recalled:

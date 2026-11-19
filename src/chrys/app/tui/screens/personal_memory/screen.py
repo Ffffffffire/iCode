@@ -37,8 +37,7 @@ from chrys.foundation.models.personal_memory import (
     PersonalMemory,
 )
 from chrys.service.personal_memory.activity import recent_usage
-from chrys.service.personal_memory.lifecycle import condition_review_ids, health
-from chrys.service.personal_memory.organize import OrganizeItem, OrganizeReason, duplicate_partners, organize_items
+from chrys.service.personal_memory.organize import OrganizeItem, OrganizeQueue, OrganizeReason
 from chrys.service.personal_memory.retrieval import MemoryRetriever
 from chrys.service.personal_memory.store import MAX_BATCH, PersonalMemoryStore
 
@@ -127,6 +126,7 @@ class PersonalMemoryScreen(BaseDialog[None]):
         self._continue_follow_up = continue_follow_up
         self.snapshot = MemorySnapshot()
         self._selected_id = memory_id
+        self._organize_queue = OrganizeQueue(self.snapshot)
         self._organize: dict[str, OrganizeItem] = {}
         self._organize_in_scope = False
         self._visible_count = 0
@@ -512,7 +512,8 @@ class PersonalMemoryScreen(BaseDialog[None]):
         kind = self.query_one("#memory-kind-filter", Select).value
         scope = str(self.query_one("#memory-scope-filter", Select).value)
         topic = self.query_one("#memory-topic-filter", Select).value
-        self._organize = {item.memory_id: item for item in organize_items(self.snapshot)}
+        self._organize_queue = OrganizeQueue(self.snapshot)
+        self._organize = {item.memory_id: item for item in self._organize_queue.items()}
         self._organize_in_scope = any(
             entry.id in self._organize for entry in self.snapshot.entries if self._matches_scope(entry, scope)
         )
@@ -565,16 +566,13 @@ class PersonalMemoryScreen(BaseDialog[None]):
                 used=f"{self._used_bytes / 1024**2:.1f}",
             )
         )
-        status = health(self.snapshot)
-        warning = status.needs_review
+        queue = self._organize_queue
+        warning = queue.needs_review
         capacity_widget = self.query_one("#memory-capacity", Static)
         capacity_text = Text(capacity)
         if warning:
             capacity_text.append(
-                " · "
-                + self._text(
-                    m.HEALTH_REVIEW.bind(stale=status.stale + status.conditions, duplicates=status.duplicates)
-                ),
+                " · " + self._text(m.HEALTH_REVIEW.bind(stale=queue.review_count, duplicates=queue.duplicate_count)),
                 self._foreground_style("memory--warning"),
             )
         capacity_widget.update(capacity_text)
@@ -656,7 +654,7 @@ class PersonalMemoryScreen(BaseDialog[None]):
                 self.query_one(f"#memory-{name}", Static).update("")
             self._shown_id = ""
             return
-        condition_review = entry.id in condition_review_ids(self.snapshot)
+        condition_review = entry.id in self._organize_queue.condition_ids
         self.query_one("#memory-accept", Button).display = entry.state != "active" or condition_review
         self._button_label(
             "accept", m.CONFIRM_CONDITIONS if condition_review else m.RESTORE if entry.state == "archived" else m.ACCEPT
@@ -847,7 +845,7 @@ class PersonalMemoryScreen(BaseDialog[None]):
                 reason += "\n" + self._text(m.STALE.bind(revision=match.revision))
         replacement = ""
         review_message = m.review_message(
-            "repeated_mismatch" if entry.id in condition_review_ids(self.snapshot) else entry.review_reason
+            "repeated_mismatch" if entry.id in self._organize_queue.condition_ids else entry.review_reason
         )
         if review_message is not None:
             replacement = self._text(review_message)
@@ -892,7 +890,7 @@ class PersonalMemoryScreen(BaseDialog[None]):
         if OrganizeReason.DUPLICATE in item.reasons:
             partners = [
                 f"{sanitize_legacy_scalar(partner.draft.title)} ({partner.id})" if partner.draft.title else partner.id
-                for partner in duplicate_partners(self.snapshot, entry)
+                for partner in self._organize_queue.duplicate_partners(entry.id)
             ]
             if partners:
                 lines.append(self._text(m.ORGANIZE_PARTNERS.bind(partners=", ".join(partners))))

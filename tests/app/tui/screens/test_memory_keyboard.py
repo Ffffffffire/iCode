@@ -36,7 +36,7 @@ async def test_memory_search_escape_and_detail_follow_session_navigation(tmp_pat
         main = app._main_screen
         assert main is not None
         main.action_personal_memory()
-        await wait_for(lambda: isinstance(app.screen, PersonalMemoryScreen) and app.screen._loaded, pilot=pilot)
+        await wait_for(lambda: isinstance(app.screen, PersonalMemoryScreen) and app.screen.is_mounted and app.screen._loaded, pilot=pilot)
         screen = app.screen
         assert isinstance(screen, PersonalMemoryScreen)
         options = screen.query_one("#memory-list", OptionList)
@@ -59,7 +59,7 @@ async def test_memory_search_escape_and_detail_follow_session_navigation(tmp_pat
         await pilot.press("tab", "shift+tab")
         assert screen.focused is options
         await pilot.press("delete")
-        await wait_for(lambda: isinstance(app.screen, ConfirmDialog), pilot=pilot)
+        await wait_for(lambda: isinstance(app.screen, ConfirmDialog) and app.screen.is_mounted, pilot=pilot)
         await pilot.press("escape")
         await wait_for(lambda: app.screen is screen, pilot=pilot)
         assert len(screen.snapshot.entries) == 1
@@ -85,7 +85,7 @@ async def test_memory_multiselect_has_keyboard_and_visible_exit(
         main = app._main_screen
         assert main is not None
         main.action_personal_memory("all")
-        await wait_for(lambda: isinstance(app.screen, PersonalMemoryScreen) and app.screen._loaded, pilot=pilot)
+        await wait_for(lambda: isinstance(app.screen, PersonalMemoryScreen) and app.screen.is_mounted and app.screen._loaded, pilot=pilot)
         screen = app.screen
         assert isinstance(screen, PersonalMemoryScreen)
         options = screen.query_one("#memory-list", OptionList)
@@ -147,7 +147,7 @@ async def test_slow_activity_read_does_not_block_escape(
         main = app._main_screen
         assert main is not None
         main.action_personal_memory("activity")
-        await wait_for(lambda: isinstance(app.screen, PersonalMemoryScreen) and app.screen._loaded, pilot=pilot)
+        await wait_for(lambda: isinstance(app.screen, PersonalMemoryScreen) and app.screen.is_mounted and app.screen._loaded, pilot=pilot)
         screen = app.screen
         assert isinstance(screen, PersonalMemoryScreen)
         button = screen.query_one(f"#{button_id}", Button)
@@ -193,7 +193,7 @@ async def test_activity_read_failure_preserves_page_and_allows_retry(
         main = app._main_screen
         assert main is not None
         main.action_personal_memory("activity")
-        await wait_for(lambda: isinstance(app.screen, PersonalMemoryScreen) and app.screen._loaded, pilot=pilot)
+        await wait_for(lambda: isinstance(app.screen, PersonalMemoryScreen) and app.screen.is_mounted and app.screen._loaded, pilot=pilot)
         screen = app.screen
         assert isinstance(screen, PersonalMemoryScreen)
         current = rich_plain(screen.query_one("#memory-activity-text", Static).content)
@@ -219,7 +219,7 @@ async def test_memory_escape_closes_filter_before_panel(tmp_path: Path) -> None:
         main = app._main_screen
         assert main is not None
         main.action_personal_memory()
-        await wait_for(lambda: isinstance(app.screen, PersonalMemoryScreen) and app.screen._loaded, pilot=pilot)
+        await wait_for(lambda: isinstance(app.screen, PersonalMemoryScreen) and app.screen.is_mounted and app.screen._loaded, pilot=pilot)
         screen = app.screen
         assert isinstance(screen, PersonalMemoryScreen)
         selector = screen.query_one("#memory-kind-filter", Select)

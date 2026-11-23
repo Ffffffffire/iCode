@@ -28,6 +28,13 @@ class EventType:
     RUNTIME_FINISHED = "trajectory.runtime.finished"
     SEGMENT = "event.segment"
 
+    # Personal memory: what the tools tried and what the user decided.
+    MEMORY_SAVE_COMMITTED = "memory.save.committed"
+    MEMORY_SAVE_REJECTED = "memory.save.rejected"
+    MEMORY_RECALL_SERVED = "memory.recall.served"
+    MEMORY_CONSENT_ASKED = "memory.consent.asked"
+    MEMORY_CONSENT_RESOLVED = "memory.consent.resolved"
+
     # Session lifecycle.
     SESSION_STARTED = "session.started"
     SESSION_FORKED = "session.forked"

@@ -38,7 +38,13 @@ from chrys.app.tui.language import LANGUAGE_OPTIONS, LANGUAGE_UNKNOWN_LOCALE
 from chrys.app.tui.screens.dialogs.background_task import ROLLBACK_NOTE, BackgroundTaskModal, confirm_stopping
 from chrys.app.tui.screens.main.action_availability import check_main_action
 from chrys.app.tui.screens.main.btw import BTW_BUSY, BtwController
-from chrys.app.tui.screens.main.commands import INVALID_COMMAND_TITLE_REF, SlashCommandActions
+from chrys.app.tui.screens.main.commands import (
+    INVALID_COMMAND_TITLE_REF,
+    MEMORY_ADD_SAVED,
+    MEMORY_ADD_TOO_LONG,
+    MEMORY_ADD_USAGE,
+    SlashCommandActions,
+)
 from chrys.app.tui.screens.main.config_actions import (
     RuntimeConfigCallbacks,
     RuntimeConfigController,
@@ -166,6 +172,7 @@ from chrys.foundation.i18n import DisplaySequence, Localizer, MessageRef, msg
 from chrys.foundation.models.approval_reuse import ReuseChoice
 from chrys.foundation.models.ask_user import AskUserAnswer
 from chrys.foundation.models.hook_confirmations import HookConfirmationAnswer
+from chrys.foundation.models.personal_memory import MemoryDraft
 from chrys.foundation.platform import get_platform, safe_getcwd
 from chrys.foundation.text.draft_references import iter_reference_labels
 from chrys.service.approval.policy import ApprovalMode
@@ -936,6 +943,9 @@ class MainScreen(RightClickScreenCopyMixin, Screen):
             show_runtime_details=self.action_runtime_details,
             show_usage=self._config_actions.open_usage,
             show_personal_memory=self.action_personal_memory,
+            remember_memory=self.action_memory_add,
+            answer_memory_consent=self.action_memory_consent,
+            open_memory_review=self.action_memory_review,
             configure_settings=self._open_settings,
             show_manual_pages=lambda pages, start_index: self._view_adapter.show_man_pages(
                 pages,
@@ -2528,6 +2538,9 @@ class MainScreen(RightClickScreenCopyMixin, Screen):
 
     @on(PersonalMemoryIndicator.OpenRequested)
     def _on_personal_memory_requested(self, event: PersonalMemoryIndicator.OpenRequested) -> None:
+        if event.view == "consent":
+            self.action_memory_review()
+            return
         self.action_personal_memory(event.view)
 
     @on(PersonalMemoryIndicator.StateChanged)
@@ -2567,6 +2580,45 @@ class MainScreen(RightClickScreenCopyMixin, Screen):
                 continue_follow_up=self._continue_memory_follow_up,
             )
         )
+
+    def action_memory_add(self, text: str) -> None:
+        """Save a line the user typed with ``/memory add``; the command is the consent."""
+        from chrys.service.personal_memory.quick_add import QuickAddError, draft_from_text
+
+        try:
+            draft = draft_from_text(text)
+        except QuickAddError as error:
+            message = MEMORY_ADD_TOO_LONG if error.code == "memory_text_too_long" else MEMORY_ADD_USAGE
+            self.notify(render_str(widget_localizer(self), message.bind()), severity="warning", markup=False)
+            return
+        self.run_worker(self._publish_memory_add(draft), group="memory-add")
+
+    def action_memory_review(self) -> None:
+        """Open the review modal for proposals waiting on the user."""
+        from chrys.app.tui.screens.personal_memory.consent_review import ConsentReviewScreen
+
+        self.app.push_screen(ConsentReviewScreen(bus=self._services.bus, session_id=self.chat_session_id))
+
+    def action_memory_consent(self, consent_id: str, *, accept: bool) -> None:
+        """Answer one queued memory proposal, or all of them when no id is given."""
+        self.run_worker(self._publish_memory_consent(consent_id, accept=accept), group="memory-consent")
+
+    async def _publish_memory_consent(self, consent_id: str, *, accept: bool) -> None:
+        from chrys.foundation.events.personal_memory import PersonalMemoryCommand
+
+        await self._services.bus.publish(
+            PersonalMemoryCommand(
+                session_id=self.chat_session_id,
+                action="consent_confirm" if accept else "consent_decline",
+                consent_id=consent_id,
+            )
+        )
+
+    async def _publish_memory_add(self, draft: MemoryDraft) -> None:
+        await self._services.bus.publish(
+            PersonalMemoryCommand(session_id=self.chat_session_id, action="save", draft=draft)
+        )
+        self.notify(render_str(widget_localizer(self), MEMORY_ADD_SAVED.bind()), markup=False)
 
     def _continue_memory_follow_up(self, prompt: str) -> bool:
         input_bar = self.query_one(InputBar)

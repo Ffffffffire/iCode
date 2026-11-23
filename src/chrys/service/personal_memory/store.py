@@ -1045,8 +1045,8 @@ class PersonalMemoryStore:
         replaces_id: str = "",
         replaces_revision: int = 0,
         request_workspace: str | None = None,
-        authorization: Literal["manual", "request", "capture", "summary"] = "manual",
-        reviewed_catalog: tuple[tuple[str, int], ...] | None = None,
+        authorization: Literal["manual", "request", "capture", "summary", "consent"] = "manual",
+        reviewed: tuple[tuple[str, int], ...] | None = None,
         turn_id: str = "",
         reopen: bool = False,
     ) -> PersonalMemory:
@@ -1068,13 +1068,15 @@ class PersonalMemoryStore:
 
         def edit(state: MemorySnapshot) -> MemorySnapshot:
             nonlocal saved, draft
-            if reviewed_catalog is not None and review_key(state, request_workspace or "") != reviewed_catalog:
-                raise MemoryStoreError("Related memories changed. Inspect them again before saving.")
-            if authorization != "manual" and state.mode == "off":
+            if reviewed:
+                current = {entry.id: entry.revision for entry in state.entries}
+                if any(current.get(memory_id_) != revision_ for memory_id_, revision_ in reviewed):
+                    raise MemoryStoreError("Related memories changed. Inspect them again before saving.")
+            if authorization not in ("manual", "consent") and state.mode == "off":
                 raise MemoryStoreError("Chat memory is disabled.")
             if (
                 draft.use == "always"
-                and authorization not in ("manual", "request")
+                and authorization not in ("manual", "request", "consent")
                 and not any(e.id in (memory_id, replaces_id) and e.draft.use == "always" for e in state.entries)
             ):
                 raise MemoryStoreError("Always-available preferences require an explicit user choice.")

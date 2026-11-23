@@ -391,6 +391,8 @@ def test_every_declared_binding_id_has_matching_registered_provenance() -> None:
         "tui.binding.toggle_split_view",
         "tui.binding.toggle_view",
         "tui.guides.cycle_language",
+        "tui.personal_memory.consent_confirm_binding",
+        "tui.personal_memory.consent_drop_binding",
         "tui.personal_memory.new",
         "tui.personal_memory.refresh",
         "tui.personal_memory.save",

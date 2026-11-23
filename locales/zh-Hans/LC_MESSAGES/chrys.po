@@ -5894,6 +5894,12 @@ msgstr "显示命令的手册页"
 msgid "tui.commands.description.memory"
 msgstr "管理个人记忆并查看召回"
 
+#. English: Append one line to personal memory
+#. chrys-meta={"fingerprint":"cc9f41bd2f2878f8d821fdd83432dd3ed38058594819163fdcc9e5251e30a58e","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/main/commands.py
+msgid "tui.commands.description.memory_add"
+msgstr "向个人记忆追加一条内容"
+
 #. English: Configure model provider and settings
 #. chrys-meta={"fingerprint":"efadf99ce91c6f9558b3cf9fd68b8453212b899ca19211c3e3d5f393d1ad4846","multiline":false,"placeholders":[]}
 #: src/chrys/app/tui/screens/main/commands.py
@@ -5959,6 +5965,24 @@ msgstr "查看所有会话的 token 用量和速度"
 #: src/chrys/app/tui/screens/main/commands.py
 msgid "tui.commands.man.command"
 msgstr "显示 /{name} 的帮助"
+
+#. English: Saved to personal memory
+#. chrys-meta={"fingerprint":"f472a0e0ab3caf7e490fc14aa3bcb59419113834e87ec6b85a1b80ff568d0581","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/main/commands.py
+msgid "tui.commands.memory_add.saved"
+msgstr "已保存到个人记忆"
+
+#. English: Keep the memory text under 600 characters
+#. chrys-meta={"fingerprint":"81797b02e1c5eecb382ab7307dd12832869e512112f534861e74500eb9461587","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/main/commands.py
+msgid "tui.commands.memory_add.too_long"
+msgstr "记忆内容请控制在 600 字以内"
+
+#. English: Usage: /memory add <text>
+#. chrys-meta={"fingerprint":"687a956d28b30db9530aad33286c409acfba156160c2bfd859bd306d254d0880","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/main/commands.py
+msgid "tui.commands.memory_add.usage"
+msgstr "用法：/memory add <文本>"
 
 #. English: Command Disabled
 #. chrys-meta={"fingerprint":"16f49932fc0ce8ab099d5857f79429f4b6119447c1cc2aec342a707884a5d524","multiline":false,"placeholders":[]}
@@ -10650,6 +10674,69 @@ msgstr "已完成"
 msgid "tui.personal_memory.confirm_conditions"
 msgstr "保留条件"
 
+#. English: Mem · Save? {pending}
+#. chrys-meta={"fingerprint":"f26840adcbce1f76b24fdd382d65b5c06f5b19152307e36c9fdea9f5f86926fd","multiline":false,"placeholders":["pending"]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.consent_badge"
+msgstr "记忆 · 待存 {pending}"
+
+#. English: Save all
+#. chrys-meta={"fingerprint":"0d394536e5a7de41f9226e78d95559381cbe342c38cb7019a42f1c6f78b2d9da","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.consent_confirm_binding"
+msgstr "全部保存"
+
+#. English: Drop all (n)
+#. chrys-meta={"fingerprint":"a77bb1ad8e95c17b25591ecfe67eca3fdc73c8ebcd1d87eeb65aa154849883ec","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.consent_drop_all"
+msgstr "全部丢弃（n）"
+
+#. English: Drop all
+#. chrys-meta={"fingerprint":"074222006487f0a33c260d7b4366e9cffd5f87f287454c7804a4ead7e0159f15","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.consent_drop_binding"
+msgstr "全部丢弃"
+
+#. English: Nothing is waiting for you.
+#. chrys-meta={"fingerprint":"7fb6ba420a0f8a62773ba0c6fde366bd87339c026f2ad14dbf011a80decd71e9","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.consent_empty"
+msgstr "暂无待确认的记忆。"
+
+#. English: {count} waiting for your answer
+#. English-plural: {count} waiting for your answer
+#. chrys-meta={"fingerprint":"4ecceb482c3b16bdf417e0ecadf313de6cc677d58a5b32c69534e11b80a9233e","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.consent_review_count"
+msgid_plural "tui.personal_memory.consent_review_count#plural"
+msgstr[0] "有 {count} 条等你处理"
+
+#. English: Proposed memories
+#. chrys-meta={"fingerprint":"832440c36cab68d3e44d08fdd2520af04b72f4a0523b67bc42d42cd4ee025219","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.consent_review_title"
+msgstr "待确认的记忆"
+
+#. English: Save all (y)
+#. chrys-meta={"fingerprint":"45d941f6d8b7dc589a4c5fcd1a207e58e7bf89ffaf43fb6010dd1ef619edfd8f","multiline":false,"placeholders":[]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.consent_save_all"
+msgstr "全部保存（y）"
+
+#. English: From: “{span}”
+#. chrys-meta={"fingerprint":"0f951029afc2ce4abadab50730acd4f61f76710a2b635a9c4931ad8ec17fcb5a","multiline":false,"placeholders":["span"]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.consent_span"
+msgstr "来自：“{span}”"
+
+#. English: Waiting for your confirmation: {titles} — /memory confirm saves,
+#. /memory decline drops.
+#. chrys-meta={"fingerprint":"97dfff4b629088bc3530b8bff8458754159f67c2ef47132511293ad643ca5766","multiline":false,"placeholders":["titles"]}
+#: src/chrys/app/tui/screens/personal_memory/messages.py
+msgid "tui.personal_memory.consent_warning"
+msgstr "等待你确认：{titles}。用 /memory confirm 保存，用 /memory decline 丢弃。"
+
 #. English: What should be remembered?
 #. chrys-meta={"fingerprint":"ba4e008187f39b879a1c90154ba0bc751d5c6ed7d257b3289ac54378a7f29fb4","multiline":false,"placeholders":[]}
 #: src/chrys/app/tui/screens/personal_memory/messages.py
@@ -10668,7 +10755,7 @@ msgstr "继续"
 #: src/chrys/app/tui/screens/personal_memory/messages.py
 msgid "tui.personal_memory.continue_prompt"
 msgstr ""
-"继续这个待办：{title}\n"
+"全部保存（y）继续这个待办：{title}\n"
 "记忆：{memory_id} v{revision}\n"
 "下一步：{next_step}"
 

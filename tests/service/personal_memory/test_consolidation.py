@@ -186,6 +186,6 @@ async def test_direct_inspection_supplies_bounded_revision_evidence_for_review(t
         )
     runtime = PersonalMemoryRuntime(bus=EventBus(), session_id="review", workspace=str(tmp_path), store=store)
     runtime.observe([Message("user", ["Review my recurring corrections about comments"])])
-    result = json.loads(await runtime.recall_memory(entry.id, for_update=True))
+    result = json.loads(await runtime.recall_memory(entry.id, for_update=True, view="full"))
     assert result["history"][0]["draft"]["content"] == "Prefer Chinese comments with concise rationale 1"
     assert {r["source"]["session_id"] for r in result["history"]} == {"session-0", "session-1", "session-2"}

@@ -72,6 +72,7 @@ class PersonalMemoryIndicator(NonSelectableStatic):
         self._workspace = workspace
         self._locale_controller = locale_controller
         self._snapshot = MemorySnapshot()
+        self._consents: tuple[tuple[str, str], ...] = ()
         self._view = ""
         self._compact = False
         self._failed_title = ""
@@ -114,6 +115,8 @@ class PersonalMemoryIndicator(NonSelectableStatic):
                     )
                     localizer = self._locale_controller.localizer if self._locale_controller else None
                     self.notify(escape(render_str(localizer, notice) if localizer else format_message(notice)))
+        if event.consents is not None:
+            self._consents = event.consents
         if event.attempted_title:
             self._failed_title = sanitize_legacy_scalar(event.attempted_title)
             self._failure_code = event.error_code
@@ -170,6 +173,9 @@ class PersonalMemoryIndicator(NonSelectableStatic):
         elif self._snapshot.mode == "off":
             label = m.OFF_BADGE.bind()
             state = "quiet"
+        elif self._consents:
+            label = m.CONSENT_BADGE.bind(pending=len(self._consents))
+            state = "review"
         elif needs_review:
             label = m.CAPACITY_BADGE.bind()
             state = "capacity"
@@ -183,7 +189,9 @@ class PersonalMemoryIndicator(NonSelectableStatic):
             label = (m.INDICATOR_COMPACT if self._compact else m.INDICATOR).bind()
             state = "quiet"
         self._view = (
-            "organize"
+            "consent"
+            if self._consents
+            else "organize"
             if state == "capacity"
             else "candidate"
             if weekly and pending
@@ -208,6 +216,10 @@ class PersonalMemoryIndicator(NonSelectableStatic):
         elif self._failure_code == "memory_unavailable":
             ref = m.FAIL_UNAVAILABLE.bind()
             tooltip = render_str(localizer, ref) if localizer else format_message(ref)
+        elif self._consents:
+            titles = " / ".join(sanitize_legacy_scalar(title) for _id, title in self._consents[:3])
+            ref = m.CONSENT_WARNING.bind(titles=titles)
+            tooltip += "\n" + (render_str(localizer, ref) if localizer else format_message(ref))
         elif needs_review:
             ref = m.CAPACITY_WARNING.bind()
             tooltip += "\n" + (render_str(localizer, ref) if localizer else format_message(ref))

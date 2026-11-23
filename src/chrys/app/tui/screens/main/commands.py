@@ -119,6 +119,11 @@ _DESCRIPTION_USAGE = msg(
 )
 _DESCRIPTION_SETTINGS = msg("tui.commands.description.settings", fallback="Open the Settings panel")
 _DESCRIPTION_MEMORY = msg("tui.commands.description.memory", fallback="Manage personal memories and inspect recall")
+_DESCRIPTION_MEMORY_ADD = msg("tui.commands.description.memory_add", fallback="Append one line to personal memory")
+_MEMORY_ADD_USAGE = msg("tui.commands.memory_add.usage", fallback="Usage: /memory add <text>")
+MEMORY_ADD_USAGE = _MEMORY_ADD_USAGE
+MEMORY_ADD_SAVED = msg("tui.commands.memory_add.saved", fallback="Saved to personal memory")
+MEMORY_ADD_TOO_LONG = msg("tui.commands.memory_add.too_long", fallback="Keep the memory text under 600 characters")
 _MAN_MEMORY_BODY = msg(
     "tui.man.memory.body",
     fallback="Review memory suggestions, edit conditions and sources, inspect the latest recall, or turn memory off. Active memories are recalled by current question and project. Changes apply to the next turn.",
@@ -519,6 +524,9 @@ class SlashCommandActionPort(Protocol):
     def runtime_details(self) -> None: ...
     def usage(self) -> None: ...
     def personal_memory(self) -> None: ...
+    def add_memory(self, text: str) -> None: ...
+    def confirm_memory(self, consent_id: str, *, accept: bool) -> None: ...
+    def review_memory(self) -> None: ...
     def open_settings(self, tab: str) -> None: ...
     def show_man_pages(self, pages: list[ManPageSpec], *, start_index: int = 0) -> None: ...
     def notify_warning(
@@ -569,6 +577,9 @@ class SlashCommandActions:
     show_runtime_details: Callable[[], None]
     show_usage: Callable[[], None]
     show_personal_memory: Callable[[], None]
+    remember_memory: Callable[[str], None]
+    answer_memory_consent: Callable[..., None]
+    open_memory_review: Callable[[], None]
     configure_settings: Callable[[str], None]
     show_manual_pages: Callable[[list[ManPageSpec], int], None]
     warn: Callable[[MessageRef | str, MessageRef | str, float | None], None]
@@ -669,6 +680,15 @@ class SlashCommandActions:
 
     def personal_memory(self) -> None:
         self.show_personal_memory()
+
+    def add_memory(self, text: str) -> None:
+        self.remember_memory(text)
+
+    def confirm_memory(self, consent_id: str, *, accept: bool) -> None:
+        self.answer_memory_consent(consent_id, accept=accept)
+
+    def review_memory(self) -> None:
+        self.open_memory_review()
 
     def open_settings(self, tab: str) -> None:
         self.configure_settings(tab)
@@ -795,6 +815,28 @@ class MainSlashCommandRegistry:
             from chrys.app.tui.screens.settings import TABS
 
             return [(tab.id, self._render_message(tab.title.bind())) for tab in TABS]
+
+        def _memory_command(arg: str) -> None:
+            value = arg.strip()
+            if not value:
+                actions.personal_memory()
+                return
+            head, _, rest = value.partition(" ")
+            match head.lower():
+                case "add":
+                    text = rest.strip()
+                    if not text:
+                        actions.notify_warning(_MEMORY_ADD_USAGE.bind())
+                        return
+                    actions.add_memory(text)
+                case "confirm":
+                    actions.confirm_memory(rest.strip(), accept=True)
+                case "decline":
+                    actions.confirm_memory(rest.strip(), accept=False)
+                case "pending":
+                    actions.review_memory()
+                case _:
+                    actions.personal_memory()
 
         def _open_settings(arg: str) -> None:
             from chrys.app.tui.screens.settings import GENERAL_TAB_ID, TAB_IDS
@@ -1124,7 +1166,7 @@ class MainSlashCommandRegistry:
             SlashCommandDef(
                 "memory",
                 _DESCRIPTION_MEMORY.bind(),
-                action=lambda _: actions.personal_memory(),
+                action=_memory_command,
                 allow_while_running=True,
                 man_page=_MAN_MEMORY_BODY.bind(),
             ),

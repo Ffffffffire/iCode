@@ -180,3 +180,15 @@ uv run python scripts/chrys_test.py --smart --paths src/chrys/service/personal_m
 对应自动用例为 `test_management.py`、`test_lifecycle.py`，TUI 的 `test_memory_management.py` 及引擎的 `test_personal_memory.py`。这些确定性测试验证执行路径；真实模型是否主动识别有价值线索、是否忠实归纳，需要继续用实际任务观察，不能由 MockChatClient 的通过推断。
 
 评审修复的边界用例在 `test_review_fixes.py`：旧格式只读不改写、可见历史引证、候选查重、关联版本失效、终态待办重开、召回总预算、批量原子性、历史分页和日志超量拒绝。真实 `/memory` 入口及跨会话反馈见 `tests/app/tui/screens/test_memory_review_fixes.py`；ACP 回执需验证只包含本次操作，不包含整个私人库。
+
+## 工具调用统计
+
+每次记忆工具调用的结果都会写进会话轨迹（`memory.save.committed`、`memory.save.rejected`、`memory.recall.served`、`memory.consent.resolved`），只记错误码、条目数、字符数与视图名，不含标题和正文。用它统计一次会话或整个会话根目录：
+
+```bash
+uv run python scripts/memory_traffic_report.py                 # 所有会话
+uv run python scripts/memory_traffic_report.py --session <id>  # 单个会话
+uv run python scripts/memory_traffic_report.py --json          # 机器可读
+```
+
+输出给出写入失败率（拒绝数除以拒绝加提交）、按错误码的分布、召回的条目数与字符数、每次提交对应几次召回，以及确认结果的计数。改动记忆写入或召回逻辑后，用同一份数据前后各跑一次，就能看出是变好还是变坏。

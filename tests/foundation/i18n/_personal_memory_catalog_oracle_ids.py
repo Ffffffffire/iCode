@@ -6,6 +6,16 @@ from __future__ import annotations
 
 PERSONAL_MEMORY_MESSAGE_IDS: frozenset[str | tuple[str, str]] = frozenset(
     {
+        "tui.personal_memory.consent_badge",
+        "tui.personal_memory.consent_confirm_binding",
+        "tui.personal_memory.consent_drop_all",
+        "tui.personal_memory.consent_drop_binding",
+        "tui.personal_memory.consent_empty",
+        "tui.personal_memory.consent_review_title",
+        "tui.personal_memory.consent_save_all",
+        "tui.personal_memory.consent_span",
+        "tui.personal_memory.consent_warning",
+        ("tui.personal_memory.consent_review_count", "tui.personal_memory.consent_review_count#plural"),
         "tui.personal_memory.effect_unknown",
         "tui.personal_memory.confirm_conditions",
         "tui.personal_memory.review_no_feedback",

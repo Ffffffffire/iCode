@@ -16,6 +16,7 @@ from chrys.foundation.tool_kinds import KIND_CONTEXT, KIND_FILESYSTEM_READ, TOOL
 from chrys.foundation.tool_result_metadata import TOOL_FAILED_METADATA_KEY, TOOL_RESULT_METADATA_KEY
 from chrys.kernel import Content, Message
 from chrys.kernel.compaction import EXCLUDED_KEY
+from chrys.service.personal_memory.consent import shared_queue
 from chrys.service.personal_memory.runtime import PersonalMemoryRuntime
 from chrys.service.personal_memory.store import PersonalMemoryStore
 
@@ -24,6 +25,18 @@ def _runtime(tmp_path: Path) -> tuple[PersonalMemoryRuntime, PersonalMemoryStore
     store = PersonalMemoryStore(tmp_path / "memory.json")
     runtime = PersonalMemoryRuntime(bus=EventBus(), session_id="one", workspace=str(tmp_path), store=store)
     return runtime, store
+
+
+def _refused_or_waiting(result: str, store: PersonalMemoryStore) -> bool:
+    """A write without the user's own request never lands: it either refuses or waits for confirmation."""
+
+    assert store.load().entries == ()
+    if result.startswith("Error:"):
+        return False
+    payload = json.loads(result)
+    assert payload["state"] == "awaiting-confirmation"
+    shared_queue().clear()
+    return True
 
 
 @pytest.mark.parametrize(
@@ -186,7 +199,7 @@ async def test_analysis_lesson_needs_an_application_and_explicit_adoption_to_act
         application=application,
     )
     if expected is None:
-        assert result.startswith("Error:") and store.load().entries == ()
+        _refused_or_waiting(result, store)
     else:
         assert not result.startswith("Error:"), result
         assert json.loads(result)["state"] == expected
@@ -220,7 +233,7 @@ async def test_verbatim_task_quote_alone_does_not_authorize_a_memory_write(tmp_p
         save_now=True,
         application="Check that the tool list contains filesystem.read and omits filesystem.write.",
     )
-    assert result.startswith("Error:") and store.load().entries == ()
+    assert _refused_or_waiting(result, store) in (False, True)
 
 
 async def test_lesson_that_exceeds_the_rendered_recall_budget_is_not_saved(tmp_path: Path) -> None:

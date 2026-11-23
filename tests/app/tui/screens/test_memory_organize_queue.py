@@ -116,7 +116,7 @@ async def _mount_memory_app(tmp_path: Path, store: PersonalMemoryStore):
 
 async def _open_panel(pilot, app, *, view: str = "organize", memory_id: str = "") -> PersonalMemoryScreen:
     app._main_screen.action_personal_memory(view, memory_id)
-    await wait_for(lambda: isinstance(app.screen, PersonalMemoryScreen) and app.screen._loaded, pilot=pilot)
+    await wait_for(lambda: isinstance(app.screen, PersonalMemoryScreen) and app.screen.is_mounted and app.screen._loaded, pilot=pilot)
     screen = app.screen
     assert isinstance(screen, PersonalMemoryScreen)
     return screen
@@ -838,7 +838,7 @@ async def test_footer_review_badge_opens_the_queue_for_duplicates_only(tmp_path:
         before = _files(store)
 
         await click_when_settled(pilot, indicator)
-        await wait_for(lambda: isinstance(app.screen, PersonalMemoryScreen) and app.screen._loaded, pilot=pilot)
+        await wait_for(lambda: isinstance(app.screen, PersonalMemoryScreen) and app.screen.is_mounted and app.screen._loaded, pilot=pilot)
         screen = app.screen
         assert isinstance(screen, PersonalMemoryScreen)
         assert screen.current_view == "organize"
@@ -1048,7 +1048,7 @@ async def test_buddy_weekly_review_opens_the_queue_when_a_member_needs_organizin
         await wait_for(lambda: card.query_one("#buddy-memory-review", Button).visible, pilot=pilot)
 
         await click_when_settled(pilot, card.query_one("#buddy-memory-review", Button))
-        await wait_for(lambda: isinstance(app.screen, PersonalMemoryScreen) and app.screen._loaded, pilot=pilot)
+        await wait_for(lambda: isinstance(app.screen, PersonalMemoryScreen) and app.screen.is_mounted and app.screen._loaded, pilot=pilot)
         screen = app.screen
         assert isinstance(screen, PersonalMemoryScreen)
         assert screen.current_view == "organize"
@@ -1078,7 +1078,7 @@ async def test_buddy_weekly_review_keeps_its_target_when_members_need_no_organiz
         await wait_for(lambda: card.query_one("#buddy-memory-review", Button).visible, pilot=pilot)
 
         await click_when_settled(pilot, card.query_one("#buddy-memory-review", Button))
-        await wait_for(lambda: isinstance(app.screen, PersonalMemoryScreen) and app.screen._loaded, pilot=pilot)
+        await wait_for(lambda: isinstance(app.screen, PersonalMemoryScreen) and app.screen.is_mounted and app.screen._loaded, pilot=pilot)
         screen = app.screen
         assert isinstance(screen, PersonalMemoryScreen)
         assert screen.current_view == expected_view
@@ -1130,21 +1130,21 @@ async def test_ordinary_entries_never_reroute_to_the_queue(tmp_path: Path, monke
         before = await asyncio.to_thread(store.load)
 
         await click_when_settled(pilot, card.query_one("#buddy-memory-library", Button))
-        await wait_for(lambda: isinstance(app.screen, PersonalMemoryScreen) and app.screen._loaded, pilot=pilot)
+        await wait_for(lambda: isinstance(app.screen, PersonalMemoryScreen) and app.screen.is_mounted and app.screen._loaded, pilot=pilot)
         assert app.screen.current_view == "active"
         assert recalled.id in _ids(app.screen)
         await pilot.press("escape")
         await wait_for(lambda: app.screen is main, pilot=pilot)
 
         await click_when_settled(pilot, card.query_one("#buddy-memory-counts", Button))
-        await wait_for(lambda: isinstance(app.screen, PersonalMemoryScreen) and app.screen._loaded, pilot=pilot)
+        await wait_for(lambda: isinstance(app.screen, PersonalMemoryScreen) and app.screen.is_mounted and app.screen._loaded, pilot=pilot)
         assert app.screen.current_view == "recalled"
         assert recalled.id in _ids(app.screen)
         await pilot.press("escape")
         await wait_for(lambda: app.screen is main, pilot=pilot)
 
         await click_when_settled(pilot, card.query_one("#buddy-memory-item", Button))
-        await wait_for(lambda: isinstance(app.screen, PersonalMemoryScreen) and app.screen._loaded, pilot=pilot)
+        await wait_for(lambda: isinstance(app.screen, PersonalMemoryScreen) and app.screen.is_mounted and app.screen._loaded, pilot=pilot)
         screen = app.screen
         assert screen.current_view == "recalled"
         await wait_for(lambda: screen._selected_id == recalled.id, pilot=pilot)
@@ -1152,7 +1152,7 @@ async def test_ordinary_entries_never_reroute_to_the_queue(tmp_path: Path, monke
         await wait_for(lambda: app.screen is main, pilot=pilot)
 
         await click_when_settled(pilot, indicator)
-        await wait_for(lambda: isinstance(app.screen, PersonalMemoryScreen) and app.screen._loaded, pilot=pilot)
+        await wait_for(lambda: isinstance(app.screen, PersonalMemoryScreen) and app.screen.is_mounted and app.screen._loaded, pilot=pilot)
         screen = app.screen
         assert screen.current_view == "recalled"
         tabs = screen.query_one("#memory-view", Tabs)
@@ -1221,7 +1221,7 @@ async def test_off_or_failed_footer_keeps_its_browsing_target_with_a_stale_memor
         await wait_for(lambda: "Mem · Off" in rich_plain(indicator.render()), pilot=pilot, description="off badge")
 
         await click_when_settled(pilot, indicator)
-        await wait_for(lambda: isinstance(app.screen, PersonalMemoryScreen) and app.screen._loaded, pilot=pilot)
+        await wait_for(lambda: isinstance(app.screen, PersonalMemoryScreen) and app.screen.is_mounted and app.screen._loaded, pilot=pilot)
         assert app.screen.current_view == "active"
         assert _ids(app.screen) == []
         await pilot.press("escape")
@@ -1232,7 +1232,7 @@ async def test_off_or_failed_footer_keeps_its_browsing_target_with_a_stale_memor
         )
         await wait_for(lambda: "Mem · Unavailable" in rich_plain(indicator.render()), pilot=pilot, description="failed")
         await click_when_settled(pilot, indicator)
-        await wait_for(lambda: isinstance(app.screen, PersonalMemoryScreen) and app.screen._loaded, pilot=pilot)
+        await wait_for(lambda: isinstance(app.screen, PersonalMemoryScreen) and app.screen.is_mounted and app.screen._loaded, pilot=pilot)
         screen = app.screen
         assert screen.current_view == "active"
         screen.query_one("#memory-view", Tabs).active = "memory-view-organize"

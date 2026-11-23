@@ -95,7 +95,7 @@ async def test_slash_memory_creates_edits_archives_and_forgets_through_ui(tmp_pa
         assert screen.snapshot.entries[0].draft.when_to_use == ""
         await click_when_settled(pilot, screen.query_one("#memory-edit", Button))
         await wait_for(
-            lambda: isinstance(app.screen, PersonalMemoryEditor), pilot=pilot, description="edit existing memory"
+            lambda: isinstance(app.screen, PersonalMemoryEditor) and app.screen.is_mounted, pilot=pilot, description="edit existing memory"
         )
         editor = app.screen
         assert isinstance(editor, PersonalMemoryEditor)
@@ -126,7 +126,7 @@ async def test_slash_memory_creates_edits_archives_and_forgets_through_ui(tmp_pa
             description="active memory can be forgotten directly",
         )
         await click_when_settled(pilot, screen.query_one("#memory-forget", Button))
-        await wait_for(lambda: isinstance(app.screen, ConfirmDialog), pilot=pilot, description="forget confirmation")
+        await wait_for(lambda: isinstance(app.screen, ConfirmDialog) and app.screen.is_mounted, pilot=pilot, description="forget confirmation")
         await click_when_settled(pilot, app.screen.query_one("#confirm-yes", Button))
         await wait_for(
             lambda: app.screen is screen and not screen.snapshot.entries,
@@ -234,7 +234,7 @@ async def test_duplicate_save_returns_to_the_actual_saved_memory(tmp_path: Path)
             description="empty paused view",
         )
         await click_when_settled(pilot, screen.query_one("#memory-new", Button))
-        await wait_for(lambda: isinstance(app.screen, PersonalMemoryEditor), pilot=pilot, description="memory editor")
+        await wait_for(lambda: isinstance(app.screen, PersonalMemoryEditor) and app.screen.is_mounted, pilot=pilot, description="memory editor")
         editor = app.screen
         assert isinstance(editor, PersonalMemoryEditor)
         editor.query_one("#memory-edit-content", TextArea).load_text(existing.draft.content)
@@ -270,7 +270,7 @@ async def test_failed_save_preserves_draft_kind_and_other_project_scope(tmp_path
             description="other project memory selected",
         )
         await click_when_settled(pilot, screen.query_one("#memory-edit", Button))
-        await wait_for(lambda: isinstance(app.screen, PersonalMemoryEditor), pilot=pilot, description="editor open")
+        await wait_for(lambda: isinstance(app.screen, PersonalMemoryEditor) and app.screen.is_mounted, pilot=pilot, description="editor open")
         editor = app.screen
         assert isinstance(editor, PersonalMemoryEditor)
         editor.query_one("#memory-edit-kind", Select).value = "intention"

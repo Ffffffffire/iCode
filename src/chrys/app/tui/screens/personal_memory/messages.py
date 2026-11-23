@@ -80,6 +80,23 @@ RECALL_DETAILS = msg("tui.personal_memory.recall_details", fallback="Why it was 
 INDICATOR = msg("tui.personal_memory.indicator", fallback="Memory")
 INDICATOR_COMPACT = msg("tui.personal_memory.indicator_compact", fallback="Mem")
 PENDING_BADGE = msg("tui.personal_memory.pending_badge", fallback="Mem · Review {pending}")
+CONSENT_BADGE = msg("tui.personal_memory.consent_badge", fallback="Mem · Save? {pending}")
+CONSENT_CONFIRM_BINDING = msg("tui.personal_memory.consent_confirm_binding", fallback="Save all")
+CONSENT_DROP_BINDING = msg("tui.personal_memory.consent_drop_binding", fallback="Drop all")
+CONSENT_EMPTY = msg("tui.personal_memory.consent_empty", fallback="Nothing is waiting for you.")
+CONSENT_REVIEW_TITLE = msg("tui.personal_memory.consent_review_title", fallback="Proposed memories")
+CONSENT_REVIEW_COUNT = msg(
+    "tui.personal_memory.consent_review_count",
+    fallback="{count} waiting for your answer",
+    plural_fallback="{count} waiting for your answer",
+)
+CONSENT_SPAN = msg("tui.personal_memory.consent_span", fallback="From: “{span}”")
+CONSENT_SAVE_ALL = msg("tui.personal_memory.consent_save_all", fallback="Save all (y)")
+CONSENT_DROP_ALL = msg("tui.personal_memory.consent_drop_all", fallback="Drop all (n)")
+CONSENT_WARNING = msg(
+    "tui.personal_memory.consent_warning",
+    fallback="Waiting for your confirmation: {titles} — /memory confirm saves, /memory decline drops.",
+)
 RECALL_BADGE = msg("tui.personal_memory.recall_badge", fallback="Mem · {recalled} sent")
 OFF_BADGE = msg("tui.personal_memory.off_badge", fallback="Mem · Off")
 REMEMBERED = msg("tui.personal_memory.remembered", fallback="Remembered: {title}")
@@ -302,6 +319,7 @@ def failure_message(code: str) -> MessageDef:
         "memory_source_missing": FAIL_SOURCE,
         "memory_not_distilled": FAIL_DISTILLED,
         "memory_request_missing": FAIL_REQUEST,
+        "memory_consent_invalid": FAIL_REQUEST,
         "memory_review_required": FAIL_REVIEW,
         "memory_disabled": FAIL_DISABLED,
         "memory_declined": FAIL_DISABLED,

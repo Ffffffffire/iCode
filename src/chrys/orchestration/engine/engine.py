@@ -24,7 +24,7 @@ from typing import TYPE_CHECKING
 
 from chrys.foundation.config.settings import Settings, persist_approval_mode
 from chrys.foundation.config.settings_store import LoadedSettings, SettingsHandle
-from chrys.foundation.events.personal_memory import PersonalMemoryCommand
+from chrys.foundation.events.personal_memory import PersonalMemoryCommand, PersonalMemoryTrace
 from chrys.foundation.events.types import (
     AgentProfileSwitch,
     AgentRuntimeDetails,
@@ -62,6 +62,7 @@ from chrys.foundation.tool_kinds import KIND_SUB_AGENT
 from chrys.foundation.trajectory.context import TrajectoryContext
 from chrys.orchestration.engine import trajectory as trajectory_recorder
 from chrys.orchestration.engine.loader import AgentLoader
+from chrys.orchestration.engine.memory_traces import memory_trace_draft
 from chrys.orchestration.engine.rollback import RollbackController
 from chrys.orchestration.engine.run.coordinator import TurnCoordinator
 from chrys.orchestration.engine.session_lifecycle import SessionLifecycle
@@ -533,6 +534,7 @@ class AgentEngine:
         self._subscribed = True
         await self._bus.subscribe(UserMessage, self._on_user_message)
         await self._bus.subscribe(PersonalMemoryCommand, self._on_personal_memory)
+        await self._bus.subscribe(PersonalMemoryTrace, self._on_personal_memory_trace)
         await self._bus.subscribe(UserInterrupt, self._on_user_interrupt)
         await self._bus.subscribe(UserRetry, self._on_user_retry)
         await self._bus.subscribe(UserInject, self._on_user_inject)
@@ -567,6 +569,15 @@ class AgentEngine:
         if event.session_id and event.session_id != self.session_id:
             return
         await self._personal_memory.handle(event)
+
+    async def _on_personal_memory_trace(self, event: PersonalMemoryTrace) -> None:
+        """Record one memory tool outcome for this session's trajectory."""
+        if event.session_id and event.session_id != self.session_id:
+            return
+        context = self._trajectory_recorder.context()
+        if context is None:
+            return
+        await memory_trace_draft(context, event)
 
     async def shutdown(self) -> None:
         # Closing is declared before the active workflow run is drained: a requester queued behind that

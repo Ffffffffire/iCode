@@ -20,6 +20,12 @@ You can ask the agent to study the built-in agent profiles, document its analysi
 
 After discussing a method, you can also say “Use this approach in future tasks.” A document-only request produces the document by default. When suggestions are enabled, the agent can propose reusable lessons for your review.
 
+## Reviewing proposals before they are saved
+
+A save the agent suggests but did not derive from a direct request waits for you. The footer badge reads `Mem · Save? N`; clicking it, or typing `/memory pending`, opens a modal listing each proposal with its title, full text and the words it came from. Press `y` or **Save all** to keep the batch, `n` or **Drop all** to discard it, and `Esc` to close without deciding. Nothing reaches the library until you answer, and unconfirmed proposals expire after 24 hours or when iCode restarts.
+
+Each proposal survives only if its quote appears in your latest message, outside code blocks, quotes and backticks, within 200 characters, and the batch stays under 20 entries. Those checks run without interpreting your wording, so any language works.
+
 ## Types, topics and scope
 
 A memory is useful when it helps a later decision or action under stated conditions. Frequency is an observation, not proof of truth or a reason to delete rarely used knowledge.
@@ -95,6 +101,10 @@ New candidates use the existing review notice and appear in `/memory` and Buddy'
 
 ## Natural wording, polishing and updates
 
+`/memory add <text>` writes one line yourself: the command is the confirmation, so nothing is inferred from how you phrased it. The first sentence becomes the title, your words are kept as the content, and the text must stay under 600 characters. Use it when you want an entry saved now, or when an assistant-proposed save was refused and you would rather write the entry in your own words. `/memory` on its own still opens the library.
+
+When the assistant proposes a save you did not clearly ask for, nothing is written: the footer shows `Mem · Save? N` and the proposal waits for you. `/memory confirm` saves everything waiting, `/memory decline` drops it, and either command takes an ID to answer a single proposal. Proposals expire after 24 hours, and a restart clears them.
+
 You can state a preference and then ask “polish and remember that preference” without repeating it. Polishing normally creates one or two self-contained sentences, with the original quotation stored separately. Suggestions added by the assistant are not automatically endorsed preferences. They must not introduce unsupported prohibitions, exceptions or claims of verified benefits.
 
 With preference capture enabled, a clear lasting change such as “use moderate density for my technical slides from now on” can lead the agent to revise an existing entry through a tool. No fixed phrase is required; “keep doing it this way next time” can express a save request. Before writing, the agent inspects related active, pending and paused entries. The agent compares equivalent statements; exact duplicate writes reuse the existing entry without refreshing its date. Additions keep the original ID and still-valid conditions. Proposed corrections await confirmation; concurrent changes require another inspection.
@@ -161,6 +171,16 @@ The panel does not switch tabs or open dialogs automatically. References do not 
 | It helped, and you want to retain the specific lesson | Explain what worked under which conditions, then request a save or update; general praise does not automatically reinforce every memory |
 
 Paused entries stop participating in subsequent recall and can be restored. Forgetting removes the entry, revisions, pending corrections, recall references and local activity content, including dependent derived or merged memories. Existing chat history is not erased. Incomplete cleanup reports an error and can be retried. Rare use does not establish low value; entries do not expire solely because they are old.
+
+## Titles, recall views and the review trail
+
+A title carries the topic, not a sentence: the library rejects titles over 40 characters that end in punctuation or split on a comma. Ask iCode to rename an entry and it changes only the title; text, evidence and revision history stay, and the revision number goes up by one.
+
+When the agent inspects entries before writing, it gets an index by default: id, title, revision, state, topics and when to use. The text and older revisions come only when it asks for the full view. Consecutive writes after one inspection no longer need a second lookup, and replacing an entry requires having inspected that entry's current revision.
+
+Proposals the agent writes never enter the library on their own. A save the agent performed without your request waits in the badge until you confirm or decline it, and each outcome is written to the session trajectory as `memory.save.committed`, `memory.save.rejected`, `memory.recall.served` or `memory.consent.resolved`, with counts and codes only. Titles and bodies never reach that log. A confirmed proposal is recorded with the `consent` authorization, so the history distinguishes your decision from an explicit `/memory add`.
+
+Pending proposals live in the running process only: they survive neither a restart nor another session, which is why the modal lists what this session asked for.
 
 ## Review and maintenance
 

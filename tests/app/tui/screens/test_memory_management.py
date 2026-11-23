@@ -57,7 +57,7 @@ async def test_slash_filters_feedback_activity_and_follow_up_completion(tmp_path
         bar.focus_input()
         bar.query_one("#chat-input", TextArea).load_text("/memory")
         await pilot.press("enter")
-        await wait_for(lambda: isinstance(app.screen, PersonalMemoryScreen) and app.screen._loaded, pilot=pilot)
+        await wait_for(lambda: isinstance(app.screen, PersonalMemoryScreen) and app.screen.is_mounted and app.screen._loaded, pilot=pilot)
         screen = app.screen
         assert isinstance(screen, PersonalMemoryScreen)
         screen.query_one("#memory-view", Tabs).active = "memory-view-recalled"
@@ -113,7 +113,7 @@ async def test_continue_follow_up_uses_normal_composer_and_preserves_existing_dr
         bar = main.query_one(InputBar)
         bar.replace_draft("Unfinished draft")
         main.action_personal_memory("followups", entry.id)
-        await wait_for(lambda: isinstance(app.screen, PersonalMemoryScreen) and app.screen._loaded, pilot=pilot)
+        await wait_for(lambda: isinstance(app.screen, PersonalMemoryScreen) and app.screen.is_mounted and app.screen._loaded, pilot=pilot)
         screen = app.screen
         assert isinstance(screen, PersonalMemoryScreen)
         await click_when_settled(pilot, screen.query_one("#memory-continue", Button))

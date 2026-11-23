@@ -42,7 +42,7 @@ async def test_search_coalesces_changes_and_enter_flushes_the_query(
     app = make_chrys_app(tmp_path / "sessions", engine=SessionGenerationEngine(), event_bus=bus)
     async with app.run_test(size=(100, 40)) as pilot:
         app._main_screen.action_personal_memory()
-        await wait_for(lambda: isinstance(app.screen, PersonalMemoryScreen) and app.screen._loaded, pilot=pilot)
+        await wait_for(lambda: isinstance(app.screen, PersonalMemoryScreen) and app.screen.is_mounted and app.screen._loaded, pilot=pilot)
         screen = app.screen
         assert isinstance(screen, PersonalMemoryScreen)
         searches = []
@@ -116,11 +116,11 @@ async def test_editor_validates_metadata_then_updates_the_same_memory(tmp_path: 
     app = make_chrys_app(tmp_path / "sessions", engine=SessionGenerationEngine(), event_bus=bus)
     async with app.run_test(size=(100, 45)) as pilot:
         app._main_screen.action_personal_memory()
-        await wait_for(lambda: isinstance(app.screen, PersonalMemoryScreen) and app.screen._loaded, pilot=pilot)
+        await wait_for(lambda: isinstance(app.screen, PersonalMemoryScreen) and app.screen.is_mounted and app.screen._loaded, pilot=pilot)
         screen = app.screen
         assert isinstance(screen, PersonalMemoryScreen)
         await click_when_settled(pilot, screen.query_one("#memory-edit", Button))
-        await wait_for(lambda: isinstance(app.screen, PersonalMemoryEditor), pilot=pilot)
+        await wait_for(lambda: isinstance(app.screen, PersonalMemoryEditor) and app.screen.is_mounted, pilot=pilot)
         editor = app.screen
         assert isinstance(editor, PersonalMemoryEditor)
         editor.query_one("#memory-edit-options", Collapsible).collapsed = False
@@ -179,7 +179,7 @@ async def test_batch_action_locks_controls_and_recovers_after_reply(tmp_path: Pa
     app = make_chrys_app(tmp_path / "sessions", engine=SessionGenerationEngine(), event_bus=bus)
     async with app.run_test(size=(100, 40)) as pilot:
         app._main_screen.action_personal_memory()
-        await wait_for(lambda: isinstance(app.screen, PersonalMemoryScreen) and app.screen._loaded, pilot=pilot)
+        await wait_for(lambda: isinstance(app.screen, PersonalMemoryScreen) and app.screen.is_mounted and app.screen._loaded, pilot=pilot)
         screen = app.screen
         assert isinstance(screen, PersonalMemoryScreen)
         screen.query_one("#memory-list", OptionList).focus()
@@ -224,7 +224,7 @@ async def test_model_error_uses_readable_ui_message_and_keeps_detail_in_tooltip(
     app = make_chrys_app(tmp_path / "sessions", engine=SessionGenerationEngine(), event_bus=bus)
     async with app.run_test(size=(100, 40)) as pilot:
         app._main_screen.action_personal_memory()
-        await wait_for(lambda: isinstance(app.screen, PersonalMemoryScreen) and app.screen._loaded, pilot=pilot)
+        await wait_for(lambda: isinstance(app.screen, PersonalMemoryScreen) and app.screen.is_mounted and app.screen._loaded, pilot=pilot)
         screen = app.screen
         await bus.publish(
             PersonalMemoryChanged(
@@ -262,7 +262,7 @@ async def test_library_and_footer_agree_on_capacity_warning(
         main = app._main_screen
         assert main is not None
         main.action_personal_memory()
-        await wait_for(lambda: isinstance(app.screen, PersonalMemoryScreen) and app.screen._loaded, pilot=pilot)
+        await wait_for(lambda: isinstance(app.screen, PersonalMemoryScreen) and app.screen.is_mounted and app.screen._loaded, pilot=pilot)
         screen = app.screen
         snapshot = MemorySnapshot(
             generation=1,

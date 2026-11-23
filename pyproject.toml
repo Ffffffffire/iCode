@@ -225,6 +225,8 @@ ignore = [
 "src/chrys/app/installer.py" = ["T20", "S603", "S607", "PLW1510"]
 # Wheel check — prints its progress and runs uv, git and the installed commands
 "scripts/check_wheel.py" = ["T20", "S603", "S607"]
+# Traffic reporting CLI — print is the report itself
+"scripts/memory_traffic_report.py" = ["T20"]
 # Shell tool — its entire purpose is running subprocess commands
 "src/chrys/service/tools/builtins/shell.py" = ["S603", "S607"]
 # Workflow SDK and worker host run inside any Python >= 3.9 interpreter: 3.9 syntax only

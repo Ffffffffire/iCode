@@ -1,6 +1,12 @@
 # Copyright (c) Huawei Technologies Co., Ltd. 2026. All rights reserved.
 
-"""Ground durable write authorization in the current user's words."""
+"""Ground durable write authorization in the current user's words.
+
+Two layers share this module. ``save_request`` recognizes a request form and is
+only a fast path: a miss defers to a visible confirmation, never to a refusal.
+``validate_consent`` checks the span a write relies on without reading its
+meaning, so every language gets the same guarantees.
+"""
 
 from __future__ import annotations
 
@@ -71,6 +77,18 @@ _FUTURE_USE = re.compile(
 )
 _NEGATION_WORD = re.compile(_NEGATION, re.IGNORECASE)
 _LITERAL_MEMORY_NAME = re.compile(_MEMORY_NAME, re.IGNORECASE)
+# Object-first Chinese ("知识点整理到记忆里面") and memory-as-instrument
+# ("通过记忆机制进行沉淀") put the action outside the request-prefix grammar.
+_TAIL_STORAGE = re.compile(
+    rf"(?:整理|归纳|汇总|梳理|沉淀|记录|保存)(?:到|进|入(?:到)?|至)\s*{_DESTINATION}"
+    rf"|(?:通过|用|借助|靠)\s*{_MEMORY_NAME}\s*(?:机制|功能|系统)?\s*(?:来|去)?\s*(?:进行)?"
+    rf"(?:沉淀|记录|保存|记下|留存)",
+    re.IGNORECASE,
+)
+# A slash command occupies the same offsets as a request prefix would.
+_COMMAND_PREFIX = re.compile(r"^[ \t]*/[A-Za-z][\w.-]*[ \t]+")
+MAX_CONSENT_CHARS = 200
+MAX_CONSENT_BATCH = 20
 _QUOTED_TEXT = re.compile(
     r"(?ms:^[ \t]*\x60{3}.*?(?:^[ \t]*\x60{3}[ \t]*$|\Z)|^[ \t]*~~~.*?(?:^[ \t]*~~~[ \t]*$|\Z))|"
     r"(?m:^[ \t]*>[^\n]*)|\x60[^\x60\n]*\x60|\"[^\"\n]*\"|(?<!\w)'[^'\n]*'(?!\w)|“[^”]*”|"
@@ -83,6 +101,12 @@ class SaveRequest:
     quote: str
     correction: bool = False
     refers_to_material: bool = False
+
+
+@dataclass(frozen=True, slots=True)
+class ConsentDecision:
+    ok: bool
+    reason: str = ""
 
 
 def unquoted_text(text: str, *, keep_memory_names: bool = False) -> str:
@@ -111,9 +135,50 @@ def declines_memory(text: str) -> bool:
     return _DECLINE_STORAGE.search(unquoted_text(text, keep_memory_names=True)) is not None
 
 
+def _quoted_ranges(text: str) -> tuple[tuple[int, int], ...]:
+    """Ranges that hold pasted material; a quoted memory name stays the user's own words."""
+
+    kept = unquoted_text(text, keep_memory_names=True)
+    full = unquoted_text(text)
+    return tuple(
+        (match.start(), match.end())
+        for match in _QUOTED_TEXT.finditer(text)
+        if kept[match.start() : match.end()] == full[match.start() : match.end()]
+    )
+
+
+def validate_consent(message: str, span: str, *, batch_size: int = 1) -> ConsentDecision:
+    """Check a write's authorization span without reading what it means.
+
+    Positions, lengths and counts decide; the words do not. That keeps the
+    guarantees identical for every language: the span must appear in the message
+    outside pasted examples, stay short enough to be a request, and cover at most
+    a bounded batch.
+    """
+
+    span = span.strip()
+    if not span:
+        return ConsentDecision(False, "consent_span_missing")
+    if len(span) > MAX_CONSENT_CHARS:
+        return ConsentDecision(False, "consent_span_too_long")
+    if batch_size > MAX_CONSENT_BATCH:
+        return ConsentDecision(False, "consent_batch_too_large")
+    quoted = _quoted_ranges(message)
+    offset = message.find(span)
+    pasted_only = False
+    while offset >= 0:
+        end = offset + len(span)
+        if not any(start < end and offset < stop for start, stop in quoted):
+            return ConsentDecision(True)
+        pasted_only = True
+        offset = message.find(span, end)
+    return ConsentDecision(False, "consent_span_pasted" if pasted_only else "consent_span_missing")
+
+
 def save_request(text: str, intent_quote: str = "") -> SaveRequest | None:
     """Find a retention target or a grounded direction to reuse a method later."""
     visible = unquoted_text(text, keep_memory_names=True)
+    visible = _COMMAND_PREFIX.sub(lambda match: " " * len(match.group()), visible)
     for match in _SAVE_REQUEST.finditer(visible):
         prefix = _SENTENCE_END.split(visible[: match.start()])[-1]
         if _INDIRECT_REQUEST.match(prefix):
@@ -126,6 +191,12 @@ def save_request(text: str, intent_quote: str = "") -> SaveRequest | None:
             correction=bool(match["correction"]),
             refers_to_material=bool(reference or (match["storage"] and not has_inline_statement)),
         )
+
+    tail = _TAIL_STORAGE.search(visible)
+    if tail is not None:
+        prefix = _SENTENCE_END.split(visible[: tail.start()])[-1]
+        if not _INDIRECT_REQUEST.match(prefix):
+            return SaveRequest(quote=text[tail.start() : tail.end()].strip(), refers_to_material=True)
 
     quote = intent_quote.strip()
     offset = visible.find(quote) if quote else -1

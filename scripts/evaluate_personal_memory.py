@@ -32,7 +32,8 @@ async def evaluate(dataset: dict) -> dict:
     counts = {"opening_hits": 0, "action_recoveries": 0, "standing_injections": 0, "explicit_hits": 0}
     results = []
     with TemporaryDirectory(prefix="icode-memory-evaluation-") as temporary:
-        root = Path(temporary)
+        # The owner-only writer refuses a symlinked parent: /var is one on macOS.
+        root = Path(temporary).resolve()
         entries = tuple(
             PersonalMemory(
                 m["id"],

@@ -14,7 +14,7 @@ from chrys.foundation.events.bus import EventBus
 from chrys.foundation.models.personal_memory import MemoryDraft, MemorySource
 from chrys.kernel import Message
 from chrys.service.personal_memory.runtime import PersonalMemoryRuntime
-from chrys.service.personal_memory.store import MemoryStoreError, PersonalMemoryStore, review_key
+from chrys.service.personal_memory.store import MemoryStoreError, PersonalMemoryStore
 
 PREFERENCE = "I prefer dense diagrams for technical slides."
 
@@ -185,15 +185,21 @@ async def test_write_requires_review_again_after_a_concurrent_change(tmp_path: P
     assert "for_update=true" in result and store.load().entries == (old,)
 
 
-def test_store_rechecks_review_under_the_write_lock(tmp_path: Path) -> None:
+def test_store_rechecks_the_inspected_entries_under_the_write_lock(tmp_path: Path) -> None:
     _, store = _runtime(tmp_path)
-    key = review_key(store.load(), str(tmp_path))
-    store.save(MemoryDraft("Slides", "Sparse diagrams", "Technical slides"), MemorySource())
+    first = store.save(MemoryDraft("Slides", "Sparse diagrams", "Technical slides"), MemorySource())
+    inspected = ((first.id, first.revision),)
+    store.save(
+        replace(first.draft, content="Sparse diagrams, one idea per slide"),
+        first.source,
+        memory_id=first.id,
+        revision=first.revision,
+    )
     with pytest.raises(MemoryStoreError, match="changed"):
         store.save(
             MemoryDraft("Diagrams", "Dense diagrams", "Technical slides"),
             MemorySource(),
-            reviewed_catalog=key,
+            reviewed=inspected,
             request_workspace=str(tmp_path),
         )
 
